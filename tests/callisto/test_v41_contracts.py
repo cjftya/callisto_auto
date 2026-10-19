@@ -38,14 +38,16 @@ async def test_fake_child_uses_provider_auth_policy_without_changing_parent(prov
     monkeypatch.setenv("OpenAi_Api_Key", "mixed-case-test-key")
     monkeypatch.setenv("CODEX_HOME", str(tmp_path / "existing-login-location"))
     monkeypatch.setenv("CLAUDE_CONFIG_DIR", str(tmp_path / "existing-claude-location"))
+    # Windows aliases differently cased names to the same variable. Compare
+    # the prepared parent values, rather than assuming POSIX key identity.
+    parent_values = {key: os.environ[key] for key in blocked | {"OpenAi_Api_Key"}}
     script = "import os,json; print(json.dumps({'keys':list(os.environ),'codex_home':os.environ.get('CODEX_HOME'),'claude_dir':os.environ.get('CLAUDE_CONFIG_DIR')}))"
     result = await run_process([sys.executable, "-c", script], stdin="", cwd=str(tmp_path), timeout=5, provider=provider)
     data = json.loads(result.stdout)
     assert not {key.upper() for key in data["keys"]} & blocked
     assert data["codex_home"] == str(tmp_path / "existing-login-location")
     assert data["claude_dir"] == str(tmp_path / "existing-claude-location")
-    assert os.environ["OPENAI_API_KEY"] == "test-only-do-not-forward"
-    assert os.environ["OpenAi_Api_Key"] == "mixed-case-test-key"
+    assert {key: os.environ[key] for key in parent_values} == parent_values
 
 
 def test_auth_policies_are_separate_and_do_not_read_blocked_values():
