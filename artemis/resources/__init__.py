@@ -12,14 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Access to immutable defaults and web assets shipped with Artemis.
-
-Python wheels are installed as ordinary directories by pip, so callers that
-need to hand a path to another library (for example FastAPI's ``FileResponse``)
-can safely use the paths returned here. Source checkouts continue to prefer
-their editable ``config`` and ``apps/showcase_ui/dist`` trees; these resources
-are the installation fallback.
-"""
+"""Access to immutable CLI configuration defaults shipped with Callisto."""
 
 from importlib.resources import files
 from pathlib import Path
@@ -37,10 +30,4 @@ def get_bundled_config_path(filename: str) -> Path | None:
     return candidate if candidate.is_file() else None
 
 
-def get_bundled_showcase_dist() -> Path | None:
-    """Return the bundled Angular browser build when it is complete."""
-    candidate = _resource_path("showcase_ui")
-    return candidate if (candidate / "index.html").is_file() else None
-
-
-__all__ = ["get_bundled_config_path", "get_bundled_showcase_dist"]
+__all__ = ["get_bundled_config_path"]

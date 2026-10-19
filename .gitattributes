@@ -1,0 +1,6 @@
+# Preserve upstream source/prompt byte hashes on Windows checkouts too.
+* text=auto eol=lf
+*.png binary
+*.ico binary
+*.apk binary
+*.keystore binary

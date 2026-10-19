@@ -18,9 +18,9 @@ from importlib.metadata import PackageNotFoundError, version
 
 
 def get_version() -> str:
-    """Return the installed Artemis version, or an honest source-tree sentinel."""
+    """Return the installed Callisto version, or an honest source-tree sentinel."""
     try:
-        return version("artemis")
+        return version("callisto-auto")
     except PackageNotFoundError:
         return "0+unknown"
 

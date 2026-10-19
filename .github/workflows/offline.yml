@@ -1,13 +1,17 @@
 name: Offline validation
 on:
   push:
-    branches: [master]
+    branches: [master, main]
   pull_request:
 permissions:
   contents: read
 jobs:
-  pro-regression:
-    runs-on: ubuntu-latest
+  cli-regression:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
     env:
       CALLISTO_FORBID_LIVE_CLI: "1"
     steps:
@@ -15,18 +19,24 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: python -m pip install -e '.[dev]' wheel
-      - run: python -m pytest
-      - run: python -m pip wheel --no-deps --no-build-isolation -w dist .
+          cache: pip
+      - run: python -m pip install -e ".[dev]" wheel setuptools
+      - name: Full Pro regression (Linux)
+        if: runner.os == 'Linux'
+        run: python -m pytest --junitxml=dist/tests.xml
+      - name: CLI and process portability (Windows)
+        if: runner.os == 'Windows'
+        run: python -m pytest tests/callisto --junitxml=dist/tests.xml
       - run: python -m pip check
-  adapter-portability:
-    runs-on: windows-latest
-    env:
-      CALLISTO_FORBID_LIVE_CLI: "1"
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - run: python -m pip wheel --no-deps --no-build-isolation -w dist .
+      - name: Clean wheel installation and offline smoke test
+        shell: python
+        run: |
+          import glob, subprocess, sys
+          wheel, = glob.glob('dist/callisto_auto-*.whl')
+          subprocess.run([sys.executable, 'tools/verify_wheel.py', wheel, '--report', 'dist/wheel-report.json'], check=True)
+      - uses: actions/upload-artifact@v4
+        if: always()
         with:
-          python-version: "3.12"
-      - run: python -m pip install -e ".[dev]"
-      - run: python -m pytest tests/callisto
+          name: offline-${{ runner.os }}-${{ github.sha }}
+          path: dist/
