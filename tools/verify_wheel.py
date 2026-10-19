@@ -29,6 +29,10 @@ def main():
         assert any(n.endswith('/share/callisto/helper/helper_manifest.json') for n in names)
         forbidden = ('showcase_ui', 'admin_console', 'mcp_server/', 'artemis/agents/flash/flash.py')
         assert not any(any(marker in name for marker in forbidden) for name in names)
+        for module in ('adb_server', 'xml_search_server'):
+            source = archive.read(f'artemis/mcp/{module}.py')
+            assert b'External MCP entrypoints are disabled' in source
+            assert b'mcp.run(' not in source
         bundled_apk = any(n.endswith('.apk') for n in names)
     environment = dict(os.environ, CALLISTO_FORBID_LIVE_CLI='1')
     environment.pop('PYTHONPATH', None)

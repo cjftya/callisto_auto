@@ -22,3 +22,14 @@
   against a mismatched Work PID namespace.
 - Keep original licenses and source SHA. Update the capability matrix and
   migration status with evidence; never equate mock success with live parity.
+
+- Preserve LF checkouts (`.gitattributes`) so the upstream manifest also checks
+  exact bytes on Windows. Do not regenerate the preservation hashes to hide drift.
+- Keep `mcp<2`: Pro uses the v1 FastMCP in-process API. Upgrade only with explicit
+  action-session equivalence tests. Google SDK is retained for data types only.
+- Build without frontend: install `setuptools wheel`, run `pip wheel --no-deps
+  --no-build-isolation -w dist .`, then `python tools/verify_wheel.py <wheel>`.
+  The latter creates a clean venv; help/import checks never execute AI CLIs.
+- The canonical Skill is `skills/callisto/SKILL.md`; the discovery pointer and
+  wheel package must use that source. Helper APK is absent: preserve source and
+  manifest, and report this instead of claiming bundled provisioning passed.

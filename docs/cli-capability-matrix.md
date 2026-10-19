@@ -13,8 +13,8 @@
 | ARTEMIS 도구 호출 | 실행하지 않고 name/ID/args 반환, 오프라인 통과 | 구조 구현, 미검증 | 미구현 |
 | tool 결과 왕복 / 대화 이력 | 오프라인 통과 | 구조 구현, 미검증 | 미구현 |
 | 부분 출력 / 프로세스 실패 | 완료 이벤트/종료 코드 확인, 오프라인 통과 | success subtype/종료 코드 확인 | 미구현 |
-| 타임아웃 / 비동기 취소 | Linux 자식 그룹 정리 테스트 통과 | 공통 프로세스 전송 사용 | 미구현 |
-| Windows 자식 트리 정리 | 구현, 대상 Windows 미검증 | 공통 구현, 대상 Windows 미검증 | 미구현 |
+| 타임아웃 / 비동기 취소 | Linux fake 자식 그룹 정리 테스트 통과 | 공통 프로세스 전송 사용 | 미구현 |
+| Windows 자식 트리 정리 | fake 트리 회귀 추가, CI 결과는 migration-status 참조. 실제 공급자는 미검증 | 공통 fake 트리 회귀 추가, CI 결과는 migration-status 참조. 실제 공급자는 미검증 | 미구현 |
 | 실제 계정 인증 / 추론 | 사용자 PC에서 수행 예정 | 사용자 PC에서 수행 예정 | 미구현 |
 | Android E2E | 사용자 PC에서 수행 예정 | 이미지 전송이 없어 대상 아님 | 미구현 |
 
@@ -47,3 +47,13 @@ CLI 자체가 Android 액션을 수행하지 않아요. CLI 출력은 `{content,
 - https://learn.chatgpt.com/docs/non-interactive-mode
 - https://code.claude.com/docs/en/headless
 - https://geminicli.com/docs/cli/headless/
+
+## v4 경계 및 배포 제한
+
+- API 키 환경 변수는 Explorer/영상 엔진을 선택하지 않아요. 기본 경로는 기존 Universal 프레임/이미지 엔진이에요.
+- 직접 API 공급자는 모두 거부해요. 레거시 Settings 키 getter는 항상 None이고 키 저장/ADC 검증은 명시적으로 거부해요.
+- Codex의 shell/apps/plugins/hooks/subagent/search 기능을 끄는 명령을 구성해요. 공급자 자체 도구 실행 이벤트가 발견된 응답도 실패로 처리해요.
+- 공식 CLI 플래그를 문서와 대조했지만 실제 설치 버전별 호환성, 로그인, 정확도는 사용자 PC 확인이 필요해요.
+- CLI Skill과 Helper 버전 manifest는 wheel에 들어가요. APK 바이너리는 없으므로 번들 Helper 설치는 검증하지 않았어요.
+- 내부 액션 세션은 mcp v1 API를 사용하므로 `mcp>=1.26,<2`를 유지해요. 설치된 Google SDK는 데이터 타입 용도이며 직접 Client 생성은 활성 소스에 없어요.
+- 과거 진단 ID (`gemini_api_key`, `vision_ocr_key`)와 서버 경로 상수는 저장된 보고서/import 호환용이에요. 외부 서버를 실행하지 않아요.

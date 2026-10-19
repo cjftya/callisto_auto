@@ -1,62 +1,71 @@
-# Callisto 전환 진행 상황 — 2026-10-19
+# Callisto v4 전환 상태 — 2026-10-19
 
-## 실행 범위 수정
+**코드 정리 완료, 실제 CLI·Android 실사용 검증 미완료.**
+Work에서 실제 `codex`/`claude`/`gemini`, 로그인/버전 probe, `callisto run`은 실행하지 않아요.
+모든 자동 검증은 fake CLI·모킹·정적 검사 또는 CLI 도움말/import 검사예요.
 
-사용자가 Work 내부 AI CLI 실행을 하지 않고 구현을 진행하도록 명시했어요.
-과거 Work 중첩 CLI 실행 실패를 P1~P4 개발의 차단 조건으로 사용하지 않아요.
-실제 공급자·Android 검증은 대상 PC에 남기며, 오프라인 테스트로 대체 통과 처리하지 않아요.
-반영 대상 브랜치는 사용자가 지정한 `master`이며 저장소 기본 `main` 설정은 변경하지 않아요.
+## 변경 결과
 
-## 구현
+- Pro 그래프, Planner/Operator/Checker/Validator/Diagnoser 및 프롬프트 등 보존 manifest **32개 파일의 SHA-256 일치**.
+- API 키 유무에 따른 Explorer/영상 분석 경로 분기 제거. 기존 Universal 프레임 엔진을 사용하고, 명시적으로 주입한 native 호환 포트는 원본 알고리즘 검사에 사용해요.
+- Settings의 API 키 수집·저장과 Vertex ADC 조회를 비활성화했어요. 과거 키 getter는 None, 저장·ADC는 명시적 미지원 오류예요.
+- 남아 있던 ADB/XML 모듈의 외부 MCP `__main__` 진입점은 명시적 오류로 종료하게 차단했어요. 내부 도구 함수와 in-process 세션은 유지해요.
+- 직접 AI 공급자를 모두 거부하고 Google SDK import는 `google.genai.types`로 제한하는 회귀를 추가했어요.
+- OCR의 미사용 HTTP 클라이언트·Vision 파서를 제거했어요. opt-in CLI OCR의 text/polygon 형식과 실패 전파를 검사해요.
+- 기본 및 메모리 압축 설정의 낡은 Gemini 모델 라벨을 기존 CLI 기본 모델 `gpt-6.1-sol`로 통일했어요. `CALLISTO_MODEL` 우선권은 유지해요.
+- 공급자 자체 shell/apps/plugins/hooks/subagent/search를 비활성화하는 명령을 구성하고, 응답에 공급자 도구 실행 이벤트가 있으면 실패로 처리해요.
+- 웹 정적 산출물 7개와 브라우저 리소스 accessor를 삭제했어요. 불필요한 직접 의존성 10개를 제거했지만 google-genai types와 내부 MCP는 유지해요.
+- 독립 설치에서 드러난 MCP 2.x 비호환을 막도록 `mcp<2`로 제한했어요. FastMCP v1 액션 계약은 바꾸지 않아요.
+- Callisto 배포 메타데이터로 버전을 조회하고, 호환 client 패키지·표준 Skill·Helper manifest를 wheel에 포함해요.
+- master/main push 및 PR에서 Linux 전체 회귀와 Windows CLI/프로세스 회귀, 양쪽 wheel 격리 설치를 실행하도록 CI를 구성했어요.
+- `.gitattributes`의 LF 규칙으로 Windows checkout도 원본 파일 해시를 보존해요. 해시 기대값을 바꾸지 않았어요.
 
-| 단계 | 상태 |
-|---|---|
-| P0 실제 CLI 기능 검증 | 대상 PC에 보류. Work에서 실행 금지 |
-| P1 선별 이관·라이선스·기준 SHA | 완료 |
-| P2 LangChain CLI 어댑터·native 통신 경계 | 초기 Codex 구현/오프라인 계약 검증 완료. 공급자별 기능 차이 존재 |
-| P3 standalone·웹/외부 MCP/Flash 실행 제거 | 완료. Pro 공유 코드 보존 |
-| P4 Callisto CLI·Skill·설치 및 사용자 PC 검증 스크립트 | 구현 완료 |
-| P5 회귀·패키징 | 아래 오프라인 검증 완료. 실제 계정/기기/Windows 검증 미완료 |
+원본 API/웹/외부 MCP/Flash runner 테스트는 `tests/upstream_removed/`에서 이력을 유지해요.
+적용 가능한 버전·설정·리소스 계약은 활성 Callisto 테스트로 옮겼어요.
+내부 in-process MCP, Pro 공유 summarizer/compressor, Explorer `flash` tier는 보존했어요.
+파일별 판정과 근거: [v4 감사 보고서](cli-v4-audit.md).
 
-기존 Pro Planner/Operator/Explorer/Validator/Checker/Diagnoser/Summarizer/Outputter와
-그래프, 체크포인트, 상태·복구, ADB/Helper, Trace를 유지했어요.
-보존 대상의 원본 해시는 `upstream-preserved-manifest.json`과 자동 테스트로 확인해요.
+## 로컬 오프라인 증거
 
-## 검증 증거
+환경: Linux x86_64 / Python 3.12.14. 시작 master `c56d3c7`, main `3aa3ccb`.
 
-환경: Linux x86_64, Python 3.12.14. 실제 AI CLI는 실행하지 않았어요.
+- 시작 기준선: **2076 passed, 27 skipped, 8 deselected**, 87 warnings.
+- v4 전체 회귀: **2100 passed, 29 skipped, 8 deselected**, 89 warnings.
+- skip 29개 = 기존 27개 + Windows 전용 fake 자식 트리 테스트 2개.
+  기존 skip에는 Work의 PID namespace와 host `/proc` 불일치로 제외한 테스트 17개가 있어요.
+  이 17개는 일반 Linux CI에서 실행돼요. 실제 기기/API 관련 원본 검사는 기본 suite에 포함하지 않아요.
+- `pip check`: 깨진 의존성 없음. 정적 lint와 `git diff --check` 통과.
+- 보존 manifest: 32/32 일치. 활성 소스의 Google SDK Client/credential import 없음.
+- wheel 빌드 및 별도 clean venv 설치 통과. checkout 밖에서 Pro graph·실제 CLI 실행 함수·호환 SDK client import, 기본 설정, 모든 CLI 도움말과 버전을 확인했어요. AI CLI 실행 없음.
+- wheel에 표준 Skill, Helper 버전 manifest, 라이선스가 포함되고 웹/외부 서버/Flash runner 산출물은 없음을 확인했어요. APK 없음도 명시적으로 기록해요.
+- 위 코드 검증의 GitHub 커밋: `2c489641b01c53cac3b1e11360ba450a1e331bea` (원본 보존 해시도 일치).
+- GitHub Actions는 각 master/main HEAD에서 별도로 검증하며, 테스트 XML 및 wheel-report JSON을 artifact로 남겨요. [Actions 결과](https://github.com/cjftya/callisto_auto/actions/workflows/offline.yml)에서 실행 SHA와 결과를 확인할 수 있어요.
 
-- `python -m pytest -q --tb=short`: **2076 passed, 27 skipped, 8 deselected**.
-  skip 27개에는 Work PID namespace와 host `/proc` 불일치 때문에 실행하지 않은 원본 생존/잠금 테스트 17개가 포함돼요. 이 17개는 정상 PID 환경의 사용자 PC/CI에서는 실행돼요.
-  경고 87개는 주로 원본 Pillow deprecated API 및 mock GenAI thinking-level 값 관련이에요.
-- 초기 독립 검증: Pro 그래프/체크포인트/문맥/기존 Universal 경로/구조화 응답 249개 통과.
-- Callisto 어댑터/경계 테스트 39개 통과. timeout/cancellation은 fake Python 자식 프로세스로 확인해요.
-- 부분 출력·비정상 종료·잘못된 도구 이름/ID/인자/schema 거부, 이미지 순서/메시지 이력,
-  structured output, 요청 직렬화, 제한된 출력, 민감 원문 비노출을 확인했어요.
-- 실제 SDK 호출을 만들던 경로는 CLI factory/native port 또는 명시적 미지원 오류로 바꿨어요.
-- 기존 readiness의 API 키 수집·반환을 제거하고 CLI 경로 존재 검사로 교체했어요. 공식 로그인·추론은 미검증으로 표시해요.
-- `python -m pip check`: 깨진 의존성 없음.
-- editable 설치 및 frontend 없는 wheel 빌드 성공.
-- wheel의 Pro 그래프/내부 액션 세션/기본 설정/라이선스 포함과 웹/외부 MCP/Flash runner 제외 확인.
-- 별도 설치 디렉터리에서도 기본 설정 로딩, Pro import, CLI help 성공. 실제 AI CLI 실행 없음.
-- 제거된 원본 구성요소 테스트는 `tests/upstream_removed/`에 보관했어요.
-  일부 혼합 테스트 파일은 원래 계약의 검사만 보관하고 Pro/공유 검사는 계속 실행해요.
+## 설치와 실사용 제한
 
-자동 테스트의 `CALLISTO_FORBID_LIVE_CLI=1`은 실제 AI CLI 실행을 차단해요.
-모든 stderr 401을 전체 인증 실패로 분류하던 이전 준비 검사 도구는 제거했어요.
-새 어댑터는 플러그인 stderr 경고를 성공한 모델 응답의 실패로 덮어쓰지 않아요.
+- Codex는 필수 transport 구현 대상이며 fake 텍스트/이미지/schema/tool 왕복/여러 턴을 검증해요. 실제 계정 인증과 모델 호환성은 미검증이에요.
+- Claude 텍스트는 실험 단계, 이미지 미지원. Gemini CLI는 미구현이에요.
+- native Files/Interactions/cache/audio/server-side search는 미지원이며 명시적으로 거부해요. native와 Universal의 의미·정확도 동등성을 주장하지 않아요.
+- OCR 좌표·object detector 공간 인지, Android 탭/제스처·체크포인트·복구·Trace는 실제 기기에서 확인해야 해요.
+- **Helper APK 바이너리는 저장소/wheel에 없어요.** 소스·버전 manifest는 보존해요. 사용자 PC에서 소스를 빌드하거나 호환 Helper를 먼저 설치해야 하며, 번들 자동 설치 성공을 주장하지 않아요. UIAutomator2 fallback은 유지해요.
+- Windows fake Python 프로세스 회귀는 실제 Codex 또는 npm `.cmd` launcher 호환성까지 보증하지 않아요.
 
-## 남은 실제 검증 및 미지원 기능
+## 사용자 PC에서만 실행할 수용 검증
 
-- 사용자 PC의 `tools/verify_local_cli.py --allow-live-cli`로 실제 Codex 텍스트/이미지/JSON/tool call/여러 턴 확인.
-- 실제 Android 또는 에뮬레이터에서 자연어 테스트, 좌표 정확도, 기기 연결 오류, 복구·체크포인트·Trace 확인.
-- 실제 공급자 긴 입력·인증 실패·취소·timeout 및 Windows 프로세스 정리 확인.
-- Claude 텍스트 transport는 실험 구현, 이미지 미구현. Gemini CLI 미구현.
-- native Files/Interactions/agentic video/cloud cache/audio/server-side search 등 미지원.
-  실제 native 기능과 Universal 프레임 경로의 동등성을 보장하지 않아요.
-- OCR CLI 포트는 opt-in이며 실제 인식/좌표 정확도 검증 전이에요.
+```sh
+python tools/verify_local_cli.py --allow-live-cli
+adb devices
+callisto run "설정 앱에서 배터리 화면 확인" --device-serial SERIAL --verification-level final
+callisto trace list
+```
 
-이 상태를 “계획서의 모든 기능 동등성·실기기 검증까지 완료”로 해석하면 안 돼요.
-현재 산출물은 API 키 없이 동작하도록 전환한 Pro 런타임과 CLI 어댑터의 첫 구현이에요.
+공식 로그인은 CLI가 관리해요. API 키나 로그인 토큰을 Callisto에 복사하지 않아요.
+실제 공급자의 인증 실패·긴 입력·이미지·다중 턴·timeout/취소와 Android 결과 파일을 확인한 뒤
+실사용 검증 상태를 갱신해야 해요. 완료된 작업에 검증 항목이 없으면 `test_status=not_reported`예요.
 
-최종 결과 JSON은 task status와 test status를 구분해요. 완료지만 검증 항목이 없으면 `test_status=not_reported`이며 테스트 통과로 표시하지 않아요.
+## 브랜치 통합 원칙
+
+작업은 master에 기능별 커밋을 기록한 뒤 main과 조상 관계를 재확인해요.
+원래 main `3aa3ccb9a2bc6c8d0e7f70cbd83a59be4e8d5a78`에서 검증된 master로
+fast-forward하며 force-push를 사용하지 않아요. main HEAD에서도 동일 CI를 실행해요.
+실제 CLI·Android가 미검증인 상태에서의 통합은 코드 정리 버전의 통합이며 실사용 인증이 아니에요.

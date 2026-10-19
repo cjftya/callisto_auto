@@ -13,7 +13,7 @@
 - 원본 호환 DTO/client 패키지는 Python SDK import를 유지하기 위해 포함해요. Callisto 실행 경로가 원격 HTTP 서버를 요구하지는 않아요.
 
 `docs/upstream-preserved-manifest.json`에는 Pro 그래프·핵심 에이전트·프롬프트의 원본 SHA-256이 있어요.
-자동 테스트가 실제 이관 파일의 동일성을 확인해요. Explorer·영상 분석의 변경은 native client import 경계예요.
+자동 테스트가 실제 이관 파일의 동일성을 확인해요. Explorer·영상 분석의 변경은 모델 통신 및 키 의존 엔진 선택 경계예요. 기존 Universal 알고리즘을 사용해요.
 
 ## 변경 지점
 
@@ -37,7 +37,7 @@ Flash 실행 runner는 제거했으나 Pro가 사용하는 Flash 폴더의 summa
 제거한 구성요소의 테스트는 `tests/upstream_removed/`에 보관해요. 목록·사유는 `docs/archived-tests.json`에 있어요.
 API factory/웹 빌드 테스트는 Callisto의 no-API 경계와 wheel 설치 테스트로 대체해요.
 
-원본 native 테스트가 실제 API 키 없이도 mock native 경로를 선택하도록 가짜 인증 전제 fixture를 명시했어요.
+원본 native 테스트가 실제 API 키 없이도 mock native 경로를 선택하도록 명시적 fake native client/엔진 fixture를 사용해요. API 키로 엔진을 선택하지 않아요.
 Pro queue/SDK 테스트의 실행 프로필은 Flash에서 Pro로 갱신했어요. 모델 기본값 및 CLI 명령 집합을 검사하는 테스트도 새 계약에 맞췄어요.
 
 Work에서는 `/proc/self`가 노출하는 host PID와 `os.getpid()`가 다른 경우가 확인됐어요. 실제 PID 생존에 의존하는 원본 테스트 17개에만 환경 조건 skip을 적용하고, 운영 기기 잠금 코드는 유지했어요. 이 조건이 없는 CI/실제 PC에서는 해당 테스트가 그대로 실행돼요.

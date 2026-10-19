@@ -2,7 +2,7 @@
 
 Google ARTEMIS의 **기존 Pro 그래프·에이전트는 유지**하고, 모델 통신을 인증된 로컬 AI CLI로 연결하는 Android 자동 테스트 도구예요.
 
-현재는 **구현 및 오프라인 검증 단계**예요. 실제 CLI 모델 호환성과 Android E2E는 사용자 PC에서 확인해야 해요. Work 내부에서 AI CLI를 실행하지 않으며, 그 실행 실패를 개발 중단 조건으로 사용하지 않아요.
+v4의 **CLI 전용 코드 정리와 오프라인 검증**을 진행했어요. 실제 CLI 모델 호환성과 Android E2E는 사용자 PC에서 확인해야 해요. Work 내부에서 AI CLI를 실행하지 않으며, 그 실행 실패를 개발 중단 조건으로 사용하지 않아요.
 
 ## 로컬 PC 설치
 
@@ -59,13 +59,25 @@ Google 전용 모델(예: Robotics ER)의 공간 인지 정확도와 일반 CLI 
 ## 오프라인 개발
 
 ```sh
-python -m pytest
+CALLISTO_FORBID_LIVE_CLI=1 python -m pytest
+python -m pip install wheel setuptools
 python -m pip wheel --no-deps --no-build-isolation -w dist .
 ```
 
 자동 테스트는 실제 AI CLI 실행을 금지해요. 모의 응답과 가짜 Python 실행 파일만 사용해 계약, 취소와 프로세스 정리를 검증해요.
 브라우저 UI, 관리자 콘솔, 외부 MCP, Flash 실행 전용 원본 테스트는 `tests/upstream_removed/`에 보관하고 기본 테스트에서 제외했어요. Pro가 공유하는 내부 MCP 액션 세션, Flash 폴더의 요약/압축 코드와 Explorer `flash` tier는 유지했어요.
 
+wheel은 프런트엔드 빌드 없이 설치돼요. 표준 Skill 원본은 `skills/callisto/SKILL.md`이고,
+탐색용 `.agents/skills/callisto/SKILL.md`는 그 파일을 참조해요. wheel에는 동일 원본을
+`<Python 환경>/share/callisto/skills/callisto/SKILL.md`로 포함해요.
+
+**Helper APK는 이 저장소에 포함되지 않았어요.** Helper 소스와 버전 명세는 유지하지만,
+자동 설치가 준비됐다고 표시하지 않아요. Helper를 쓸 PC에서는 저장소의
+`packages/artemis-accessibility-helper/build_apk.sh`로 APK를 빌드·설치하거나,
+기기에 이미 설치된 호환 Helper에 연결해야 해요. 기본 `auto` 계층 모드의 UIAutomator2
+fallback은 유지해요. wheel에 Helper 버전 명세는 포함하지만 APK는 없어요.
+
+- [v4 감사 및 변경 근거](docs/cli-v4-audit.md)
 - [CLI 지원 현황](docs/cli-capability-matrix.md)
 - [전환 진행 상황](docs/migration-status.md)
 - [원본 보존 기준](docs/upstream-baseline.md)
