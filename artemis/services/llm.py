@@ -953,7 +953,8 @@ def _get_llm(
     raw_model = ModelFactory.get_model(endpoint)
 
     handler = DataEngineCallbackHandler(ctx)
-    bound_model = raw_model.with_config(callbacks=[handler])
+    bound_model = raw_model.with_config(callbacks=[handler], metadata={
+        "callisto_agent": name, "callisto_stage": "fallback" if use_fallback else "primary"})
 
     return RobustChatModelWrapper(bound_model, ctx, endpoint=endpoint)  # type: ignore
 

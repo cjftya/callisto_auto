@@ -1,10 +1,12 @@
 """Lossless role/tool history plus explicit, ordered local image attachments."""
 
 import base64
+import hashlib
 import json
 from pathlib import Path
 
 from callisto.llm_adapter.errors import UnsupportedCapability, CLIProtocolError
+from callisto.llm_adapter.image_policy import prepare_image
 
 MAX_IMAGE_BYTES = 20_000_000
 MAX_PROMPT_BYTES = 8_000_000
@@ -12,9 +14,13 @@ MAX_IMAGES = 64
 MAX_TOTAL_IMAGE_BYTES = 64_000_000
 
 
-def encode_messages(messages, directory: Path):
+def encode_messages(messages, directory: Path, *, policy="balanced", metrics=None):
     history, images = [], []
+    attachments = {}
+    image_metrics = []
+    references = 0
     total_image_bytes = 0
+    transmitted_bytes = 0
     for message in messages:
         content = message.content
         blocks = [{"type": "text", "text": content}] if isinstance(content, str) else content
@@ -45,13 +51,27 @@ def encode_messages(messages, directory: Path):
                 except ValueError:
                     raise CLIProtocolError("Malformed base64 image") from None
                 total_image_bytes += len(raw)
-                if len(images) >= MAX_IMAGES or total_image_bytes > MAX_TOTAL_IMAGE_BYTES:
+                references += 1
+                if len(raw) > MAX_IMAGE_BYTES or references > MAX_IMAGES or total_image_bytes > MAX_TOTAL_IMAGE_BYTES:
                     raise CLIProtocolError("Image attachments exceeded the request size/count limit; no images were dropped")
-                path = directory / f"image-{len(images) + 1}{suffix}"
-                path.write_bytes(raw)
-                path.chmod(0o600)
-                images.append(str(path))
-                encoded.append({"type": "image_attachment", "index": len(images), "mime_type": mime})
+                prepared = prepare_image(raw, policy)
+                digest = (hashlib.sha256(raw).digest(), references if policy == "off" else 0)
+                if digest not in attachments:
+                    transmitted_bytes += len(prepared.data)
+                    if len(prepared.data) > MAX_IMAGE_BYTES or transmitted_bytes > MAX_TOTAL_IMAGE_BYTES:
+                        raise CLIProtocolError("Transformed image attachments exceeded the size limit")
+                    suffix = {"image/png": ".png", "image/jpeg": ".jpg", "image/webp": ".webp"}[prepared.mime]
+                    path = directory / f"image-{len(images) + 1}{suffix}"
+                    path.write_bytes(prepared.data)
+                    path.chmod(0o600)
+                    images.append(str(path))
+                    attachments[digest] = len(images)
+                    image_metrics.append(prepared.metrics())
+                encoded.append({"type": "image_attachment", "index": attachments[digest],
+                                "mime_type": prepared.mime,
+                                "original_size": list(prepared.geometry.original),
+                                "size": list(prepared.geometry.transmitted),
+                                "coordinate_frame": "stored_pixels; normalized 0..1000 unchanged"})
             else:
                 raise UnsupportedCapability(f"CLI input block {kind!r} has no validated conversion")
         record = {"role": message.type, "content": encoded}
@@ -62,6 +82,11 @@ def encode_messages(messages, directory: Path):
         if getattr(message, "tool_calls", None):
             record["tool_calls"] = message.tool_calls
         history.append(record)
+    if metrics is not None:
+        metrics.update(image_policy=policy, image_references=references, image_attachments=len(images),
+                       image_original_bytes=total_image_bytes, image_bytes=transmitted_bytes,
+                       image_pixels=sum(m["size"][0] * m["size"][1] for m in image_metrics),
+                       images=image_metrics)
     return history, images
 
 
@@ -71,6 +96,8 @@ def encode_prompt(history, tools, tool_choice, schema):
         "Do not execute tools, commands, browse, or control Android yourself. Return requested "
         "tool calls as data for ARTEMIS to execute. Message roles and tool results below are "
         "the agent conversation; preserve their order. Images are attached in numbered order. "
+        "Repeated image indices refer to the same attachment at each original message position. "
+        "Use the coordinate frame requested by the agent; size is the attachment frame and original_size is the device frame. "
         "Return ONLY JSON matching response_schema. Do not add Markdown fences.\n"
         + json.dumps({"messages": history, "tools": tools, "tool_choice": tool_choice,
                       "response_schema": schema}, ensure_ascii=False)

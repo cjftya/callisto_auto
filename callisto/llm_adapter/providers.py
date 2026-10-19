@@ -9,6 +9,7 @@ import os
 import shutil
 
 from callisto.llm_adapter.errors import CLIAuthenticationError, CLIError, CLIProtocolError, UnsupportedCapability
+from callisto.llm_adapter.discovery import discover_executable
 
 
 def command_for(provider, model, directory, images, schema_path, reasoning_effort=None):
@@ -16,13 +17,12 @@ def command_for(provider, model, directory, images, schema_path, reasoning_effor
         raise CLIError("Live AI CLI execution is forbidden in this environment")
     if provider not in ("codex", "claude"):
         raise UnsupportedCapability(f"CLI provider {provider!r} is not implemented")
-    executable = os.environ.get(f"CALLISTO_{provider.upper()}_EXECUTABLE", provider)
-    path = shutil.which(executable)
+    path = discover_executable(provider)
     if not path:
         raise CLIError(f"Install and log in to {provider} CLI on the machine running Callisto")
     # asyncio/CreateProcess cannot safely execute npm cmd shims without a shell.
     # Do not introduce cmd.exe quoting or weaken the execution boundary.
-    if os.name == "nt" and path.lower().endswith((".cmd", ".bat")):
+    if os.name == "nt" and not path.lower().endswith(".exe"):
         raise UnsupportedCapability(
             f"{provider} resolved to a Windows .cmd/.bat launcher; configure "
             f"CALLISTO_{provider.upper()}_EXECUTABLE to the official native .exe"

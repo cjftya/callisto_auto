@@ -40,16 +40,21 @@ def fake_inference(monkeypatch, result):
 
 
 def test_lossless_roles_tools_and_image_order(tmp_path):
-    image = "data:image/png;base64," + base64.b64encode(b"image-bytes").decode()
+    from io import BytesIO
+    from PIL import Image
+    output = BytesIO()
+    Image.new("RGB", (16, 16)).save(output, format="PNG")
+    raw = output.getvalue()
+    image = "data:image/png;base64," + base64.b64encode(raw).decode()
     history = [SystemMessage(content="system"), HumanMessage(content=[
         {"type": "text", "text": "first"}, {"type": "image_url", "image_url": {"url": image}}]),
         AIMessage(content="", tool_calls=[{"name": "tap", "args": {"x": 2}, "id": "a"}]),
         ToolMessage(content="done", tool_call_id="a")]
-    records, images = encode_messages(history, tmp_path)
+    records, images = encode_messages(history, tmp_path, policy="off")
     assert [r["role"] for r in records] == ["system", "human", "ai", "tool"]
     assert records[2]["tool_calls"][0]["id"] == records[3]["tool_call_id"] == "a"
     assert records[1]["content"][1]["index"] == 1
-    assert Path(images[0]).read_bytes() == b"image-bytes"
+    assert Path(images[0]).read_bytes() == raw
 
 
 @pytest.mark.parametrize("block", [

@@ -72,9 +72,9 @@ def test_old_keys_cannot_select_native_engines(monkeypatch, key):
 
 def test_codex_command_is_built_without_executing_provider(monkeypatch, tmp_path):
     monkeypatch.delenv('CALLISTO_FORBID_LIVE_CLI')
-    monkeypatch.setattr('callisto.llm_adapter.providers.shutil.which', lambda _: 'fake-codex')
+    monkeypatch.setattr('callisto.llm_adapter.providers.shutil.which', lambda _: 'fake-codex.exe')
     args = command_for('codex', 'gpt-6.1-sol', tmp_path, ['first.png', 'second.png'], tmp_path / 'schema.json', 'high')
-    assert args[:2] == ['fake-codex', 'exec'] and args[-1] == '-'
+    assert args[:2] == ['fake-codex.exe', 'exec'] and args[-1] == '-'
     for option in ('--ignore-user-config', '--ephemeral', '--json', '--output-schema'):
         assert option in args
     assert args[args.index('--sandbox') + 1] == 'read-only'
@@ -109,11 +109,17 @@ async def test_cli_ocr_keeps_text_and_pixel_polygons(monkeypatch):
     expected = OCRResult(regions=[{'text': 'Battery', 'position': [{'x': 2, 'y': 3}, {'x': 20, 'y': 30}]}])
     fake = MagicMock()
     fake.with_structured_output.return_value.ainvoke = AsyncMock(return_value=expected)
+    from io import BytesIO
+    import base64
+    from PIL import Image
+    output = BytesIO()
+    Image.new('RGB', (100, 100)).save(output, format='PNG')
+    screenshot = base64.b64encode(output.getvalue()).decode()
     with patch('callisto.llm_adapter.model.configured_model', return_value=fake):
-        assert await perform_ocr('aW1hZ2U=') == [region.model_dump() for region in expected.regions]
+        assert await perform_ocr(screenshot) == [region.model_dump() for region in expected.regions]
         fake.with_structured_output.return_value.ainvoke.side_effect = UnsupportedCapability('image unavailable')
         with pytest.raises(UnsupportedCapability):
-            await perform_ocr('aW1hZ2U=')
+            await perform_ocr(screenshot)
 
 
 def test_canonical_skill_pointer_and_bundled_configuration():

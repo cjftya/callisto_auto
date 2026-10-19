@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import os
+import base64
 from typing import Any
 
 import httpx
@@ -33,13 +34,26 @@ async def perform_ocr(
     from callisto.llm_adapter.model import configured_model
     from callisto.ocr import OCRResult
     from langchain_core.messages import HumanMessage
+    from callisto.llm_adapter.image_policy import prepare_image
+    from callisto.llm_adapter.errors import CLIProtocolError
+    from callisto.settings import effective_settings
+    try:
+        raw = base64.b64decode(screenshot_b64, validate=True)
+    except ValueError:
+        raise CLIProtocolError("Malformed base64 OCR input") from None
+    geometry = prepare_image(raw, effective_settings().image_policy).geometry
     response = await configured_model().with_structured_output(OCRResult).ainvoke([
         HumanMessage(content=[
-            {"type": "text", "text": "Read visible text in this screenshot. Return separate text regions with polygon vertices in original image pixel coordinates. Do not invent unreadable text."},
+            {"type": "text", "text": "Read visible text in this screenshot. Return separate text regions with polygon vertices in transmitted attachment pixel coordinates (size), not original_size. Callisto maps vertices back to device pixels. Do not invent unreadable text."},
             {"type": "image_url", "image_url": {"url": "data:image/png;base64," + screenshot_b64}},
         ])
     ])
-    return [region.model_dump() for region in response.regions]
+    regions = [region.model_dump() for region in response.regions]
+    for region in regions:
+        for vertex in region["position"]:
+            x, y = geometry.original_point(vertex["x"], vertex["y"])
+            vertex.update(x=round(x), y=round(y))
+    return regions
 
 
 def is_ocr_configured() -> bool:

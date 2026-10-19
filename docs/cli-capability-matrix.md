@@ -73,3 +73,17 @@ CLI 자체가 Android 액션을 수행하지 않아요. CLI 출력은 `{content,
 - Windows / Python 3.13 오프라인 전체 회귀: **2158 passed, 7 skipped, 8 deselected**.
   Helper 모의 회귀 54개에 전체형/축약형 감지, 중복 등록 방지, 다른 서비스 보존 검사가 포함돼요.
 - 이 진단은 실제 AI 추론이나 Android 배터리 탐색 E2E 성공 증거가 아니에요.
+
+## v4.2 — inference boundary and setup
+
+| Area | Implemented contract | Evidence / limit |
+|---|---|---|
+| Image transport | balanced/quality/economy/off; actual PNG/JPEG/WebP MIME; stored-pixel EXIF handling; alpha/RGB conversion; bounded cache and request limits | Offline image boundary tests; real small-text accuracy is unverified |
+| Coordinates | Pro normalized coordinates unchanged; opt-in CLI OCR pixel polygons inverse-mapped and bounds checked | Portrait/landscape/foldable/tall frame roundtrip tests; device acceptance pending |
+| Repeated context | Exact duplicates share an attachment index, with all message/tool references preserved; off keeps duplicates | Distinct historical evidence is not discarded; existing Transcript summaries/scrub/recall preserved |
+| Setup | setup.ps1/setup.sh; setup/check/repair; user settings precedence; native discovery; official login status; explicit device selection; managed Skill preservation | Offline fake-process/config tests and isolated wheel imports; fresh Windows/real device validation pending |
+| Helper | Setup refuses hash mismatch or undeclared/old protocol; build emits protocol_version; selected-device lock around provisioning | APK-free distribution reports fallback. Legacy helper/ APK is outside canonical bundle and mismatches manifest |
+| Usage | Actual CLI usage, image metrics, elapsed time, agent/stage aggregation; unknown remains null; no cache double counting | compare_usage.py compares paired real run reports; no paid inference baseline was captured in Work |
+| Git | CI push trigger uses main only | Remote master deletion requires a Git-authenticated client or signed-in GitHub browser; not claimed complete |
+
+See [v4.2 verification report](cli-v4.2-report.md) and [setup guide](advanced-setup.md).

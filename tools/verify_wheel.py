@@ -50,7 +50,8 @@ def main():
             subprocess.run([str(v) for v in command], cwd=root, env=environment, check=True)
         run([python, '-m', 'pip', 'install', wheel])
         run([python, '-m', 'pip', 'check'])
-        for flags in (['--help'], ['run', '--help'], ['helper', '--help'], ['trace', '--help'], ['skill', '--help'], ['--version']):
+        for flags in (['--help'], ['run', '--help'], ['helper', '--help'], ['trace', '--help'], ['skill', '--help'],
+                      ['setup', '--help'], ['setup', 'check', '--help'], ['setup', 'repair', '--help'], ['--version']):
             run([cli, *flags])
         skill_dir = root / 'external-user-skills'
         run([cli, 'skill', 'install', '--directory', skill_dir])
@@ -65,10 +66,14 @@ from artemis.interfaces.sdk.client import ArtemisClient
 from artemis.resources import get_bundled_config_path
 from artemis.runtime.helper_manager import load_bundled_helper
 import artemis
+from callisto.settings import effective_settings
+from callisto.llm_adapter.image_policy import prepare_image
+from callisto.setup import setup_report
 from importlib.metadata import distribution
 get_default_llm_config().validate_providers()
 assert get_bundled_config_path('artemis.jsonc').is_file()
 assert artemis.__version__ != '0+unknown'
+assert effective_settings().image_policy == 'balanced'
 dist = distribution('callisto-auto')
 skill = next(p for p in dist.files if str(p).endswith('share/callisto/skills/callisto/SKILL.md'))
 assert dist.locate_file(skill).is_file()

@@ -62,7 +62,12 @@ async def test_perform_ocr_uses_cli_when_explicitly_enabled(monkeypatch):
     model.with_structured_output.return_value.ainvoke = AsyncMock(return_value=OCRResult(
         regions=[{"text": "Login", "position": [{"x": 100, "y": 200}, {"x": 300, "y": 250}]}]))
     with patch("callisto.llm_adapter.model.configured_model", return_value=model):
-        result = await perform_ocr(screenshot_b64="dummy_b64")
+        from io import BytesIO
+        import base64
+        from PIL import Image
+        output = BytesIO()
+        Image.new("RGB", (1080, 1920)).save(output, format="PNG")
+        result = await perform_ocr(screenshot_b64=base64.b64encode(output.getvalue()).decode())
     assert result == [{"text": "Login", "position": [{"x": 100, "y": 200}, {"x": 300, "y": 250}]}]
 
 

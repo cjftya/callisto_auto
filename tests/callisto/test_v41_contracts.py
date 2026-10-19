@@ -175,7 +175,8 @@ async def test_original_native_loop_reaches_cli_json_and_validates_submit(monkey
     explorer = Explorer(ctx)
     explorer._apply_tier(get_tier("pro"))
     image = tmp_path / "screen.jpg"
-    image.write_bytes(b"fake screenshot bytes")
+    from PIL import Image
+    Image.new("RGB", (80, 160)).save(image)
     answer = {"candidates": [], "fallback_message": "No matching button in fixture"}
     text = json.dumps({"content": "", "tool_calls": [{"id": "native-submit", "name": "submit_answer", "args_json": json.dumps(answer)}]})
     result = ProcessResult(0, '\n'.join(map(json.dumps, [

@@ -141,8 +141,8 @@ class ModelFactory:
 
     @classmethod
     def get_model(cls, endpoint: ModelEndpoint) -> BaseChatModel:
-        key = endpoint.cache_key() + tuple(os.environ.get(name) for name in (
-            "CALLISTO_AI_CLI", "CALLISTO_MODEL", "CALLISTO_CODEX_EXECUTABLE", "CALLISTO_CLAUDE_EXECUTABLE"))
+        from callisto.settings import effective_settings
+        key = endpoint.cache_key() + tuple(effective_settings().model_dump().values())
         if key not in cls._cache:
             cls._cache[key] = cls.create_model(endpoint)
         return cls._cache[key]

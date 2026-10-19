@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 import shutil
 import signal
+import time
 from typing import Annotated
 from uuid import uuid4
 
@@ -26,23 +27,29 @@ def main(version: Annotated[bool, typer.Option("--version", "-v", is_eager=True)
 @app.command()
 def doctor(json_output: Annotated[bool, typer.Option("--json")] = False):
     """Check installation and configuration only; no inference or login probe."""
-    provider = os.environ.get("CALLISTO_AI_CLI", "codex")
-    executable = os.environ.get(f"CALLISTO_{provider.upper()}_EXECUTABLE", provider)
+    from callisto.settings import effective_settings
+    from callisto.llm_adapter.discovery import discover_executable
+    try:
+        configuration = effective_settings()
+    except ValueError:
+        typer.echo(json.dumps({"config_error": "Invalid Callisto user settings", "authentication": "not_checked"}))
+        raise typer.Exit(1) from None
+    provider = configuration.provider
+    resolved = discover_executable(provider)
     from artemis.config.llm import get_default_llm_config
     config_error = None
     try:
         get_default_llm_config().validate_providers()
-        if provider != "codex" and not os.environ.get("CALLISTO_MODEL"):
-            config_error = "Set CALLISTO_MODEL when selecting a non-Codex CLI"
+        from callisto.llm_adapter.model import configured_model
+        configured_model()
     except Exception:
         config_error = "Invalid CLI model configuration"
     implemented = provider in ("codex", "claude")
     report = {"provider": provider, "provider_implemented": implemented,
-        "cli_installed": bool(shutil.which(executable)), "adb_installed": bool(shutil.which("adb")),
+        "cli_installed": bool(resolved), "adb_installed": bool(shutil.which("adb")),
         "config_error": config_error, "authentication": "not_checked",
         "live_inference": "not_checked", "profile": "pro", "servers_required": False}
-    resolved = shutil.which(executable)
-    report["launcher_supported"] = not (os.name == "nt" and resolved and resolved.lower().endswith((".cmd", ".bat")))
+    report["launcher_supported"] = not (os.name == "nt" and resolved and not resolved.lower().endswith(".exe"))
     typer.echo(json.dumps(report, indent=2) if json_output else
                "\n".join(f"{key}: {value}" for key, value in report.items()))
     if not implemented or config_error or not report["cli_installed"] or not report["adb_installed"] or not report["launcher_supported"]:
@@ -57,6 +64,9 @@ def run(
     output_description: Annotated[str | None, typer.Option("--expected-output")] = None,
     verification_level: Annotated[str, typer.Option("--verification-level")] = "final",
     profile: Annotated[str, typer.Option("--profile")] = "pro",
+    model: Annotated[str | None, typer.Option("--model")] = None,
+    reasoning: Annotated[str | None, typer.Option("--reasoning")] = None,
+    image_policy: Annotated[str | None, typer.Option("--image-policy", help="off, balanced, quality or economy; diagnostics compare actual CLI usage")] = None,
 ):
     """Run the original ARTEMIS Pro graph directly, with local ADB and trace output."""
     if profile != "pro":
@@ -66,19 +76,31 @@ def run(
     if os.environ.get("CALLISTO_FORBID_LIVE_CLI") == "1":
         raise typer.BadParameter("Live AI inference is disabled in this environment; run offline tests instead")
     from artemis.interfaces.cli.commands.run import execute_task
+    from callisto.settings import effective_settings, runtime_settings
+    from callisto.usage import collect_usage, write_usage, usage_summary
+    try:
+        configuration = effective_settings(model=model, reasoning=reasoning, image_policy=image_policy,
+                                           device_serial=device_serial)
+    except ValueError:
+        raise typer.BadParameter("Invalid Callisto run settings") from None
+    device_serial = configuration.device_serial
     session_id = str(uuid4())
     traces_path = traces_path.resolve()
     traces_path.mkdir(parents=True, exist_ok=True)
     report = {"session_id": session_id, "status": "starting", "trace_root": str(traces_path)}
     result_path = traces_path / f"{session_id}-result.json"
+    usage_path = traces_path / f"{session_id}-usage.json"
+    records = []
     previous = None
+    started = time.monotonic()
     try:
         if hasattr(signal, "SIGTERM"):
             previous = signal.signal(signal.SIGTERM, lambda *_: (_ for _ in ()).throw(KeyboardInterrupt()))
-        asyncio.run(execute_task(goal=goal, device_serial=device_serial, profile="pro",
-            session_id=session_id, test_name=session_id, traces_output_path_str=str(traces_path),
-            output_description=output_description, verification_level=verification_level,
-            result_report=report))
+        with runtime_settings(model=model, reasoning=reasoning, image_policy=image_policy), collect_usage() as records:
+            asyncio.run(execute_task(goal=goal, device_serial=device_serial, profile="pro",
+                session_id=session_id, test_name=session_id, traces_output_path_str=str(traces_path),
+                output_description=output_description, verification_level=verification_level,
+                result_report=report))
     except (KeyboardInterrupt, asyncio.CancelledError):
         report["status"] = "cancelled"
     except Exception as error:
@@ -92,12 +114,23 @@ def run(
             signal.signal(signal.SIGTERM, previous)
         from callisto.verdict import settle_report
         settle_report(report)
+        report["elapsed_seconds"] = round(time.monotonic() - started, 4)
+        report["usage"] = usage_summary(records)
+        try:
+            write_usage(usage_path, records)
+            report["usage_file"] = str(usage_path)
+        except OSError:
+            report["usage_error"] = "Could not write usage report"
+            if report["status"] != "cancelled":
+                report["status"] = "failed"
+            settle_report(report)
         with result_path.open("w", encoding="utf-8") as target:
             json.dump(report, target, ensure_ascii=False, indent=2, default=str)
         result_path.chmod(0o600)
     typer.echo(json.dumps({"session_id": session_id, "status": report["status"],
                            "test_status": report["test_status"],
                            "exit_code": report["exit_code"],
+                           "usage": report["usage"], "usage_file": report.get("usage_file"),
                            "result_file": str(result_path)}, ensure_ascii=False))
     raise typer.Exit(report["exit_code"])
 
@@ -106,9 +139,11 @@ def run(
 from artemis.interfaces.cli.commands.trace import trace_app
 from artemis.interfaces.cli.commands.helper import helper_app
 from callisto.skill_install import skill_app
+from callisto.setup import setup_app
 app.add_typer(trace_app, name="trace")
 app.add_typer(helper_app, name="helper")
 app.add_typer(skill_app, name="skill")
+app.add_typer(setup_app, name="setup")
 
 
 def cli():

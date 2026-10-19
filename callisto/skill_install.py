@@ -5,6 +5,7 @@ from importlib.metadata import distribution
 import json
 from pathlib import Path
 import tempfile
+import sys
 
 import typer
 
@@ -45,7 +46,9 @@ def skill_status(directory: Path | None = None) -> dict:
             "managed": managed, "package_version": dist.version,
             "installed_version": metadata.get("version") if managed else None,
             "current": bool(managed and source_hash == installed_hash
-                            and metadata.get("version") == dist.version),
+                            and metadata.get("version") == dist.version
+                            and isinstance(metadata.get("python_executable"), str)
+                            and Path(metadata.get("python_executable", "")).absolute() == Path(sys.executable).absolute()),
             "discovery": "filesystem_only", "host_recognition": "not_checked"}
 
 
@@ -67,7 +70,7 @@ def install_skill(directory: Path | None = None) -> dict:
             pending.unlink(missing_ok=True)
     write("SKILL.md", content)
     write("callisto-install.json", json.dumps({"package": "callisto-auto",
-        "version": status["package_version"], "sha256": hashlib.sha256(content).hexdigest()}, indent=2).encode())
+        "version": status["package_version"], "python_executable": sys.executable, "sha256": hashlib.sha256(content).hexdigest()}, indent=2).encode())
     return skill_status(directory)
 
 

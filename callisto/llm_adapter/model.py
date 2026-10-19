@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 import tempfile
 import weakref
+import time
 
 import jsonschema
 from langchain_core.language_models.chat_models import BaseChatModel
@@ -18,6 +19,8 @@ from callisto.llm_adapter.codec import encode_messages, encode_prompt
 from callisto.llm_adapter.errors import CLIProtocolError, UnsupportedCapability
 from callisto.llm_adapter.process import run_process
 from callisto.llm_adapter.providers import command_for, decode_result
+from callisto.settings import effective_settings, user_settings, _OVERRIDES
+from callisto.usage import agent_label, stage_label, record_call
 
 _LOOP_LOCKS = weakref.WeakKeyDictionary()
 
@@ -49,6 +52,7 @@ class CLIChatModel(BaseChatModel):
     model_name: str | None = None
     timeout_seconds: float = Field(default=180, gt=0)
     reasoning_effort: str | None = None
+    image_policy: str = "balanced"
 
     @property
     def _llm_type(self):
@@ -56,7 +60,8 @@ class CLIChatModel(BaseChatModel):
 
     @property
     def _identifying_params(self):
-        return {"provider": self.provider, "model": self.model_name}
+        return {"provider": self.provider, "model": self.model_name,
+                "reasoning": self.reasoning_effort, "image_policy": self.image_policy}
 
     def bind_tools(self, tools, *, tool_choice=None, **kwargs):
         converted = [convert_to_openai_tool(tool) for tool in tools]
@@ -66,9 +71,23 @@ class CLIChatModel(BaseChatModel):
         return self.bind(tools=converted, tool_choice=tool_choice, **kwargs)
 
     def _generate(self, messages, stop=None, run_manager=None, **kwargs):
-        return asyncio.run(self._agenerate(messages, stop=stop, **kwargs))
+        return asyncio.run(self._agenerate(messages, stop=stop, run_manager=run_manager, **kwargs))
 
     async def _agenerate(self, messages, stop=None, run_manager=None, **kwargs):
+        started = time.monotonic()
+        metrics = {"agent": agent_label(run_manager), "stage": stage_label(run_manager), "provider": self.provider,
+                   "model": self.model_name, "status": "failed", "cli_usage": {}}
+        try:
+            result = await self._infer(messages, stop=stop, metrics=metrics, **kwargs)
+            metrics["status"] = "completed"
+            result.generations[0].message.response_metadata["image_metrics"] = {
+                k: v for k, v in metrics.items() if k.startswith("image")}
+            return result
+        finally:
+            metrics["elapsed_seconds"] = round(time.monotonic() - started, 4)
+            record_call(metrics)
+
+    async def _infer(self, messages, stop=None, metrics=None, **kwargs):
         if stop:
             raise UnsupportedCapability("CLI stop sequences are not supported; response truncation is forbidden")
         tools = kwargs.get("tools", [])
@@ -84,7 +103,7 @@ class CLIChatModel(BaseChatModel):
                     directory = Path(temp)
                     schema_path = directory / "response-schema.json"
                     schema_path.write_text(json.dumps(schema), encoding="utf-8")
-                    history, images = encode_messages(messages, directory)
+                    history, images = encode_messages(messages, directory, policy=self.image_policy, metrics=metrics)
                     prompt = encode_prompt(history, tools, tool_choice, schema)
                     command = command_for(self.provider, self.model_name, directory, images,
                                           schema_path, self.reasoning_effort)
@@ -95,6 +114,7 @@ class CLIChatModel(BaseChatModel):
                              if key in ("input_tokens", "output_tokens", "cached_input_tokens",
                                         "cache_read_input_tokens", "cache_creation_input_tokens")
                              and isinstance(value, int) and not isinstance(value, bool) and value >= 0} if isinstance(usage, dict) else {}
+                    metrics["cli_usage"] = usage
                     message = self._message(text, tools, tool_choice, kwargs.get("parallel_tool_calls", True))
                     message.response_metadata = {"provider": self.provider, "model_name": self.model_name,
                         "transport": "authenticated-cli", "cli_usage": usage}
@@ -144,12 +164,17 @@ class CLIChatModel(BaseChatModel):
 
 
 def configured_model(*, model=None, timeout=180, reasoning_effort=None):
-    provider = os.environ.get("CALLISTO_AI_CLI", "codex")
-    if provider != "codex" and not os.environ.get("CALLISTO_MODEL"):
+    settings = effective_settings()
+    provider = settings.provider
+    if provider != "codex" and not (os.environ.get("CALLISTO_MODEL") or "model" in user_settings() or _OVERRIDES.get().get("model")):
         raise UnsupportedCapability("Set CALLISTO_MODEL explicitly when selecting a non-Codex CLI")
+    # Legacy per-node config stays a fallback; CLI/env/user overrides take priority.
+    selected_model = settings.model if (os.environ.get("CALLISTO_MODEL") or "model" in user_settings() or _OVERRIDES.get().get("model")) else model or settings.model
+    selected_reasoning = settings.reasoning if (os.environ.get("CALLISTO_REASONING_EFFORT") or "reasoning" in user_settings() or _OVERRIDES.get().get("reasoning")) else reasoning_effort or settings.reasoning
     return CLIChatModel(
         provider=provider,
-        model_name=os.environ.get("CALLISTO_MODEL") or model or "gpt-6.1-sol",
+        model_name=selected_model,
         timeout_seconds=timeout,
-        reasoning_effort=reasoning_effort,
+        reasoning_effort=selected_reasoning,
+        image_policy=settings.image_policy,
     )

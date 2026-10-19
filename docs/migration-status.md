@@ -87,3 +87,28 @@ callisto trace list
 원래 main `3aa3ccb9a2bc6c8d0e7f70cbd83a59be4e8d5a78`에서 검증된 master로
 fast-forward하며 force-push를 사용하지 않아요. main HEAD에서도 동일 CI를 실행해요.
 실제 CLI·Android가 미검증인 상태에서의 통합은 코드 정리 버전의 통합이며 실사용 인증이 아니에요.
+
+## v4.2 implementation (2026-10-20 KST)
+
+AI-only image policy, MIME correction, attachment deduplication, OCR coordinate
+inverse mapping, content-free real usage reports, paired comparison tooling,
+Windows/Linux bootstrap and idempotent setup/check/repair are implemented.
+The original Pro graph, prompts, Transcript scrubbing/summary/recall, verification,
+recovery and 0/1/2/130 verdicts remain the execution authority. Both preservation
+manifests still match exactly (32 + 23 files).
+
+README now starts with setup -> USB approval -> natural-language test. Detailed
+configuration and explicit limitations are in advanced-setup.md. The canonical
+Skill checks readiness and can resolve its venv Python through install metadata.
+The package version is 0.1.2; product workstream is v4.2.
+
+Offline validation passed: full suite 2202 passed / 29 skipped / 8 deselected;
+ruff, pip check and frontend-free wheel/isolated installation passed. Subsequent
+Skill interpreter-path freshness checks passed the 37-test Skill/setup subset.
+Actual Windows setup, Helper SDK build/signature and local Android/CLI before/after
+acceptance remain separate checks. Input-token reduction is unknown, not 25%.
+
+main is the code baseline. CI no longer triggers master pushes. master has no
+unique commit or open base:master PR; deleting it was attempted but the container
+has no GitHub Git credentials and the browser is signed out. The GitHub connector
+supports code/ref updates but exposes no branch deletion operation.

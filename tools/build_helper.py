@@ -80,7 +80,10 @@ def build(sdk: Path, build_tools="35.0.0", platform="android-35"):
          "--ks-pass", "pass:android", "--key-pass", "pass:android", "--ks-key-alias", "androiddebugkey",
          "--out", final, aligned])
     run([java, "-jar", tools / "lib/apksigner.jar", "verify", "--verbose", final])
+    service_source = (PACKAGE / "app/src/main/java/com/artemis/helper/ArtemisAccessibilityService.java").read_text(encoding="utf-8")
+    protocol_version = int(re.search(r"PROTOCOL_VERSION\s*=\s*(\d+)", service_source).group(1))
     data = {"package": "com.artemis.helper", "version_code": version_code, "version_name": version_name,
+            "protocol_version": protocol_version,
             "sha256": hashlib.sha256(final.read_bytes()).hexdigest(),
             "built_at": datetime.datetime.now(datetime.UTC).replace(microsecond=0).isoformat()}
     shutil.copyfile(final, PACKAGE / final.name)
