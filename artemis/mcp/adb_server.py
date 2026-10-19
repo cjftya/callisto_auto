@@ -47,44 +47,6 @@ from artemis.platform import platform
 from third_party.mobile_use.utils.app_launch_utils import launch_app_with_retries
 
 
-def configure_stdio_mode() -> None:
-    """Applies process-wide settings required when serving MCP over stdio.
-
-    These are destructive to the host process (console logging is removed and the
-    DataEngine IPC port is cleared), so they must only run when this module owns the
-    process -- i.e. from the ``__main__`` block. Importing this module for its tools
-    or for :func:`_get_controller` must leave the caller's logging and environment
-    untouched.
-    """
-    # Redirect stdio to prevent logs from breaking MCP JSON-RPC protocol and causing deadlocks.
-    try:
-        from artemis.config import settings
-
-        log_path = Path(settings.TRACES_PATH) / "mcp_server.log"
-    except Exception:
-        log_path = Path("traces") / "mcp_server.log"
-
-    log_path.parent.mkdir(parents=True, exist_ok=True)
-
-    for name in ["artemis", __name__]:
-        log_instance = logging.getLogger(name)
-        log_instance.setLevel(logging.DEBUG)
-        log_instance.propagate = False
-        # Remove standard streams handlers
-        log_instance.handlers = [
-            h for h in log_instance.handlers if not isinstance(h, logging.StreamHandler)
-        ]
-        fh = logging.FileHandler(log_path, encoding="utf-8")
-        fh.setFormatter(logging.Formatter("%(asctime)s | %(name)s | %(levelname)s | %(message)s"))
-        log_instance.addHandler(fh)
-
-    logger.info("MCP Server Python process fully started. Configuring FastMCP service...")
-
-    # Avoid concurrent SQLite WAL locks by blocking child processes from connecting
-    # to the primary DataEngine.
-    os.environ["ARTEMIS_IPC_PORT"] = ""
-
-
 # Create minimal MCP server
 mcp = FastMCP("Android_ADB_Controller")
 
@@ -480,11 +442,4 @@ async def get_ui_hierarchy(ctx: Context) -> str:
 
 
 if __name__ == "__main__":
-    from artemis.runtime import shutdown_awake_service, start_awake_service
-
-    configure_stdio_mode()
-    start_awake_service()
-    try:
-        mcp.run(transport="stdio")
-    finally:
-        shutdown_awake_service()
+    raise SystemExit("External MCP entrypoints are disabled; use the Callisto CLI")

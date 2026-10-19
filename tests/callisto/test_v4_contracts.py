@@ -152,3 +152,11 @@ async def test_windows_timeout_and_cancel_terminate_descendants(tmp_path, cancel
     with pytest.raises(asyncio.CancelledError if cancel else TimeoutError):
         await task
     assert not psutil.pid_exists(pid)
+
+
+@pytest.mark.parametrize('module', ['adb_server', 'xml_search_server'])
+def test_external_mcp_modules_fail_without_starting_transport(module):
+    import runpy
+    with patch('mcp.server.fastmcp.FastMCP.run', side_effect=AssertionError('external server started')):
+        with pytest.raises(SystemExit, match='External MCP entrypoints are disabled'):
+            runpy.run_module('artemis.mcp.' + module, run_name='__main__')
