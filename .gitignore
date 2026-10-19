@@ -6,3 +6,10 @@ __pycache__/
 !*.example
 traces/
 captures/
+
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.coverage
+*.log

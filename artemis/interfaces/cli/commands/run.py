@@ -1,0 +1,350 @@
+# Copyright 2026 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+"""Task execution command (artemis run)."""
+
+import asyncio
+import os
+from typing import Annotated
+
+from langchain_core.callbacks.base import Callbacks
+from artemis.config import checker_overrides_for_level, settings
+from artemis.utils.startup_progress import publish_startup_progress
+from third_party.mobile_use.main import (
+    GoalArgument,
+    OutputDescriptionOption,
+    TestNameOption,
+    TracesPathOption,
+    VideoRecordingToolsOption,
+    ensure_video_recording_available,
+    new_default_config_builder,
+    run_automation,
+)
+from third_party.mobile_use.utils.cli_helpers import display_local_device_status
+from third_party.mobile_use.utils.logger import get_logger
+import signal
+from rich.console import Console
+from rich.panel import Panel
+import typer
+
+logger = get_logger(__name__)
+
+
+async def execute_task(
+    goal: str,
+    device_serial: str | None = None,
+    session_id: str | None = None,
+    locked_app_package: str | None = None,
+    test_name: str | None = None,
+    traces_output_path_str: str | None = None,
+    output_description: str | None = None,
+    graph_config_callbacks: Callbacks = [],
+    video_recording_tools_enabled: bool | None = None,
+    profile: str | None = None,
+    app_path: str | None = None,
+    enable_planner_validation: bool | None = None,
+    enable_committee: bool | None = None,
+    enable_checker: bool | None = None,
+    enable_step_summarizer: bool | None = None,
+    enable_outputter: bool | None = None,
+    force_output_synthesis: bool | None = None,
+    explorer_version: str | None = None,
+    explorer_flash_mode: str | None = None,
+    explorer_pro_mode: str | None = None,
+    verification_level: str | None = None,
+    result_report: dict | None = None,
+) -> None:
+    """Executes a single mobile automation task end-to-end.
+
+    Args:
+        goal: Target objective to achieve on the mobile device.
+        locked_app_package: Optional package name to constrain actions to.
+        test_name: Optional test identifier for trace directory naming.
+        traces_output_path_str: Destination path for recording traces.
+        output_description: Structured natural language output description.
+        graph_config_callbacks: LangGraph callback handlers.
+        video_recording_tools_enabled: Whether screen video analyzer is enabled.
+        profile: Execution profile ('flash' for fast reactive loop, 'pro' for full graph).
+        app_path: Optional local APK path to install prior to execution.
+        enable_planner_validation: Explicit override to enable/disable async planner validation.
+        enable_committee: Explicit override to enable/disable Multi-Agent Committee tool.
+        explorer_version: Override the fallback Explorer tier ('flash', 'pro', or 'ultra').
+        explorer_flash_mode: Override the Explorer tier for the Flash execution profile.
+        explorer_pro_mode: Override the Explorer tier for the Pro execution profile.
+        verification_level: Coarse Checker preset ('off', 'final', 'checkpoints',
+            'strict'); applied before the explicit ``enable_checker`` switch.
+    """
+    effective_sid = (
+        session_id or os.getenv("ARTEMIS_SESSION_ID") or os.getenv("ARTEMIS_CLOUD_SESSION_ID")
+    )
+    if effective_sid:
+        os.environ["ARTEMIS_SESSION_ID"] = str(effective_sid)
+    if not os.environ.get("ARTEMIS_TASK_INGRESS"):
+        os.environ["ARTEMIS_TASK_INGRESS"] = "cli"
+    publish_startup_progress(
+        "configuration",
+        "Loading the run configuration",
+        session_id=str(effective_sid) if effective_sid else None,
+    )
+
+    if profile not in (None, "pro"):
+        raise ValueError("Callisto supports only the Pro execution profile")
+    profile = "pro"
+    config = new_default_config_builder()
+
+    if video_recording_tools_enabled is not None:
+        config.with_video_recording_tools(enabled=video_recording_tools_enabled)
+
+    if enable_planner_validation is not None:
+        config.with_planner_validation(enabled=enable_planner_validation)
+
+    if enable_committee is not None:
+        config.with_committee(enabled=enable_committee)
+
+    if verification_level is not None:
+        config.with_checker(**checker_overrides_for_level(verification_level))
+
+    if enable_checker is not None:
+        config.with_checker(enabled=enable_checker)
+
+    if enable_step_summarizer is not None:
+        config.with_flash_step_summarizer(enabled=enable_step_summarizer)
+
+    if enable_outputter is not None or force_output_synthesis is not None:
+        config.with_outputter(
+            enabled=enable_outputter if enable_outputter is not None else True,
+            force_synthesis=bool(force_output_synthesis),
+        )
+
+    if (
+        explorer_version is not None
+        or explorer_flash_mode is not None
+        or explorer_pro_mode is not None
+    ):
+        config.with_explorer(
+            version=explorer_version,
+            flash_mode=explorer_flash_mode,
+            pro_mode=explorer_pro_mode,
+        )
+
+    target_serial = (
+        device_serial or settings.ADB_DEVICE_SERIAL or os.environ.get("ADB_DEVICE_SERIAL")
+    )
+    if not target_serial:
+        try:
+            from artemis.runtime import device_pool
+
+            target_serial = device_pool.select_device()
+        except Exception:
+            target_serial = None
+
+    if target_serial:
+        from artemis.context import DevicePlatform
+
+        config.for_device(DevicePlatform.ANDROID, target_serial)
+
+    if graph_config_callbacks:
+        config.with_graph_config_callbacks(graph_config_callbacks)
+
+    await run_automation(
+        config,
+        goal,
+        session_id=effective_sid,
+        locked_app_package=locked_app_package,
+        test_name=test_name,
+        traces_output_path_str=traces_output_path_str,
+        output_description=output_description,
+        profile=profile,
+        app_path=app_path,
+        result_report=result_report,
+    )
+
+
+def run_command(
+    goal: GoalArgument,
+    profile: Annotated[
+        str | None,
+        typer.Option(
+            "--profile",
+            "-p",
+            help="Execution profile (Pro only).",
+        ),
+    ] = "pro",
+    locked_app_package: Annotated[
+        str | None,
+        typer.Option(
+            "--locked-app",
+            "-a",
+            help="Optional Android package name to restrict the agent to.",
+        ),
+    ] = None,
+    test_name: TestNameOption = None,
+    traces_path: TracesPathOption = None,
+    output_description: OutputDescriptionOption = None,
+    with_video_recording_tools: VideoRecordingToolsOption = None,
+    app_path: Annotated[
+        str | None,
+        typer.Option(
+            "--app-path",
+            help="Local APK path to install before starting the task.",
+        ),
+    ] = None,
+    enable_planner_validation: Annotated[
+        bool | None,
+        typer.Option(
+            "--enable-planner-validation/--disable-planner-validation",
+            help="Enable or disable the advisory Planner review of task plan milestone edits (hint only, never rolled back).",
+        ),
+    ] = None,
+    enable_committee: Annotated[
+        bool | None,
+        typer.Option(
+            "--enable-committee/--disable-committee",
+            help="Enable or disable Multi-Agent Committee council debate tool for Operator.",
+        ),
+    ] = None,
+    enable_checker: Annotated[
+        bool | None,
+        typer.Option(
+            "--enable-checker/--disable-checker",
+            help="Enable or disable the Checker (plan checkpoint verification and exit final review).",
+        ),
+    ] = None,
+    enable_outputter: Annotated[
+        bool | None,
+        typer.Option(
+            "--enable-outputter/--disable-outputter",
+            help="Enable or disable Outputter post-execution report and structured output synthesis.",
+        ),
+    ] = None,
+    force_output_synthesis: Annotated[
+        bool | None,
+        typer.Option(
+            "--force-output-synthesis/--no-force-output-synthesis",
+            help="Force Outputter report synthesis even if no structured output schema is specified.",
+        ),
+    ] = None,
+    explorer_version: Annotated[
+        str | None,
+        typer.Option(
+            "--explorer-version",
+            help=(
+                "Fallback Explorer tier when no profile knob applies: 'flash' (one-shot"
+                " detection), 'pro' (3-turn reasoning loop) or 'ultra' (8-turn loop with"
+                " zoom, OCR and image processing)."
+            ),
+        ),
+    ] = None,
+    explorer_pro_mode: Annotated[
+        str | None,
+        typer.Option(
+            "--explorer-pro-mode",
+            help="Explorer tier behind ask_explorer under the Pro profile ('flash', 'pro', 'ultra').",
+        ),
+    ] = None,
+    verification_level: Annotated[
+        str | None,
+        typer.Option(
+            "--verification-level",
+            help=(
+                "Checker preset for the Pro profile: 'off' (no audit), 'final' (exit review"
+                " only, the default), 'checkpoints' (every plan checkpoint + exit review),"
+                " 'strict' (checkpoints with a larger repair budget; a failed assert halts)."
+            ),
+        ),
+    ] = None,
+    device_serial: Annotated[
+        str | None,
+        typer.Option(
+            "--device-serial",
+            "-s",
+            help="Target specific Android device by serial number (e.g. emulator-5554).",
+        ),
+    ] = None,
+    session_id: Annotated[
+        str | None,
+        typer.Option(
+            "--session-id",
+            help="Canonical session UUID for trace and stream telemetry.",
+        ),
+    ] = None,
+    standalone: Annotated[
+        bool,
+        typer.Option(
+            "--standalone",
+            help="Run in standalone embedded mode without auto-spawning the Artemis Daemon.",
+        ),
+    ] = True,
+) -> None:
+    """Run an autonomous UI automation task on the connected Android device."""
+    if profile not in (None, "pro"):
+        raise typer.BadParameter("Callisto supports only the Pro execution profile")
+    ensure_video_recording_available(with_video_recording_tools)
+
+    console = Console()
+
+    display_local_device_status(console, host=settings.ADB_HOST, port=settings.ADB_PORT)
+
+    cancelled = False
+    original_sigterm = None
+    try:
+        if hasattr(signal, "SIGTERM"):
+            original_sigterm = signal.signal(
+                signal.SIGTERM, lambda s, f: (_ for _ in ()).throw(KeyboardInterrupt())
+            )
+    except (ValueError, OSError, RuntimeError):
+        # Not the main thread or platform does not support SIGTERM handlers;
+        # run proceeds without the graceful-cancel hook.
+        pass
+
+    try:
+        asyncio.run(
+            execute_task(
+                goal=goal,
+                device_serial=device_serial,
+                session_id=session_id,
+                locked_app_package=locked_app_package,
+                test_name=test_name,
+                traces_output_path_str=traces_path,
+                output_description=output_description,
+                video_recording_tools_enabled=with_video_recording_tools,
+                profile=profile,
+                app_path=app_path,
+                enable_planner_validation=enable_planner_validation,
+                enable_committee=enable_committee,
+                enable_checker=enable_checker,
+                enable_outputter=enable_outputter,
+                force_output_synthesis=force_output_synthesis,
+                explorer_version=explorer_version,
+                explorer_pro_mode=explorer_pro_mode,
+                verification_level=verification_level,
+            )
+        )
+    except (KeyboardInterrupt, asyncio.CancelledError):
+        # KeyboardInterrupt: Ctrl+C / SIGTERM. CancelledError: the daemon asked
+        # this worker to stop through a cancel marker and the Agent cancelled
+        # its own task so the recording and trace could be finalized.
+        cancelled = True
+    except Exception as e:
+        console.print(f"[bold red]Task execution failed:[/bold red] {e}")
+        raise
+    finally:
+        try:
+            if original_sigterm is not None and hasattr(signal, "SIGTERM"):
+                signal.signal(signal.SIGTERM, original_sigterm)
+        except (ValueError, OSError, RuntimeError):
+            # Best-effort restore of the previous handler on the way out.
+            pass
+        if cancelled:
+            raise SystemExit(130)
