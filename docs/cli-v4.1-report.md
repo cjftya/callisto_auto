@@ -65,6 +65,10 @@ Work에서 실제 Codex/Claude/Gemini 실행·로그인·버전 조회·Android 
 
 순수 로컬 dispatcher로 대체하는 것은 가능하지만 FastMCP 등록/검증, 결과 types, queue·취소·재생성의 동등한 구현이 필요해요. 단순히 import와 패키지만 지우면 기존 계약이 손상돼요. 원본 액션 구현의 해시와 기존 session·action contract 회귀를 보존하고, Windows CI 범위에도 포함했어요. 제거는 이 동등성 구현과 별도 회귀를 갖춘 후속 변경으로 남겨요.
 
+### 의존성 검토
+
+이번 변경에서는 기능 보존에 필요한 패키지를 추가로 제거하지 않았어요. `mcp<2`는 기존 액션 계약, `google-genai`는 native DTO/types, `langgraph`/`langchain-core`는 Pro 그래프/메시지 계약에 필요해요. `httpx`는 기존 로컬 연결/이미지 처리, OpenCV/ffmpeg/NumPy/SciPy/Matplotlib는 원본 미디어·인지 처리, Jupyter client/ipykernel은 원본 Python 실행 도구를 위해 유지해요. 직접 AI SDK Client 생성·외부 서버 시작 경로의 부재는 정적 경계 회귀로 검사하고, 패키지 설치 가능성은 `pip check`와 clean wheel 설치로 별도 검증해요.
+
 ### 스킬과 Helper 배포
 
 - `callisto skill install/update/status`: 정식 Skill을 wheel에서 찾아 사용자 `~/.agents/skills/callisto`로 설치해요. 프로젝트 밖·별도 venv 설치를 검사해요. 패키지 버전과 내용 해시를 기록하고 수정된 파일을 보호해요.
@@ -85,13 +89,30 @@ Work에서 실제 Codex/Claude/Gemini 실행·로그인·버전 조회·Android 
 
 ## 검증 결과와 브랜치 통합
 
-최종 실행 수치·CI 실행 링크·통합 정보는 이 절에 기록해요. CI 통과 전 main을 변경하지 않아요.
+검증된 코드 커밋은 `cb736d87490dadee2c142bedcfd43a357c8e5c5b`예요. 아래 네 CI 작업의 통과를 확인한 뒤 최종 보고서만 갱신하고 main/master를 fast-forward로 동기화해요. 보고서만 바꾸는 커밋에는 `[skip ci]`를 사용하며, 검증된 소스·테스트·패키징 코드는 변경하지 않아요.
 
 - Work 실제 AI CLI/로그인/버전/Android 호출: **수행하지 않음**.
 - 로컬 Linux 전체 오프라인: **2124 passed / 29 skipped / 8 deselected**, 89 warnings, 64.81초. skip에는 Work PID namespace 제한 17개와 Windows 전용 2개 및 기존 선택적 검사가 포함돼요. 일반 Linux CI에서 PID 관련 검사를 실행해요.
 - lint(변경 코드 및 Callisto/tools/tests), `git diff --check`, `pip check`: 통과. 원본 핵심 32개 + 엔진/액션 23개 해시 일치.
 - frontend 없는 wheel 빌드 통과. clean venv에서 Pro graph/config/SDK import, CLI help/version 및 checkout 밖 Skill install-update-status 통과. 기본 wheel의 APK 부재도 확인했어요. 이 Work 환경에는 Android SDK/JDK가 없어 APK 실빌드는 CI에서 수행해요.
-- GitHub Linux/Windows 회귀 및 Helper build matrix: master push 후 확인.
+- GitHub Actions [최종 코드 검증 실행 #6](https://github.com/cjftya/callisto_auto/actions/runs/39260184679): **success**. Work에서 실제 AI CLI를 실행하지 않았어요.
+
+| CI 작업 | 결과 | 검증 범위 |
+|---|---|---|
+| Linux cli-regression | **2141 passed, 12 skipped, 8 deselected**, 89 warnings, 77.19초 | 전체 Pro 오프라인 회귀, lint, pip check, 기본 wheel clean 설치, checkout 밖 Skill 설치/업데이트/상태 |
+| Windows cli-regression | **249 passed, 1 skipped**, 2 warnings, 13.90초 | CLI·프로세스 취소/timeout·내부 MCP·Helper 회귀, lint, pip check, 기본 wheel clean 설치와 Skill 설치 |
+| Linux helper-build | **success** | 실제 Java/SDK APK 빌드, APK Signature v2/v3 검증, manifest/hash 검사, APK 포함 wheel clean 설치 |
+| Windows helper-build | **success** | 동일 APK 빌드·서명·번들 검사 및 APK 포함 wheel clean 설치 |
+
+Windows의 유일한 skip은 POSIX 전용 프로세스 검사예요. Windows 전용 fake 자식 트리 종료 검사는 실제 Windows CI에서 실행했어요. 첫 CI에서 새 테스트가 Windows 환경변수의 대소문자 alias를 POSIX와 같다고 가정한 부분을 수정했고, 위 최종 실행에서 통과했어요.
+
+CI artifact:
+- [Linux 기본 wheel·테스트 XML·wheel-report](https://github.com/cjftya/callisto_auto/actions/runs/39260184679/artifacts/12190506338)
+- [Windows 기본 wheel·테스트 XML·wheel-report](https://github.com/cjftya/callisto_auto/actions/runs/39260184679/artifacts/12191305607)
+- [Linux 개발용 APK·manifest·APK 포함 wheel](https://github.com/cjftya/callisto_auto/actions/runs/39260184679/artifacts/12190496085)
+- [Windows 개발용 APK·manifest·APK 포함 wheel](https://github.com/cjftya/callisto_auto/actions/runs/39260184679/artifacts/12191050544)
+
+각 APK는 같은 artifact의 manifest와 함께 사용해요. Actions artifact는 보존 기간이 있으므로 영구 release 배포와 구별해요.
 - 미해결: 실제 Codex 모델/로그인/이미지/schema/tool 왕복, host 스킬 인식, Android 자연어 작업·탭/스크롤/입력·체크포인트/복구, 실제 timeout/취소·Windows native CLI 모두 사용자 PC 수용 검증이 필요해요.
 
 ## 공식 계약 참고 (2026-10-19 문서 확인)
