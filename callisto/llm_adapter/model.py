@@ -149,7 +149,7 @@ def configured_model(*, model=None, timeout=180, reasoning_effort=None):
         raise UnsupportedCapability("Set CALLISTO_MODEL explicitly when selecting a non-Codex CLI")
     return CLIChatModel(
         provider=provider,
-        model_name=os.environ.get("CALLISTO_MODEL") or model,
+        model_name=os.environ.get("CALLISTO_MODEL") or model or "gpt-6.1-sol",
         timeout_seconds=timeout,
         reasoning_effort=reasoning_effort,
     )

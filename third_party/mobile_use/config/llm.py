@@ -23,8 +23,6 @@ import os
 from pathlib import Path
 from typing import Any, Literal
 
-import google.auth
-from google.auth.exceptions import DefaultCredentialsError
 from pydantic import BaseModel, ValidationError
 
 from artemis.config.constants import AgentNode, LLMProvider, LLMUtilsNode
@@ -40,15 +38,9 @@ AgentNodeWithFallback = AgentNode
 
 
 def validate_vertex_ai_credentials() -> None:
-    """Validate Google Application Default Credentials for VertexAI provider."""
-    try:
-        _, project = google.auth.default()
-        if not project:
-            raise Exception("VertexAI requires a Google Cloud project to be set.")
-    except DefaultCredentialsError as e:
-        raise Exception(
-            f"VertexAI requires valid Google Application Default Credentials (ADC): {e}"
-        )
+    """Reject legacy ADC validation without reading Google credentials."""
+    from callisto.llm_adapter.errors import UnsupportedCapability
+    raise UnsupportedCapability("Vertex AI credentials are disabled; use official CLI login")
 
 
 class LLM(BaseModel):

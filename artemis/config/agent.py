@@ -688,7 +688,7 @@ class MemoryChunkingConfig(BaseModel):
         ),
     )
     model: str = Field(
-        default="gemini-3.8-flash",
+        default="gpt-6.1-sol",
         description="Model used for the chunk-level StepCapsuleLens (bands ①+②).",
     )
     max_chunks: int = Field(

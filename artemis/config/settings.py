@@ -18,7 +18,7 @@ import os
 from pathlib import Path
 
 from dotenv import load_dotenv
-from pydantic import Field, SecretStr, model_validator
+from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings
 
 from artemis.config.constants import (
@@ -26,16 +26,7 @@ from artemis.config.constants import (
     DEFAULT_ADB_PORT,
     DEFAULT_MODEL,
     DEFAULT_PROFILE,
-    ENV_ANTHROPIC_API_KEY,
     ENV_DATA_ENGINE_DB_PATH,
-    ENV_GCP_API_KEY,
-    ENV_GEMINI_API_KEY,
-    ENV_GOOGLE_API_KEY,
-    ENV_OCR_API_KEY,
-    ENV_OPEN_ROUTER_API_KEY,
-    ENV_OPENAI_API_KEY,
-    ENV_VISION_API_KEY,
-    ENV_XAI_API_KEY,
 )
 from artemis.config.paths import (
     GLOBAL_APP_DIR,
@@ -92,23 +83,6 @@ def is_placeholder_key(val: str | SecretStr | None) -> bool:
 class Settings(BaseSettings):
     """Centralized ARTEMIS runtime settings loaded from environment and .env files."""
 
-    # LLM Provider Authentication
-    OPENAI_API_KEY: SecretStr | None = None
-    GOOGLE_API_KEY: SecretStr | None = None
-    GEMINI_API_KEY: SecretStr | None = None
-    GCP_API_KEY: SecretStr | None = None
-    ANTHROPIC_API_KEY: SecretStr | None = None
-    XAI_API_KEY: SecretStr | None = None
-    OPEN_ROUTER_API_KEY: SecretStr | None = None
-
-    # Google Cloud Vision OCR Authentication
-    OCR_API_KEY: SecretStr | None = None
-    VISION_API_KEY: SecretStr | None = None
-    API_KEY: SecretStr | None = None
-
-    # Custom Provider Endpoints
-    OPENAI_BASE_URL: str | None = None
-
     # Android ADB Connectivity
     ADB_HOST: str | None = Field(default=DEFAULT_ADB_HOST)
     ADB_PORT: int | None = Field(default=DEFAULT_ADB_PORT)
@@ -152,159 +126,28 @@ class Settings(BaseSettings):
 
     model_config = {"env_file": ".env", "extra": "ignore"}
 
-    @model_validator(mode="after")
-    def fallback_api_keys(self) -> "Settings":
-        """Normalize Google / Gemini / GCP and OCR API keys and filter placeholders."""
-        # Sanitize any placeholder values loaded from environment or .env
-        for attr in (
-            "OPENAI_API_KEY",
-            "GOOGLE_API_KEY",
-            "GEMINI_API_KEY",
-            "GCP_API_KEY",
-            "ANTHROPIC_API_KEY",
-            "XAI_API_KEY",
-            "OPEN_ROUTER_API_KEY",
-            "OCR_API_KEY",
-            "VISION_API_KEY",
-            "API_KEY",
-        ):
-            val = getattr(self, attr, None)
-            if val and is_placeholder_key(val):
-                setattr(self, attr, None)
+    @property
+    def GOOGLE_API_KEY(self) -> None:
+        """Inert legacy attribute for callers migrating from upstream settings."""
+        return None
 
-        if not self.GOOGLE_API_KEY:
-            if self.GEMINI_API_KEY:
-                self.GOOGLE_API_KEY = self.GEMINI_API_KEY
-            elif self.GCP_API_KEY:
-                self.GOOGLE_API_KEY = self.GCP_API_KEY
+    @GOOGLE_API_KEY.setter
+    def GOOGLE_API_KEY(self, value) -> None:
+        # Compatibility writes have no effect; official CLI owns authentication.
+        pass
 
-        # Fallback for OCR & Vision API keys
-        if not self.OCR_API_KEY and self.VISION_API_KEY:
-            self.OCR_API_KEY = self.VISION_API_KEY
-        return self
+    @GOOGLE_API_KEY.deleter
+    def GOOGLE_API_KEY(self) -> None:
+        pass
 
-    def get_api_key(self, provider: str) -> SecretStr | None:
-        """Get API key for a specified provider.
-
-        Args:
-            provider: Provider name (e.g., 'google', 'gemini', 'openai', 'ocr', 'vision').
-
-        Returns:
-            SecretStr containing the API key or None if not configured.
-        """
-        from artemis.llm.google.provider import is_google_family_provider
-
-        provider_lower = provider.lower()
-        key: SecretStr | None = None
-        if is_google_family_provider(provider_lower):
-            key = self.GOOGLE_API_KEY or self.GEMINI_API_KEY or self.GCP_API_KEY
-        elif provider_lower in ("ocr", "vision", "google_vision"):
-            key = self.OCR_API_KEY or self.VISION_API_KEY
-        elif provider_lower == "openai":
-            key = self.OPENAI_API_KEY
-        elif provider_lower in ("anthropic", "claude"):
-            key = self.ANTHROPIC_API_KEY
-        elif provider_lower == "openrouter":
-            key = self.OPEN_ROUTER_API_KEY
-        elif provider_lower in ("xai", "grok"):
-            key = self.XAI_API_KEY
-
-        if key and not is_placeholder_key(key):
-            return key
+    def get_api_key(self, provider: str) -> None:
+        """Legacy accessor: Callisto neither collects nor returns API keys."""
         return None
 
     def set_api_key(self, provider: str, key: str, persist_to_env: bool = False) -> None:
-        """Dynamically set an API key at runtime, optionally persisting to .env in the app dir.
-
-        Args:
-            provider: Target provider name.
-            key: Secret API key string.
-            persist_to_env: Whether to save the key to the app directory's .env file.
-        """
-        secret = SecretStr(key)
-        from artemis.llm.google.provider import is_google_family_provider
-
-        provider_lower = provider.lower()
-        env_key_name = None
-
-        if is_google_family_provider(provider_lower):
-            self.GOOGLE_API_KEY = secret
-            self.GEMINI_API_KEY = secret
-            self.GCP_API_KEY = secret
-            env_key_name = ENV_GEMINI_API_KEY
-            os.environ[ENV_GOOGLE_API_KEY] = key
-            os.environ[ENV_GEMINI_API_KEY] = key
-            os.environ[ENV_GCP_API_KEY] = key
-        elif provider_lower == "openai":
-            self.OPENAI_API_KEY = secret
-            env_key_name = ENV_OPENAI_API_KEY
-            os.environ[ENV_OPENAI_API_KEY] = key
-        elif provider_lower in ("anthropic", "claude"):
-            self.ANTHROPIC_API_KEY = secret
-            env_key_name = ENV_ANTHROPIC_API_KEY
-            os.environ[ENV_ANTHROPIC_API_KEY] = key
-        elif provider_lower == "openrouter":
-            self.OPEN_ROUTER_API_KEY = secret
-            env_key_name = ENV_OPEN_ROUTER_API_KEY
-            os.environ[ENV_OPEN_ROUTER_API_KEY] = key
-        elif provider_lower == "xai":
-            self.XAI_API_KEY = secret
-            env_key_name = ENV_XAI_API_KEY
-            os.environ[ENV_XAI_API_KEY] = key
-        elif provider_lower in ("ocr", "vision", "google_vision"):
-            self.OCR_API_KEY = secret
-            self.VISION_API_KEY = secret
-            env_key_name = ENV_OCR_API_KEY
-            os.environ[ENV_OCR_API_KEY] = key
-            os.environ[ENV_VISION_API_KEY] = key
-
-        if persist_to_env and env_key_name:
-            target_env_files = [get_env_file()]
-            seen_paths = set()
-            for env_file in target_env_files:
-                try:
-                    env_file.parent.mkdir(parents=True, exist_ok=True)
-                    resolved = env_file.resolve()
-                    if resolved in seen_paths:
-                        continue
-                    seen_paths.add(resolved)
-
-                    lines = []
-                    if env_file.exists():
-                        lines = env_file.read_text(encoding="utf-8").splitlines()
-
-                    # Determine keys to update
-                    keys_to_update = [env_key_name]
-                    if is_google_family_provider(provider_lower):
-                        keys_to_update = [ENV_GEMINI_API_KEY, ENV_GOOGLE_API_KEY, ENV_GCP_API_KEY]
-                    elif provider_lower in ("ocr", "vision", "google_vision"):
-                        keys_to_update = [ENV_OCR_API_KEY, ENV_VISION_API_KEY]
-
-                    new_lines = []
-                    updated_set = set()
-                    for line in lines:
-                        replaced = False
-                        for k in keys_to_update:
-                            if (
-                                line.startswith(f"{k}=")
-                                or line.startswith(f"#{k}=")
-                                or line.startswith(f"# {k}=")
-                            ):
-                                new_lines.append(f"{k}={key}")
-                                updated_set.add(k)
-                                replaced = True
-                                break
-                        if not replaced:
-                            new_lines.append(line)
-
-                    # Ensure the primary key is present if not replaced
-                    primary_key = keys_to_update[0]
-                    if primary_key not in updated_set:
-                        new_lines.append(f"{primary_key}={key}")
-
-                    env_file.write_text("\n".join(new_lines) + "\n", encoding="utf-8")
-                except Exception as e:
-                    logger.warning(f"Could not persist {env_key_name} to {env_file}: {e}")
+        """Reject legacy credential writes without changing files or environment."""
+        from callisto.llm_adapter.errors import UnsupportedCapability
+        raise UnsupportedCapability("API key configuration is disabled; use official CLI login")
 
 
 # Singleton instance

@@ -617,8 +617,11 @@ async def test_exhausted_static_chunk_is_not_committed_to_the_blackboard(tmp_pat
 
 
 @pytest.fixture(autouse=True)
-def mock_native_auth_precondition(monkeypatch):
-    """Native-engine tests use a fake credential and mocked clients, never live APIs."""
-    from pydantic import SecretStr
-    from artemis.config import settings
-    monkeypatch.setattr(settings, "GOOGLE_API_KEY", SecretStr("test-only-not-a-real-key"))
+def mock_native_engine_precondition(monkeypatch):
+    """Inject the explicitly mocked port for preserved native algorithm tests."""
+    from artemis.agents.video_analyzer import video_analyzer as module
+    original = VideoAnalyzer._init_engine
+    def initialize(self):
+        self.ctx._genai_client = module.genai.Client()
+        original(self)
+    monkeypatch.setattr(VideoAnalyzer, "_init_engine", initialize)

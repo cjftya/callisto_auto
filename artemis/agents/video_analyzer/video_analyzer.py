@@ -418,30 +418,13 @@ class VideoAnalyzer:
         utils_cfg = getattr(llm_config, "utils", None) if llm_config else None
         llm_cfg = getattr(utils_cfg, "video_analyzer", None) if utils_cfg else None
         self.model_name = strip_provider_prefix(
-            llm_cfg.model if (llm_cfg and hasattr(llm_cfg, "model")) else "gemini-3.8-flash"
+            llm_cfg.model if (llm_cfg and hasattr(llm_cfg, "model")) else "gpt-6.1-sol"
         )
 
-        has_google_key = bool(
-            settings.GOOGLE_API_KEY and settings.GOOGLE_API_KEY.get_secret_value()
-        )
-
-        # If client is already set on ctx or explicit Gemini configuration
+        # Preserve explicit injected-port compatibility; ordinary CLI runs use
+        # the original Universal frame path, independent of API key variables.
         self.client = getattr(ctx, "_genai_client", None)
-        if self.client is not None:
-            self.use_native_gemini = True
-        elif has_google_key and is_gemini_model(self.model_name):
-            try:
-                self.client = genai.Client(api_key=settings.GOOGLE_API_KEY.get_secret_value())
-                ctx._genai_client = self.client
-                self.use_native_gemini = True
-                asyncio.create_task(cleanup_abandoned_gemini_files(self.client))
-            except Exception as e:
-                logger.warning(
-                    f"Failed to initialize native Gemini client: {e}. Using universal engine."
-                )
-                self.use_native_gemini = False
-        else:
-            self.use_native_gemini = False
+        self.use_native_gemini = self.client is not None
         self._resolve_video_processing()
 
     def _resolve_video_processing(self) -> None:

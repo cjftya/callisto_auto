@@ -51,17 +51,17 @@ class ModelProvider(StrEnum):
     def from_string(cls, val: Any) -> "ModelProvider":
         """Converts a string or enum into a canonical ModelProvider.
 
-        ``None``/empty means "use the default" (Google); an unrecognized
+        ``None``/empty means "use the default" (CLI); an unrecognized
         non-empty value raises instead of silently routing to Gemini with
         the wrong credentials.
         """
         if isinstance(val, cls):
             return val
         if val is None:
-            return cls.GOOGLE
+            return cls.CLI
         s = str(val).lower().replace("_", "").replace("-", "").strip()
         if not s:
-            return cls.GOOGLE
+            return cls.CLI
         mapping = {
             "cli": cls.CLI,
             "google": cls.GOOGLE,

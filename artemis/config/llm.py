@@ -131,11 +131,11 @@ def _expand_default_into_nodes(config_dict: dict) -> dict:
     default_model_cfg = config_dict.get(
         "default",
         {
-            "provider": "google",
-            "model": "gemini-3.8-flash",
+            "provider": "cli",
+            "model": "gpt-6.1-sol",
             "fallback": {
-                "provider": "google",
-                "model": "gemini-3.7-flash",
+                "provider": "cli",
+                "model": "gpt-6.1-sol",
             },
         },
     )

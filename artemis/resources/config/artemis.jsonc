@@ -78,7 +78,7 @@
         "max_steps": 12,
         "min_steps": 3,
         "target_source_tokens": 2000,
-        "model": "gemini-3.8-flash",
+        "model": "gpt-6.1-sol",
         "max_chunks": 8
       },
       "recall": {

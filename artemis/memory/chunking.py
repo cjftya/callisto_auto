@@ -298,7 +298,7 @@ class StepCapsuleLens(StepLens):
         fallback_model_name: str | None = None,
         fallback_llm: Any | None = None,
     ):
-        self._model_name = model_name or "gemini-3.8-flash"
+        self._model_name = model_name or "gpt-6.1-sol"
         self._llm = llm
         self._ctx = ctx
         # Availability hardening: `chunking.model` is a dedicated model with no
@@ -891,7 +891,7 @@ class HistoryChunkManager:
         self._max_steps = int(getattr(cc, "max_steps", 12) or 12)
         self._min_steps = max(1, min(self._max_steps, int(getattr(cc, "min_steps", 3) or 3)))
         self._target_source_tokens = int(getattr(cc, "target_source_tokens", 2000) or 2000)
-        self._model_name = getattr(cc, "model", None) or "gemini-3.8-flash"
+        self._model_name = getattr(cc, "model", None) or "gpt-6.1-sol"
         self._max_chunks = int(getattr(cc, "max_chunks", 8) or 8)
         # None uses max_chunks as the era cap.
         self._max_eras = int(getattr(cc, "max_eras", None) or self._max_chunks)

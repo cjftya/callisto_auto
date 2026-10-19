@@ -1358,8 +1358,7 @@ async def test_generate_content_reliability_exhausts_to_typed_error():
 
 
 @pytest.fixture(autouse=True)
-def mock_native_auth_precondition(monkeypatch):
-    """Native-engine tests use a fake credential and mocked clients, never live APIs."""
-    from pydantic import SecretStr
-    from artemis.config import settings
-    monkeypatch.setattr(settings, "GOOGLE_API_KEY", SecretStr("test-only-not-a-real-key"))
+def mock_native_engine_precondition(monkeypatch):
+    """Exercise preserved native algorithms explicitly, without API credentials."""
+    from artemis.llm.google import is_gemini_model
+    monkeypatch.setattr(Explorer, "_detect_native_engine", lambda self: is_gemini_model(self.model_name))

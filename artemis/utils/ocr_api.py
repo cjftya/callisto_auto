@@ -16,20 +16,9 @@ import os
 from typing import Any
 
 import httpx
-from artemis.config import settings
 from third_party.mobile_use.utils.logger import get_logger
 
 logger = get_logger(__name__)
-_HTTP_CLIENT: httpx.AsyncClient | None = None
-
-
-def get_http_client() -> httpx.AsyncClient:
-    global _HTTP_CLIENT
-    if _HTTP_CLIENT is None or _HTTP_CLIENT.is_closed:
-        _HTTP_CLIENT = httpx.AsyncClient(timeout=30.0)
-    return _HTTP_CLIENT
-
-
 async def perform_ocr(
     screenshot_b64: str,
     client: httpx.AsyncClient | None = None,
@@ -51,25 +40,6 @@ async def perform_ocr(
         ])
     ])
     return [region.model_dump() for region in response.regions]
-
-
-def _parse_ocr_response(response: httpx.Response) -> list[dict[str, Any]]:
-    if response.status_code == 200:
-        res_json = response.json()
-        responses = res_json.get("responses", [])
-        if responses and "textAnnotations" in responses[0]:
-            annotations = responses[0]["textAnnotations"]
-            results = []
-            # Skip the first annotation (index 0) as it is the full-screen combined text
-            for ann in annotations[1:]:
-                desc = ann.get("description", "")
-                vertices = ann.get("boundingPoly", {}).get("vertices", [])
-                results.append({"text": desc, "position": vertices})
-            return results
-        else:
-            return []
-    else:
-        raise Exception(f"Vision API returned status {response.status_code}: {response.text}")
 
 
 def is_ocr_configured() -> bool:

@@ -122,18 +122,12 @@ class Explorer(PerceptionToolsMixin, UniversalRunnerMixin, RunSetupMixin, Native
         return strip_provider_prefix(model_name)
 
     def _detect_native_engine(self) -> bool:
-        """True when the native google-genai SDK should drive the reasoning loop.
+        """Use Universal by default, irrespective of old Google key variables.
 
-        A Gemini model alone is not enough: without a Google API key (or a
-        client already shared on the context) the SDK cannot be constructed,
-        so such configurations run through the universal LangChain engine.
+        An explicitly injected native-compatible client retains the original
+        engine contract for offline regression and embedding callers.
         """
-        if not is_gemini_model(self.model_name):
-            return False
-        if getattr(self.ctx, "_genai_client", None) is not None:
-            return True
-        api_key = getattr(settings, "GOOGLE_API_KEY", None)
-        return bool(api_key and api_key.get_secret_value())
+        return is_gemini_model(self.model_name) and getattr(self.ctx, "_genai_client", None) is not None
 
     def _ensure_genai_client(self):
         """Returns the context-level GenAI client, creating it on first use.
@@ -145,8 +139,7 @@ class Explorer(PerceptionToolsMixin, UniversalRunnerMixin, RunSetupMixin, Native
         client = getattr(self.ctx, "_genai_client", None)
         if client is None:
             logger.info("Initializing GenAI client on context for connection pooling (Explorer)")
-            api_key = getattr(settings, "GOOGLE_API_KEY", None)
-            client = genai.Client(api_key=api_key.get_secret_value() if api_key else None)
+            client = genai.Client()
             self.ctx._genai_client = client
         self.client = client
         return client

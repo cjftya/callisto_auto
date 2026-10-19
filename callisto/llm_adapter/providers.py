@@ -23,6 +23,7 @@ def command_for(provider, model, directory, images, schema_path, reasoning_effor
     if provider == "codex":
         command = [path, "exec", "--ignore-user-config", "--ephemeral", "--skip-git-repo-check", "--sandbox", "read-only",
                    "--disable", "shell_tool", "--disable", "apps", "--disable", "plugins",
+                   "--disable", "hooks", "--disable", "multi_agent", "-c", 'web_search="disabled"',
                    "--json", "--output-schema", str(schema_path), "-C", str(directory)]
         if model:
             command += ["--model", model]
@@ -41,6 +42,8 @@ def command_for(provider, model, directory, images, schema_path, reasoning_effor
 
 
 def decode_result(provider, result):
+    if provider not in ("codex", "claude"):
+        raise UnsupportedCapability(f"CLI provider {provider!r} is not implemented")
     if result.returncode:
         # Do not classify unrelated plugin stderr warnings as model auth failures.
         # Exit failures remain explicit; stderr never escapes into traces/errors.
@@ -65,6 +68,10 @@ def decode_result(provider, result):
                 raise CLIError("Codex reported a failed inference turn")
             if not any(e.get("type") == "turn.completed" for e in events):
                 raise CLIProtocolError("Codex output is incomplete: no turn.completed event")
+            if any(isinstance(e.get("item"), dict) and e["item"].get("type") in (
+                "command_execution", "file_change", "mcp_tool_call", "web_search", "collab_tool_call",
+            ) for e in events):
+                raise CLIProtocolError("Provider executed a tool; only ARTEMIS may execute actions")
             answers = [e["item"]["text"] for e in events if e.get("type") == "item.completed"
                        and isinstance(e.get("item"), dict) and e["item"].get("type") == "agent_message"]
             if not answers:

@@ -296,7 +296,9 @@ async def test_engine_resolves_video_processing(model, video_cfg, expected_mode,
             AsyncMock(),
         ),
     ):
-        analyzer = VideoAnalyzer(_context(model, **video_cfg))
+        context = _context(model, **video_cfg)
+        context._genai_client = MagicMock()
+        analyzer = VideoAnalyzer(context)
 
     assert analyzer.use_native_gemini is True
     assert analyzer.video_processing == expected_mode

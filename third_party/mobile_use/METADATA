@@ -23,5 +23,6 @@ third_party {
     "  - Removed code not used by Artemis (platform/cloud APIs, iOS, telemetry, etc.).\n"
     "  - Restructured and extended some code for use by Artemis.\n"
     "  - Added Apache-2.0 file headers carrying the upstream copyright.\n"
+    "Modifications by Callisto: disabled credential validation and provider APIs; CLI-only inference.\n"
     "All code derived from mobile-use lives in this directory.\n"
 }
