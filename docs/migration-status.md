@@ -1,3 +1,5 @@
+> **v4.1 최신 결과:** [기능 보존·호환성·검증 보고서](cli-v4.1-report.md). 아래 v4 기록은 당시 상태예요. v4.1은 Native Explorer opt-in, 인증 환경 격리, 검증 누락 exit 2, 스킬 설치 명령 및 선택적 Helper 포함 wheel을 추가해요. 실제 AI CLI·Android 검증은 여전히 미완료예요.
+
 # Callisto v4 전환 상태 — 2026-10-19
 
 **코드 정리 완료, 실제 CLI·Android 실사용 검증 미완료.**

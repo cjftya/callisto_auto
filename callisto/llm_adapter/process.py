@@ -7,6 +7,7 @@ import subprocess
 from dataclasses import dataclass
 
 from callisto.llm_adapter.errors import CLIError
+from callisto.llm_adapter.environment import cli_environment
 
 
 @dataclass(frozen=True)
@@ -41,7 +42,8 @@ async def _terminate(process):
     await process.wait()
 
 
-async def run_process(command, *, stdin: str, cwd: str, timeout: float, max_bytes=32_000_000):
+async def run_process(command, *, stdin: str, cwd: str, timeout: float, max_bytes=32_000_000,
+                      provider: str | None = None):
     if timeout <= 0:
         raise ValueError("CLI timeout must be positive")
     options = {"start_new_session": True} if os.name != "nt" else {
@@ -50,7 +52,7 @@ async def run_process(command, *, stdin: str, cwd: str, timeout: float, max_byte
     try:
         process = await asyncio.create_subprocess_exec(
             *command, cwd=cwd, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE, **options,
+            stderr=subprocess.PIPE, env=cli_environment(provider), **options,
         )
     except OSError:
         raise CLIError("AI CLI could not be started; check its executable and installation") from None

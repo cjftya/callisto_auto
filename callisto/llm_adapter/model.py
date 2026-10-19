@@ -89,7 +89,7 @@ class CLIChatModel(BaseChatModel):
                     command = command_for(self.provider, self.model_name, directory, images,
                                           schema_path, self.reasoning_effort)
                     result = await run_process(command, stdin=prompt, cwd=str(directory),
-                                               timeout=self.timeout_seconds)
+                                               timeout=self.timeout_seconds, provider=self.provider)
                     text, usage = decode_result(self.provider, result)
                     usage = {key: value for key, value in usage.items()
                              if key in ("input_tokens", "output_tokens", "cached_input_tokens",

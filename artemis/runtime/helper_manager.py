@@ -65,6 +65,7 @@ from collections.abc import Callable
 from contextlib import contextmanager
 from dataclasses import asdict, dataclass, field
 import hashlib
+from importlib.metadata import distribution, PackageNotFoundError
 import json
 import os
 from pathlib import Path
@@ -180,14 +181,41 @@ class BundledHelper:
         }
 
 
+def helper_artifact_paths() -> tuple[Path, Path]:
+    """Resolve an explicit local bundle, source checkout, or installed wheel."""
+    override = os.environ.get("CALLISTO_HELPER_DIR")
+    if override:
+        directory = Path(override).expanduser().resolve()
+        return directory / BUNDLED_APK_PATH.name, directory / BUNDLED_MANIFEST_PATH.name
+    if BUNDLED_MANIFEST_PATH.is_file():
+        return BUNDLED_APK_PATH, BUNDLED_MANIFEST_PATH
+    try:
+        dist = distribution("callisto-auto")
+        for entry in dist.files or []:
+            if str(entry).replace("\\", "/").endswith("share/callisto/helper/helper_manifest.json"):
+                manifest = Path(dist.locate_file(entry))
+                return manifest.parent / BUNDLED_APK_PATH.name, manifest
+    except PackageNotFoundError:
+        pass
+    return BUNDLED_APK_PATH, BUNDLED_MANIFEST_PATH
+
+
 def load_bundled_helper(
-    apk_path: Path = BUNDLED_APK_PATH, manifest_path: Path = BUNDLED_MANIFEST_PATH
+    apk_path: Path | None = None, manifest_path: Path | None = None
 ) -> BundledHelper | None:
     """Read the bundled APK's manifest; ``None`` when the artifact is not shipped."""
+    default_apk, default_manifest = helper_artifact_paths()
+    apk_path = default_apk if apk_path is None else apk_path
+    manifest_path = default_manifest if manifest_path is None else manifest_path
     if not apk_path.is_file() or not manifest_path.is_file():
         return None
     try:
         data = json.loads(manifest_path.read_text(encoding="utf-8"))
+        if (not isinstance(data, dict) or data.get("package") != PACKAGE_NAME or type(data.get("version_code")) is not int
+                or data["version_code"] <= 0
+                or data.get("sha256") != hashlib.sha256(apk_path.read_bytes()).hexdigest()):
+            logger.warning("Helper bundle package/version/checksum mismatch; refusing installation")
+            return None
         return BundledHelper(
             apk_path=apk_path,
             version_code=int(data["version_code"]),

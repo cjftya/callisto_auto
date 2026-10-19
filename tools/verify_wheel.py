@@ -17,6 +17,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('wheel', type=Path)
     parser.add_argument('--report', type=Path)
+    parser.add_argument('--require-helper', action='store_true')
     args = parser.parse_args()
     wheel = args.wheel.resolve()
     with zipfile.ZipFile(wheel) as archive:
@@ -34,6 +35,8 @@ def main():
             assert b'External MCP entrypoints are disabled' in source
             assert b'mcp.run(' not in source
         bundled_apk = any(n.endswith('.apk') for n in names)
+        if args.require_helper:
+            assert bundled_apk, 'Helper APK expected in this distribution'
     environment = dict(os.environ, CALLISTO_FORBID_LIVE_CLI='1')
     environment.pop('PYTHONPATH', None)
     with tempfile.TemporaryDirectory(prefix='callisto-wheel-') as temp:
@@ -47,8 +50,14 @@ def main():
             subprocess.run([str(v) for v in command], cwd=root, env=environment, check=True)
         run([python, '-m', 'pip', 'install', wheel])
         run([python, '-m', 'pip', 'check'])
-        for flags in (['--help'], ['run', '--help'], ['helper', '--help'], ['trace', '--help'], ['--version']):
+        for flags in (['--help'], ['run', '--help'], ['helper', '--help'], ['trace', '--help'], ['skill', '--help'], ['--version']):
             run([cli, *flags])
+        skill_dir = root / 'external-user-skills'
+        run([cli, 'skill', 'install', '--directory', skill_dir])
+        run([cli, 'skill', 'update', '--directory', skill_dir])
+        run([cli, 'skill', 'status', '--directory', skill_dir])
+        if args.require_helper:
+            run([cli, 'helper', 'bundle-status'])
         run([python, '-c', '''from artemis.config.llm import get_default_llm_config
 from artemis.graph.graph import get_graph
 from artemis.interfaces.cli.commands.run import execute_task
@@ -67,6 +76,7 @@ print('isolated Pro/config/skill imports OK; helper APK available:', load_bundle
 '''])
     report = {'wheel': wheel.name, 'installed': True, 'pip_check': 'passed',
               'pro_import': 'passed', 'cli_help': 'passed', 'canonical_skill': 'included',
+              'skill_install_update_status': 'passed', 'host_skill_recognition': 'not_run',
               'helper_manifest': 'included', 'helper_apk_bundled': bundled_apk,
               'live_cli': 'not_run', 'android': 'not_run', 'platform': os.name}
     if args.report:

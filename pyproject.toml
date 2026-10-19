@@ -14,7 +14,7 @@
 
 [project]
 name = "callisto-auto"
-version = "0.1.0"
+version = "0.1.1"
 description = "Autonomous AI Assistant for Mobile Automation"
 
 authors = [
@@ -251,4 +251,4 @@ artemis_client = ["py.typed"]
 
 [tool.setuptools.data-files]
 "share/callisto/skills/callisto" = ["skills/callisto/SKILL.md"]
-"share/callisto/helper" = ["packages/artemis-accessibility-helper/helper_manifest.json"]
+"share/callisto/helper" = ["packages/artemis-accessibility-helper/helper_manifest.json", "packages/artemis-accessibility-helper/*.apk"]

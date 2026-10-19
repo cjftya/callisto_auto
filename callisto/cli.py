@@ -41,9 +41,11 @@ def doctor(json_output: Annotated[bool, typer.Option("--json")] = False):
         "cli_installed": bool(shutil.which(executable)), "adb_installed": bool(shutil.which("adb")),
         "config_error": config_error, "authentication": "not_checked",
         "live_inference": "not_checked", "profile": "pro", "servers_required": False}
+    resolved = shutil.which(executable)
+    report["launcher_supported"] = not (os.name == "nt" and resolved and resolved.lower().endswith((".cmd", ".bat")))
     typer.echo(json.dumps(report, indent=2) if json_output else
                "\n".join(f"{key}: {value}" for key, value in report.items()))
-    if not implemented or config_error or not report["cli_installed"] or not report["adb_installed"]:
+    if not implemented or config_error or not report["cli_installed"] or not report["adb_installed"] or not report["launcher_supported"]:
         raise typer.Exit(1)
 
 
@@ -88,34 +90,25 @@ def run(
     finally:
         if previous is not None:
             signal.signal(signal.SIGTERM, previous)
-        content = (report.get("result") or {}).get("content")
-        summary = content.get("test_summary", {}) if isinstance(content, dict) else {}
-        report["test_status"] = (
-            "failed" if summary.get("failed", 0) else
-            "incomplete" if summary.get("inconclusive", 0) or summary.get("unchecked", 0) else
-            "passed" if summary.get("passed", 0) else "not_reported"
-        )
+        from callisto.verdict import settle_report
+        settle_report(report)
         with result_path.open("w", encoding="utf-8") as target:
             json.dump(report, target, ensure_ascii=False, indent=2, default=str)
         result_path.chmod(0o600)
     typer.echo(json.dumps({"session_id": session_id, "status": report["status"],
                            "test_status": report["test_status"],
+                           "exit_code": report["exit_code"],
                            "result_file": str(result_path)}, ensure_ascii=False))
-    content = (report.get("result") or {}).get("content")
-    summary = content.get("test_summary", {}) if isinstance(content, dict) else {}
-    if report["status"] == "cancelled":
-        raise typer.Exit(130)
-    if report["status"] != "completed" or summary.get("failed", 0):
-        raise typer.Exit(1)
-    if summary.get("inconclusive", 0) or summary.get("unchecked", 0):
-        raise typer.Exit(2)
+    raise typer.Exit(report["exit_code"])
 
 
 # These existing commands operate on local traces and Android Helper only.
 from artemis.interfaces.cli.commands.trace import trace_app
 from artemis.interfaces.cli.commands.helper import helper_app
+from callisto.skill_install import skill_app
 app.add_typer(trace_app, name="trace")
 app.add_typer(helper_app, name="helper")
+app.add_typer(skill_app, name="skill")
 
 
 def cli():

@@ -49,7 +49,8 @@ def test_flash_profile_rejected_before_initialization():
 def test_cli_version_does_not_require_a_subcommand():
     result = CliRunner().invoke(app, ["--version"])
     assert result.exit_code == 0
-    assert "Callisto 0.1.0" in result.stdout
+    from importlib.metadata import version
+    assert f"Callisto {version('callisto-auto')}" in result.stdout
 
 
 def test_graph_prompts_and_core_agents_match_upstream_manifest():
@@ -106,7 +107,7 @@ def test_native_media_is_not_silently_discarded():
     ("completed", {"passed": 1}, 0, "passed"),
     ("completed", {"failed": 1}, 1, "failed"),
     ("completed", {"inconclusive": 1}, 2, "incomplete"),
-    ("completed", {}, 0, "not_reported"),
+    ("completed", {}, 2, "not_reported"),
     ("failed", {}, 1, "not_reported"),
 ])
 def test_cli_preserves_task_and_test_verdict_axes(monkeypatch, tmp_path, status, summary, exit_code, test_status):
@@ -121,6 +122,7 @@ def test_cli_preserves_task_and_test_verdict_axes(monkeypatch, tmp_path, status,
     assert metadata["status"] == status and metadata["test_status"] == test_status
     persisted = json.loads(Path(metadata["result_file"]).read_text())
     assert persisted["test_status"] == test_status
+    assert persisted["exit_code"] == metadata["exit_code"] == result.exit_code
 
 
 def test_cli_disabled_environment_cannot_run_live():

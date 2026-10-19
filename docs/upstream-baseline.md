@@ -41,3 +41,7 @@ API factory/웹 빌드 테스트는 Callisto의 no-API 경계와 wheel 설치 �
 Pro queue/SDK 테스트의 실행 프로필은 Flash에서 Pro로 갱신했어요. 모델 기본값 및 CLI 명령 집합을 검사하는 테스트도 새 계약에 맞췄어요.
 
 Work에서는 `/proc/self`가 노출하는 host PID와 `os.getpid()`가 다른 경우가 확인됐어요. 실제 PID 생존에 의존하는 원본 테스트 17개에만 환경 조건 skip을 적용하고, 운영 기기 잠금 코드는 유지했어요. 이 조건이 없는 CI/실제 PC에서는 해당 테스트가 그대로 실행돼요.
+
+## v4.1 추가 보존 검사
+
+원본 Explorer·영상 엔진·액션 server/session 23개 Python 파일을 `upstream-engine-manifest.json`으로 추가 고정했어요. 기존 32개 해시는 바꾸지 않아요. `CALLISTO_EXPLORER_ENGINE=native`로 원본 Native 루프를 CLI 호환 포트에 연결할 수 있고 기본 Universal 경로는 유지해요. 자세한 미지원 및 실사용 검증 구분은 [v4.1 보고서](cli-v4.1-report.md)를 참고하세요.

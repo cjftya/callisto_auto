@@ -36,6 +36,19 @@ from third_party.mobile_use.utils.logger import get_logger
 logger = get_logger(__name__)
 helper_app = typer.Typer(help="Install, inspect, or remove the Artemis Accessibility Helper APK.")
 
+
+@helper_app.command("bundle-status")
+def helper_bundle_status() -> None:
+    """Inspect local APK/manifest integrity only; no ADB or device calls."""
+    from artemis.runtime.helper_manager import helper_artifact_paths, load_bundled_helper
+    apk, manifest = helper_artifact_paths()
+    bundle = load_bundled_helper()
+    typer.echo(json.dumps({"apk_path": str(apk), "manifest_path": str(manifest),
+        "apk_present": apk.is_file(), "manifest_present": manifest.is_file(),
+        "bundle_valid": bundle is not None, "device_compatibility": "not_checked",
+        "bundle": bundle.to_dict() if bundle else None}, indent=2))
+    raise typer.Exit(0 if bundle else 1)
+
 SerialOption = Annotated[
     str | None,
     typer.Option("--serial", "-s", help="Device serial. Defaults to the only ready device."),

@@ -94,6 +94,8 @@ def _schema(value):
 
 
 class Client:
+    _callisto_cli_port = True
+
     def __init__(self, *args, **kwargs):
         # Legacy api_key arguments are deliberately ignored, never read or sent.
         self.aio = SimpleNamespace(models=self, files=_Unavailable("files"), caches=_Unavailable("caches"),

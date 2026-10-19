@@ -20,6 +20,13 @@ def command_for(provider, model, directory, images, schema_path, reasoning_effor
     path = shutil.which(executable)
     if not path:
         raise CLIError(f"Install and log in to {provider} CLI on the machine running Callisto")
+    # asyncio/CreateProcess cannot safely execute npm cmd shims without a shell.
+    # Do not introduce cmd.exe quoting or weaken the execution boundary.
+    if os.name == "nt" and path.lower().endswith((".cmd", ".bat")):
+        raise UnsupportedCapability(
+            f"{provider} resolved to a Windows .cmd/.bat launcher; configure "
+            f"CALLISTO_{provider.upper()}_EXECUTABLE to the official native .exe"
+        )
     if provider == "codex":
         command = [path, "exec", "--ignore-user-config", "--ephemeral", "--skip-git-repo-check", "--sandbox", "read-only",
                    "--disable", "shell_tool", "--disable", "apps", "--disable", "plugins",
@@ -45,6 +52,17 @@ def decode_result(provider, result):
     if provider not in ("codex", "claude"):
         raise UnsupportedCapability(f"CLI provider {provider!r} is not implemented")
     if result.returncode:
+        # Diagnose unsupported options without probing --version/--help or
+        # leaking the CLI's raw stderr (which can contain credentials).
+        diagnostic = (result.stderr + "\n" + result.stdout).lower()
+        if any(marker in diagnostic for marker in (
+            "unexpected argument", "unknown option", "unrecognized argument",
+            "unknown feature", "unrecognized feature",
+        )):
+            raise UnsupportedCapability(
+                f"{provider} CLI does not support the required options/features; "
+                "update the official CLI on the execution PC. Safety options are never removed automatically"
+            )
         # Do not classify unrelated plugin stderr warnings as model auth failures.
         # Exit failures remain explicit; stderr never escapes into traces/errors.
         if provider == "codex":

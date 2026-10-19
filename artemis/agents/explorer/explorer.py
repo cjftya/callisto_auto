@@ -127,6 +127,13 @@ class Explorer(PerceptionToolsMixin, UniversalRunnerMixin, RunSetupMixin, Native
         An explicitly injected native-compatible client retains the original
         engine contract for offline regression and embedding callers.
         """
+        engine = os.environ.get("CALLISTO_EXPLORER_ENGINE", "auto")
+        if engine not in ("auto", "universal", "native"):
+            raise ValueError("CALLISTO_EXPLORER_ENGINE must be auto, universal or native")
+        if engine == "native":
+            return True  # Same native loop; only its model transport is CLI-backed.
+        if engine == "universal":
+            return False
         return is_gemini_model(self.model_name) and getattr(self.ctx, "_genai_client", None) is not None
 
     def _ensure_genai_client(self):
@@ -439,6 +446,14 @@ class Explorer(PerceptionToolsMixin, UniversalRunnerMixin, RunSetupMixin, Native
             )
 
         client = self._ensure_genai_client()
+        caching = self._resolve_caching(tier, enable_caching)
+        if getattr(client, "_callisto_cli_port", False) is True:
+            from callisto.llm_adapter.errors import UnsupportedCapability
+            if os.getenv("ARTEMIS_USE_FILE_API", "false").lower() == "true":
+                raise UnsupportedCapability("Native Files API is unavailable; use inline screenshot transport")
+            if enable_caching is True or os.getenv(CACHING_ENV_VAR, "false").lower() == "true":
+                raise UnsupportedCapability("Explicit cloud Context Cache is unavailable through CLI")
+            caching = False  # Full original contents are sent on each turn.
         model_name, temperature, thinking_level, _fallback_model = self._resolve_model_params()
         return await self._run_native(
             client=client,
@@ -446,7 +461,7 @@ class Explorer(PerceptionToolsMixin, UniversalRunnerMixin, RunSetupMixin, Native
             context_feedback=context_feedback,
             minimal_list=minimal_list,
             img_to_read=img_to_read,
-            enable_caching=self._resolve_caching(tier, enable_caching),
+            enable_caching=caching,
             prompt_template=prompt_template,
             model_name=model_name,
             temperature=temperature,

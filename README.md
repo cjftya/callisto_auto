@@ -2,7 +2,7 @@
 
 Google ARTEMIS의 **기존 Pro 그래프·에이전트는 유지**하고, 모델 통신을 인증된 로컬 AI CLI로 연결하는 Android 자동 테스트 도구예요.
 
-v4의 **CLI 전용 코드 정리와 오프라인 검증**을 진행했어요. 실제 CLI 모델 호환성과 Android E2E는 사용자 PC에서 확인해야 해요. Work 내부에서 AI CLI를 실행하지 않으며, 그 실행 실패를 개발 중단 조건으로 사용하지 않아요.
+v4.1에서 **인증 환경변수 격리, 검증 결과와 종료 코드 일치, 스킬 설치와 Helper 배포**를 개선했어요. 실제 CLI 모델 호환성과 Android E2E는 사용자 PC에서 확인해야 해요. Work 내부에서 AI CLI를 실행하지 않으며, 그 실행 실패를 개발 중단 조건으로 사용하지 않아요.
 
 ## 로컬 PC 설치
 
@@ -43,7 +43,7 @@ callisto trace list
 동일 호스트 AI의 현재 대화 세션을 재사용하는 방식은 아니며, 매 호출마다 기존 에이전트의 메시지 이력을 별도 CLI 프로세스로 전달해요.
 
 `callisto run`은 세션 ID와 결과 JSON 경로를 출력해요. 원본 Trace, 체크포인트와 `run_outcome.json`을 함께 확인하세요.
-종료 코드: 0 완료 / 1 실패 / 2 미확정·미실행 체크 존재 / 130 취소. 검증 항목이 없는 완료를 테스트 통과로 해석하지 마세요.
+종료 코드: **0 검증 통과 / 1 작업·검증 실패 / 2 검증 누락·미확정 / 130 취소**예요. `test_status=not_reported`도 2로 종료하고, 출력과 결과 JSON에 같은 `exit_code`를 기록해요. 잘못된 검증 요약도 성공으로 처리하지 않아요.
 
 ## 모델과 기능 범위
 
@@ -54,6 +54,12 @@ callisto trace list
 - 선택적 OCR은 `CALLISTO_OCR=1`로 켜면 CLI 이미지 추론을 사용해 원래 텍스트/좌표 형식을 반환해요. 기존 Vision API 키로 자동 활성화하지 않아요. 실제 좌표 정확도 검증은 별도로 필요해요.
 
 모델은 `CALLISTO_MODEL`, 실행 파일은 `CALLISTO_CODEX_EXECUTABLE`로 지정할 수 있어요. Codex 호출은 사용자 설정을 읽지 않고 저장된 공식 인증을 사용하며, 임시 디렉터리·read-only sandbox·JSON 출력으로 동작해요. 관리자가 강제한 정책은 우회하지 않아요.
+자식 프로세스에는 주요 공급자의 API Key 및 해당 공급자의 대체 API 엔드포인트/라우팅 환경변수를 전달하지 않아요. 부모 환경과 공식 로그인 저장소는 변경하지 않아요. `HOME`/`USERPROFILE`/`CODEX_HOME`/`CLAUDE_CONFIG_DIR` 및 공식 CLI OAuth 환경은 정상 상속해요. Callisto는 인증 파일이나 토큰을 추출하지 않아요. CLI에 저장된 로그인 종류 자체는 검사하지 않으므로, 사용자 PC에서 공식 계정 로그인을 준비해야 해요.
+
+Windows에서 `.cmd`/`.bat`로 발견되는 npm launcher는 명시적으로 거부해요. `CALLISTO_CODEX_EXECUTABLE`을 공식 native `.exe` 경로로 지정하세요. 오래된 CLI가 필수 옵션을 거부하면 업데이트 안내와 함께 실패하며, 안전 옵션을 빼고 재시도하지 않아요. 실제 버전별 호환성은 미검증이에요.
+
+`CALLISTO_EXPLORER_ENGINE=native`로 원래 Native Explorer 루프를 CLI 호환 포트에 연결할 수 있어요. 기본은 기존 Universal 경로예요. Native 모드도 이미지·함수 호출·원래 결과 검증을 유지하지만, Files/명시적 Context Cache는 지원하지 않아요. `ARTEMIS_USE_FILE_API=true`나 명시적인 캐시 요청은 오류예요. 기본 캐시는 사용하지 않고 전체 이력을 전달해요. 원시 thought signature, 공급자 전용 thinking budget과 안전 설정의 동등성은 보장하지 않아요.
+
 Google 전용 모델(예: Robotics ER)의 공간 인지 정확도와 일반 CLI 모델의 결과가 같다고 보장하지 않아요.
 
 ## 오프라인 개발
@@ -67,16 +73,37 @@ python -m pip wheel --no-deps --no-build-isolation -w dist .
 자동 테스트는 실제 AI CLI 실행을 금지해요. 모의 응답과 가짜 Python 실행 파일만 사용해 계약, 취소와 프로세스 정리를 검증해요.
 브라우저 UI, 관리자 콘솔, 외부 MCP, Flash 실행 전용 원본 테스트는 `tests/upstream_removed/`에 보관하고 기본 테스트에서 제외했어요. Pro가 공유하는 내부 MCP 액션 세션, Flash 폴더의 요약/압축 코드와 Explorer `flash` tier는 유지했어요.
 
-wheel은 프런트엔드 빌드 없이 설치돼요. 표준 Skill 원본은 `skills/callisto/SKILL.md`이고,
-탐색용 `.agents/skills/callisto/SKILL.md`는 그 파일을 참조해요. wheel에는 동일 원본을
-`<Python 환경>/share/callisto/skills/callisto/SKILL.md`로 포함해요.
+## 스킬 설치 및 업데이트
 
-**Helper APK는 이 저장소에 포함되지 않았어요.** Helper 소스와 버전 명세는 유지하지만,
-자동 설치가 준비됐다고 표시하지 않아요. Helper를 쓸 PC에서는 저장소의
-`packages/artemis-accessibility-helper/build_apk.sh`로 APK를 빌드·설치하거나,
-기기에 이미 설치된 호환 Helper에 연결해야 해요. 기본 `auto` 계층 모드의 UIAutomator2
-fallback은 유지해요. wheel에 Helper 버전 명세는 포함하지만 APK는 없어요.
+wheel은 프런트엔드 없이 설치되고, 정식 스킬 원본을 함께 배포해요. 설치한 Python 환경에서 아래 명령을 실행하면 Codex의 표준 사용자 경로 `~/.agents/skills/callisto`로 복사되어 프로젝트 밖에서도 발견할 수 있어요. pip 설치는 사용자 홈을 자동 변경하지 않아요.
 
+```sh
+callisto skill install
+callisto skill status
+# 패키지 업데이트 후
+callisto skill update
+```
+
+`--directory <스킬 상위 폴더>`로 별도 경로도 지정할 수 있어요. 패키지 버전·내용 해시·설치 상태를 기록하고, 사용자가 수정한 파일이나 기존의 관리되지 않는 스킬은 덮어쓰지 않아요. 실행 중인 Codex에 나타나지 않으면 재시작하세요. 이 명령의 검증 범위는 경로와 파일이며, 실제 Codex의 인식 여부는 사용자 PC에서 확인해야 해요.
+
+## Helper 빌드와 배포
+
+소스 checkout과 기본 wheel에는 APK가 없어요. 기존 호환 Helper가 있으면 버전/프로토콜을 확인해 연결하고, 없으면 `auto` 계층 모드에서 UIAutomator2로 fallback해요. 실제 기기 호환성은 미검증이에요.
+
+Linux/Windows 모두 JDK 17과 Android SDK Platform 35/Build Tools 35.0.0을 준비하면 셸 스크립트 없이 빌드할 수 있어요.
+
+```sh
+python tools/build_helper.py --sdk <Android-SDK-경로>
+callisto helper bundle-status
+# 빌드한 APK와 해당 manifest를 함께 포함하는 wheel
+python -m pip wheel --no-deps --no-build-isolation -w dist .
+```
+
+`helper-build` CI는 두 OS에서 개발용 APK/manifest와 APK 포함 wheel을 빌드해 Actions artifact로 제공해요. 이는 기존 debug 서명을 사용하는 개발 빌드이며 production release는 아니에요. 빌드·서명·독립 wheel 설치의 성공 여부는 [v4.1 결과](docs/cli-v4.1-report.md)에 구분해서 기록해요.
+
+별도 APK를 사용할 때는 **APK와 일치하는 `helper_manifest.json`을 같은 폴더에** 두고 `CALLISTO_HELPER_DIR`로 지정하세요. `callisto helper bundle-status`는 기기 접근 없이 경로/버전/SHA-256을 검사해요. 패키지·버전·해시가 맞지 않는 번들은 설치하지 않아요. `callisto helper status --serial SERIAL --json`은 사용자 PC에서 설치 버전과 응답 프로토콜을 확인해요. 이미 설치된 앱을 강제로 다운그레이드하지 않아요.
+
+- [v4.1 기능 보존·개선·검증 보고서](docs/cli-v4.1-report.md)
 - [v4 감사 및 변경 근거](docs/cli-v4-audit.md)
 - [CLI 지원 현황](docs/cli-capability-matrix.md)
 - [전환 진행 상황](docs/migration-status.md)
