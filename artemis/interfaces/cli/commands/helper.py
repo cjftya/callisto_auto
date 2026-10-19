@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""``artemis helper``: manage the Accessibility Helper APK on attached devices.
+"""``callisto helper``: manage the Accessibility Helper APK on attached devices.
 
 Tasks provision the helper themselves when they take a device, so these
 commands exist for the cases the automatic path deliberately leaves alone:
@@ -34,7 +34,7 @@ from artemis.runtime.helper_manager import helper_manager
 from third_party.mobile_use.utils.logger import get_logger
 
 logger = get_logger(__name__)
-helper_app = typer.Typer(help="Install, inspect, or remove the Artemis Accessibility Helper APK.")
+helper_app = typer.Typer(help="Install, inspect, or remove the Callisto Accessibility Helper APK.")
 
 
 @helper_app.command("bundle-status")
@@ -45,7 +45,8 @@ def helper_bundle_status() -> None:
     bundle = load_bundled_helper()
     typer.echo(json.dumps({"apk_path": str(apk), "manifest_path": str(manifest),
         "apk_present": apk.is_file(), "manifest_present": manifest.is_file(),
-        "bundle_valid": bundle is not None, "device_compatibility": "not_checked",
+        "bundle_valid": bundle is not None, "display_name": "Callisto Accessibility Helper",
+        "device_compatibility": "not_checked",
         "bundle": bundle.to_dict() if bundle else None}, indent=2))
     raise typer.Exit(0 if bundle else 1)
 
@@ -73,7 +74,7 @@ def _resolve_serial(serial: str | None) -> str:
 
 
 def _idle_ready_serials() -> list[str]:
-    """Every authorized device that no Artemis task currently holds."""
+    """Every authorized device that no Callisto task currently holds."""
     return [d.serial for d in device_pool.get_ready_devices() if not d.is_busy]
 
 
@@ -92,7 +93,7 @@ def helper_status(
     if as_json:
         typer.echo(json.dumps(status, indent=2))
         return
-    table = Table(title=f"Accessibility helper on {target}")
+    table = Table(title=f"Callisto Accessibility Helper on {target}")
     table.add_column("Field", style="cyan")
     table.add_column("Value")
     table.add_row("Installed", _bool(status["installed"]))
@@ -106,7 +107,7 @@ def helper_status(
     table.add_row("Service enabled", _bool(status["enabled"]))
     tunnel = {
         "session": f"this process, host port {status['forward_port']}",
-        "shared": f"another Artemis process, host port {status['forward_port']}",
+        "shared": f"another Callisto process, host port {status['forward_port']}",
         "probe": "none (probed through a temporary forward)",
         None: "none",
     }[status.get("tunnel")]
@@ -173,7 +174,7 @@ def helper_uninstall(
 ) -> None:
     """Disable the service and remove the helper package from a device."""
     target = _resolve_serial(serial)
-    if not yes and not typer.confirm(f"Remove the Artemis accessibility helper from {target}?"):
+    if not yes and not typer.confirm(f"Remove the Callisto accessibility helper from {target}?"):
         raise typer.Exit(code=0)
     if helper_manager.uninstall(target):
         typer.secho(f"{target}: helper removed.", fg=typer.colors.GREEN)

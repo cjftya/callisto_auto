@@ -1,6 +1,8 @@
 # Callisto
 
-Google ARTEMIS Pro 엔진으로 Android를 자연어 테스트해요. 추론은 로그인된 공식 로컬 AI CLI를 사용해요.
+Callisto는 Google ARTEMIS의 기존 Pro 자동화 엔진을 유지하면서, **AI CLI(Codex 등)에서 호출하는 CLI 스킬**로 전환한 Android 자연어 테스트 도구예요. 스킬은 `callisto run`을 호출하는 인터페이스이고, 실제 계획·탐색·조작·검증은 보존한 Pro 엔진에서 수행해요. 모델 추론은 로그인된 로컬 AI CLI를 이용하며 API Key 기반 직접 모델 호출이나 웹 UI·외부 MCP 서버는 필요하지 않아요.
+
+내부 `artemis/` 모듈과 Android Helper의 패키지 ID·APK 파일명은 기존 호환성을 위해 유지해요. 사용자에게 보이는 CLI 상태·도움말과 새로 빌드하는 Helper의 표시 이름은 **Callisto**를 사용해요.
 
 ## 빠른 시작 — 3단계
 
@@ -21,6 +23,8 @@ Google ARTEMIS Pro 엔진으로 Android를 자연어 테스트해요. 추론은 
 설치된 스킬이 가상환경의 Python 경로를 찾아 실행하므로 매번 가상환경을 활성화할 필요는 없어요. 실제 Codex의 스킬 인식은 실행 PC에서 확인해야 해요.
 
 Linux는 `./setup.sh`를 사용해요. 재실행은 준비된 의존성을 재사용해요. Python 설치·공식 CLI 로그인·USB 승인이 필요한 상태를 성공으로 처리하지 않아요.
+
+Helper APK는 본체와 별도로 `python tools/build_helper.py --sdk <Android-SDK-경로>`로 빌드할 수 있어요(JDK 17, Android SDK Platform 35/Build Tools 35.0.0 필요). 생성된 APK는 `helper_manifest.json`과 함께 보관해야 하며, `CALLISTO_HELPER_DIR`로 해당 폴더를 지정할 수 있어요. 기존 `com.artemis.helper` 패키지를 유지하므로 새 APK는 동일 앱을 업데이트해요.
 
 ## 점검과 복구
 

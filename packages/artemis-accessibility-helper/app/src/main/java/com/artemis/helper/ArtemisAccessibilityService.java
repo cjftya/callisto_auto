@@ -141,10 +141,10 @@ public class ArtemisAccessibilityService extends AccessibilityService {
                 // it must not look like something the person needs to act on.
                 NotificationChannel channel = new NotificationChannel(
                         CHANNEL_ID,
-                        "Artemis test helper",
+                        "Callisto test helper",
                         NotificationManager.IMPORTANCE_MIN
                 );
-                channel.setDescription("Shown while the Artemis test helper is installed on this device");
+                channel.setDescription("Shown while the Callisto test helper is installed on this device");
                 channel.setShowBadge(false);
                 nm.createNotificationChannel(channel);
             }
@@ -156,15 +156,15 @@ public class ArtemisAccessibilityService extends AccessibilityService {
                 builder = new Notification.Builder(this);
             }
 
-            builder.setContentTitle("Artemis test helper is running")
-                    .setContentText("Lets Artemis read this screen during automated tests. "
-                            + "Remove with: artemis helper uninstall")
+            builder.setContentTitle("Callisto test helper is running")
+                    .setContentText("Lets Callisto read this screen during automated tests. "
+                            + "Remove with: callisto helper uninstall")
                     .setStyle(new Notification.BigTextStyle().bigText(
-                            "Installed by Artemis to read the screen layout during automated "
+                            "Installed by Callisto to read the screen layout during automated "
                             + "tests. It answers only on this device (127.0.0.1:" + DEFAULT_PORT
                             + "), only to the computer that is connected over USB debugging and "
                             + "holds the session token, and it sends nothing anywhere. Remove it "
-                            + "any time with `artemis helper uninstall` or from Settings > Apps."))
+                            + "any time with `callisto helper uninstall` or from Settings > Apps."))
                     .setSmallIcon(android.R.drawable.stat_notify_sync)
                     .setOngoing(true);
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {

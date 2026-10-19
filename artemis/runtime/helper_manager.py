@@ -21,7 +21,7 @@ This module owns everything *around* that HTTP API, split by lifetime:
 * **Provision** (persistent on the device, survives reboots): the APK is
   installed at the bundled version and the service is enabled in secure
   settings. Only callers that hold the device (a task inside its
-  ``DeviceExecutionLock`` boundary, ``artemis helper install``,
+  ``DeviceExecutionLock`` boundary, ``callisto helper install``,
   ``mobile_diagnose(attempt_fix=True)``) provision; read-only observers never
   install anything. A cross-process file mutex serialises concurrent installs.
 * **Attach** (one process, one device, one session): an ``adb forward`` from a
@@ -85,6 +85,7 @@ from third_party.mobile_use.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
+DISPLAY_NAME = "Callisto Accessibility Helper"
 PACKAGE_NAME = "com.artemis.helper"
 SERVICE_NAME = f"{PACKAGE_NAME}/.ArtemisAccessibilityService"
 TOKEN_RECEIVER = f"{PACKAGE_NAME}/.TokenReceiver"
@@ -127,7 +128,7 @@ ProvisionEvent = Callable[[str, dict[str, Any]], None]
 #: (some OEM ROMs and Android 13+ restricted settings for sideloaded apps).
 MANUAL_ENABLE_PATH = (
     "Settings > Accessibility > Installed apps (or Downloaded apps) > "
-    "Artemis Accessibility Helper > turn it on"
+    f"{DISPLAY_NAME} (older APKs: Artemis Accessibility Helper) > turn it on"
 )
 ACCESSIBILITY_SETTINGS_INTENT = "android.settings.ACCESSIBILITY_SETTINGS"
 
@@ -541,6 +542,7 @@ class AccessibilityHelperManager:
             ping = self._probe_with_temporary_forward(serial)
             tunnel = "probe"
         return {
+            "display_name": DISPLAY_NAME,
             "package": PACKAGE_NAME,
             "installed": installed is not None,
             "installed_version": installed,
@@ -747,7 +749,7 @@ class AccessibilityHelperManager:
                         error=(
                             "The accessibility helper is not installed on this device and "
                             f"{ENV_ARTEMIS_HELPER_AUTO_INSTALL}=false forbids installing it "
-                            f"from a task. Install it once with: artemis helper install "
+                            f"from a task. Install it once with: callisto helper install "
                             f"--serial {serial}"
                         ),
                     )
@@ -777,11 +779,11 @@ class AccessibilityHelperManager:
                     # This is the one moment Artemis changes what is installed on the
                     # phone; say so in a way that survives in every log.
                     logger.warning(
-                        f"Installing the Artemis accessibility helper v{bundled.version_name} "
+                        f"Installing the Callisto accessibility helper v{bundled.version_name} "
                         f"(code {bundled.version_code}) on {serial}. It is an accessibility "
                         "service that reads the screen layout for automated tests, answers only "
                         "on the phone's loopback port to a host holding the session token, and "
-                        "stays installed until removed with `artemis helper uninstall`. Set "
+                        "stays installed until removed with `callisto helper uninstall`. Set "
                         f"{ENV_ARTEMIS_HELPER_AUTO_INSTALL}=false to install it by hand only."
                     )
                     emit(
@@ -984,7 +986,7 @@ class AccessibilityHelperManager:
                     raise HelperUnavailable(
                         f"The accessibility helper on {serial} speaks protocol {protocol}, "
                         f"this host needs {MIN_PROTOCOL_VERSION} or newer. Reinstall it with: "
-                        f"artemis helper install --serial {serial} --force"
+                        f"callisto helper install --serial {serial} --force"
                     )
 
             token: str | None = None

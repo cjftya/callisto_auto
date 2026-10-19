@@ -68,7 +68,7 @@ def run(
     reasoning: Annotated[str | None, typer.Option("--reasoning")] = None,
     image_policy: Annotated[str | None, typer.Option("--image-policy", help="off, balanced, quality or economy; diagnostics compare actual CLI usage")] = None,
 ):
-    """Run the original ARTEMIS Pro graph directly, with local ADB and trace output."""
+    """Run an Android test with Callisto's preserved Pro engine, local ADB and traces."""
     if profile != "pro":
         raise typer.BadParameter("Only the Pro execution profile is available", param_hint="--profile")
     if verification_level not in ("off", "final", "checkpoints", "strict"):
