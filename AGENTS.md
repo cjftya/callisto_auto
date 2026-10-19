@@ -1,13 +1,10 @@
 # Callisto working rules
 
-- In ChatGPT Work, never execute a real AI CLI (`codex`, `claude`, `gemini`),
-  including login/status/version probes. Never run `callisto run` or
-  `tools/verify_local_cli.py --allow-live-cli` there. Use offline tests and fake
-  Python child processes only. `callisto doctor` checks paths/config without
-  executing provider CLIs. Set `CALLISTO_FORBID_LIVE_CLI=1` for offline work.
-- Live model/Android acceptance belongs on the user's actual execution machine.
-  A failed nested CLI launch in Work is not evidence that the local CLI adapter
-  is unsupported and is not a reason to stop implementation.
+- Run authorized live model/Android acceptance through the installed official AI
+  CLI and the preserved Pro engine on the selected execution machine.
+  `callisto doctor` checks paths/config without executing provider CLIs.
+  Set `CALLISTO_FORBID_LIVE_CLI=1` for offline tests and fake Python child processes.
+  A nested CLI launch failure alone is not evidence of unsupported transport.
 - Preserve upstream Pro graph, prompts, agent decisions, state, checkpoints,
   recovery, ADB/Helper and local in-process action sessions. Keep model changes
   at transport/configuration boundaries. Do not replace agents with Skill logic.

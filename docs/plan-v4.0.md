@@ -27,7 +27,6 @@
 - 기존 Pro 내부 알고리즘, 프롬프트, 검증 기준, 복구 정책을 정리 명목으로 임의 재설계하지 않는다.
 - API 키 또는 CLI 로그인 토큰을 읽어 직접 API 호출로 우회하지 않는다.
 - 원본의 미지원 native Files/Interactions/cache/audio/search를 가짜 성공·가짜 메타데이터로 대체하지 않는다.
-- ChatGPT Work 내부에서 `codex`/`claude`/`gemini` 등 실제 AI CLI를 직접 실행하거나 `callisto run`으로 추론하지 않는다. **오프라인 fake CLI 테스트만 허용**한다.
 - `main`에 직접 개발 커밋하거나 force-push하지 않는다. 검증 실패 상태를 숨겨 병합하지 않는다.
 
 ### 내부 MCP에 대한 명확한 경계
@@ -109,7 +108,7 @@
 - `master`와 `main`의 GitHub Actions 워크플로 경로 확인
 - 보존 manifest의 Pro 핵심 알고리즘/프롬프트 변경 여부 확인
 
-**반드시 사용자 실행 PC에서 검증할 항목 — Work에서 CLI 실행 금지**
+**선택된 CLI 실행 환경에서 실제 검증할 항목**
 
 - 실제 인증된 `codex`로 `python tools/verify_local_cli.py --allow-live-cli`
 - 텍스트/이미지/JSON/tool calls/다중 턴/인증 실패/긴 입력/취소/timeout
@@ -163,7 +162,7 @@ docs: publish Callisto v4 migration and capability report
 
 ## 6. SOL 6.1 High 작업 지시문 (그대로 전달)
 
-> `cjftya/callisto_auto`의 최신 `master`에서 Callisto v4.0 최종 정리를 수행해 주세요. **작업 모델은 GPT-6.1 SOL High**입니다. 기존 ARTEMIS Pro의 그래프·Planner/Operator/Explorer/Validator/Checker 등 에이전트, 프롬프트, 체크포인트, 복구, ADB/Helper, Trace 및 결과 판정은 최대한 그대로 유지해 주세요. 모든 AI 추론을 공식 로그인된 로컬 AI CLI 어댑터를 통해서만 처리하도록 전체 실행 경로를 감사하고, 남아 있는 직접 AI API 호출·API 키 의존 분기·웹 UI/HTTP daemon·외부 MCP·Flash 실행 프로필·불필요한 웹 산출물 및 의존성을 안전하게 정리해 주세요. 단, **Pro 내부 in-process MCP 액션 세션과 Explorer의 `flash` 탐색 tier는 외부 실행 프로필과 구별해 계약이 깨지지 않도록 보존**해 주세요. 미지원 native 기능은 오류로 명확히 표시하고 가짜 성공 처리는 금지합니다. `codex`/`claude`/`gemini` 같은 실제 AI CLI를 **ChatGPT Work 내부에서 절대 실행하지 말고**, 오프라인 fake CLI 및 Linux/Windows 테스트·패키징만 검증해 주세요. 실제 CLI 및 Android E2E는 사용자 PC에서 확인할 항목으로 분리합니다. 각 단계별로 변경을 검증해 `master`에 커밋·푸시하고, `main`과의 최신 차이를 재확인한 뒤 테스트 관문을 통과했을 때 PR 또는 fast-forward 방식으로 `main`에 통합해 주세요. 미검증 항목이 있다면 실제 검증 완료라고 보고하지 마세요. 최종 커밋 SHA, 테스트, 미지원 기능, 남은 위험을 상세히 보고해 주세요.
+> `cjftya/callisto_auto`의 최신 `master`에서 Callisto v4.0 최종 정리를 수행해 주세요. **작업 모델은 GPT-6.1 SOL High**입니다. 기존 ARTEMIS Pro의 그래프·Planner/Operator/Explorer/Validator/Checker 등 에이전트, 프롬프트, 체크포인트, 복구, ADB/Helper, Trace 및 결과 판정은 최대한 그대로 유지해 주세요. 모든 AI 추론을 공식 로그인된 로컬 AI CLI 어댑터를 통해서만 처리하도록 전체 실행 경로를 감사하고, 남아 있는 직접 AI API 호출·API 키 의존 분기·웹 UI/HTTP daemon·외부 MCP·Flash 실행 프로필·불필요한 웹 산출물 및 의존성을 안전하게 정리해 주세요. 단, **Pro 내부 in-process MCP 액션 세션과 Explorer의 `flash` 탐색 tier는 외부 실행 프로필과 구별해 계약이 깨지지 않도록 보존**해 주세요. 미지원 native 기능은 오류로 명확히 표시하고 가짜 성공 처리는 금지합니다. 오프라인 회귀는 fake CLI 및 Linux/Windows 테스트·패키징으로 검증하고, 실제 CLI 및 Android E2E는 공식 CLI와 기기가 연결된 선택된 실행 환경에서 수행합니다. 각 단계별로 변경을 검증해 `master`에 커밋·푸시하고, `main`과의 최신 차이를 재확인한 뒤 테스트 관문을 통과했을 때 PR 또는 fast-forward 방식으로 `main`에 통합해 주세요. 미검증 항목이 있다면 실제 검증 완료라고 보고하지 마세요. 최종 커밋 SHA, 테스트, 미지원 기능, 남은 위험을 상세히 보고해 주세요.
 
 ---
 

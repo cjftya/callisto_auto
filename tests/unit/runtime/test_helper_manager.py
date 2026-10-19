@@ -24,6 +24,7 @@ from artemis.runtime.helper_manager import (
 
 SERIAL = "pixel-1"
 OTHER = "pixel-2"
+FULL_SERVICE_NAME = "com.artemis.helper/com.artemis.helper.ArtemisAccessibilityService"
 
 
 class FakeAdb:
@@ -152,7 +153,8 @@ class FakePing:
                     return None  # suppressed by UiAutomation
                 if self.adb.installed.get(serial) is None:
                     return None
-                if SERVICE_NAME not in (self.adb.enabled_services.get(serial) or ""):
+                enabled = (self.adb.enabled_services.get(serial) or "").split(":")
+                if not any(s in enabled for s in (SERVICE_NAME, FULL_SERVICE_NAME)):
                     return None
                 return {
                     "success": True,
@@ -456,6 +458,64 @@ def test_status_is_read_only(env):
     assert status["transport_id"] == "3"
     assert not _calls(adb, ["-s", SERIAL, "install"])
     assert not _calls(adb, ["-s", SERIAL, "forward"])
+
+
+@pytest.mark.parametrize("component", [SERVICE_NAME, FULL_SERVICE_NAME])
+def test_status_recognizes_both_android_component_forms(env, component):
+    adb, _, manager = env
+    adb.installed[SERIAL] = 2
+    adb.enabled_services[SERIAL] = f"other.package/.Reader:{component}"
+
+    status = manager.status(SERIAL)
+
+    assert status["enabled"] and status["reachable"] and status["protocol_supported"]
+    assert adb.forwards == []
+    assert not _calls(adb, ["-s", SERIAL, "shell", "settings", "put"])
+
+
+@pytest.mark.parametrize("enabled", [
+    "", "null", "other.package/.ArtemisAccessibilityService",
+    "other.package/com.artemis.helper.ArtemisAccessibilityService",
+    "com.artemis.helper/.OtherService", FULL_SERVICE_NAME + "Extra",
+])
+def test_service_detection_rejects_missing_or_unrelated_components(env, enabled):
+    adb, _, manager = env
+    adb.enabled_services[SERIAL] = enabled
+    assert not manager.is_service_enabled(SERIAL)
+
+
+@pytest.mark.parametrize("component", [SERVICE_NAME, FULL_SERVICE_NAME])
+def test_provision_does_not_duplicate_an_enabled_component(env, component):
+    adb, _, manager = env
+    adb.installed[SERIAL] = 2
+    adb.enabled_services[SERIAL] = f"other.package/.Reader:{component}"
+
+    result = manager.provision(SERIAL)
+
+    assert result.ok and result.enabled
+    assert adb.enabled_services[SERIAL] == f"other.package/.Reader:{component}"
+    assert not _calls(adb, [
+        "-s", SERIAL, "shell", "settings", "put", "secure", "enabled_accessibility_services"
+    ])
+
+
+@pytest.mark.parametrize("operation", ["uninstall", "revive"])
+def test_service_removal_handles_both_forms_and_preserves_other_services(env, operation):
+    adb, _, manager = env
+    adb.installed[SERIAL] = 2
+    other = "other.package/.Reader"
+    adb.enabled_services[SERIAL] = f"{FULL_SERVICE_NAME}:{other}:{SERVICE_NAME}"
+
+    if operation == "uninstall":
+        assert manager.uninstall(SERIAL)
+        assert adb.enabled_services[SERIAL] == other
+    else:
+        manager._revive_service(SERIAL)
+        assert adb.enabled_services[SERIAL] == f"{other}:{SERVICE_NAME}"
+    puts = _calls(adb, [
+        "-s", SERIAL, "shell", "settings", "put", "secure", "enabled_accessibility_services"
+    ])
+    assert puts[0][-1] == other
 
 
 def test_uninstall_disables_service_and_removes_package(env):

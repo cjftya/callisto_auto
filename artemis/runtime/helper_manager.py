@@ -163,6 +163,16 @@ def auto_install_allowed() -> bool:
     return raw.strip().lower() not in ("0", "false", "no", "off")
 
 
+def _is_helper_service(component: str) -> bool:
+    """Match Android's short and fully qualified ComponentName forms."""
+    package, separator, service = component.strip().partition("/")
+    if not separator or package != PACKAGE_NAME:
+        return False
+    if service.startswith("."):
+        service = package + service
+    return service == f"{PACKAGE_NAME}.ArtemisAccessibilityService"
+
+
 @dataclass(frozen=True)
 class BundledHelper:
     """The APK shipped in the repository, described by ``helper_manifest.json``."""
@@ -436,7 +446,7 @@ class AccessibilityHelperManager:
             serial, "shell", "settings", "get", "secure", "enabled_accessibility_services"
         )
         enabled = (result.stdout or "").strip()
-        return SERVICE_NAME in enabled.split(":") if enabled and enabled != "null" else False
+        return result.returncode == 0 and any(_is_helper_service(s) for s in enabled.split(":"))
 
     def existing_forward(self, serial: str) -> int | None:
         """Host port of an adb forward that already targets the helper on ``serial``."""
@@ -630,7 +640,7 @@ class AccessibilityHelperManager:
             )
             current = (result.stdout or "").strip()
             services = [s for s in current.split(":") if s and s != "null"] if current else []
-            if SERVICE_NAME in services:
+            if any(_is_helper_service(s) for s in services):
                 # Already enabled (the common, up-to-date case): no settle wait.
                 self._adb(
                     serial, "shell", "settings", "put", "secure", "accessibility_enabled", "1"
@@ -668,7 +678,7 @@ class AccessibilityHelperManager:
             serial, "shell", "settings", "get", "secure", "enabled_accessibility_services"
         )
         current = (result.stdout or "").strip()
-        others = [s for s in current.split(":") if s and s != "null" and s != SERVICE_NAME]
+        others = [s for s in current.split(":") if s and s != "null" and not _is_helper_service(s)]
         self._adb(
             serial,
             "shell",
@@ -821,7 +831,7 @@ class AccessibilityHelperManager:
             serial, "shell", "settings", "get", "secure", "enabled_accessibility_services"
         )
         current = (result.stdout or "").strip()
-        services = [s for s in current.split(":") if s and s != "null" and s != SERVICE_NAME]
+        services = [s for s in current.split(":") if s and s != "null" and not _is_helper_service(s)]
         self._adb(
             serial,
             "shell",

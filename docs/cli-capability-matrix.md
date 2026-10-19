@@ -2,8 +2,9 @@
 
 # CLI capability matrix
 
-2026-10-19. 사용자의 실행 범위 수정에 따라 **Work 내부 AI CLI 실행은 금지**해요.
-이전 중첩 실행 실패는 대상 PC의 CLI 지원 여부를 판정하는 근거가 아니에요.
+2026-10-19. 공식 CLI와 기기가 연결된 선택된 실행 환경에서 승인된 실제 검증을 수행해요.
+호스팅 앱 이름으로 CLI 실행을 금지하지 않아요. 오프라인 테스트는
+`CALLISTO_FORBID_LIVE_CLI=1`을 명시적으로 설정해 실제 추론을 차단해요.
 아래의 “오프라인 통과”는 fake CLI/모킹 결과이며 실제 모델의 호환성 증거가 아니에요.
 
 | 기능 | Codex | Claude Code | Gemini CLI |
@@ -40,7 +41,7 @@ CLI 자체가 Android 액션을 수행하지 않아요. CLI 출력은 `{content,
 ## 실제 PC의 수용 검증
 
 `python tools/verify_local_cli.py --allow-live-cli`는 텍스트, schema, 도구 인자,
-도구 결과 왕복, 대화 이력, 이미지 색상 인지를 실제 CLI로 확인해요. **Work에서는 실행하지 않아요.**
+도구 결과 왕복, 대화 이력, 이미지 색상 인지를 실제 CLI로 확인해요.
 결과는 `traces/local-cli-acceptance.json`으로 저장해요. 이후 Android 기기 테스트,
 실제 공급자 실패·취소·긴 입력 및 Windows 프로세스 정리 검증도 필요해요.
 현재 P0의 실제 공급자 동등성 검증과 P5의 Android E2E를 통과했다고 주장하지 않아요.
@@ -59,3 +60,16 @@ CLI 자체가 Android 액션을 수행하지 않아요. CLI 출력은 `{content,
 - CLI Skill과 Helper 버전 manifest는 wheel에 들어가요. APK 바이너리는 없으므로 번들 Helper 설치는 검증하지 않았어요.
 - 내부 액션 세션은 mcp v1 API를 사용하므로 `mcp>=1.26,<2`를 유지해요. 설치된 Google SDK는 데이터 타입 용도이며 직접 Client 생성은 활성 소스에 없어요.
 - 과거 진단 ID (`gemini_api_key`, `vision_ocr_key`)와 서버 경로 상수는 저장된 보고서/import 호환용이에요. 외부 서버를 실행하지 않아요.
+
+## Helper 접근성 진단 수정 — 2026-10-19
+
+- Android의 축약형(`com.artemis.helper/.ArtemisAccessibilityService`)과 전체형
+  (`com.artemis.helper/com.artemis.helper.ArtemisAccessibilityService`)을 같은 서비스로 인식해요.
+  상태 조회, 활성화, 재연결, 삭제 모두 같은 비교를 사용해요.
+- 수정 전 연결 기기에서 Android 접근성 설정은 전체형으로 활성화돼 있었고,
+  Helper 응답은 버전 코드 6 / 프로토콜 2였어요. 문자열 비교 때문에 Callisto만 비활성화로 오판했어요.
+- 수정 후 같은 기기(`R3CY50L9M6K`)의 `callisto helper status --json`에서
+  `enabled`, `reachable`, `protocol_supported`가 모두 true로 확인됐어요.
+- Windows / Python 3.13 오프라인 전체 회귀: **2158 passed, 7 skipped, 8 deselected**.
+  Helper 모의 회귀 54개에 전체형/축약형 감지, 중복 등록 방지, 다른 서비스 보존 검사가 포함돼요.
+- 이 진단은 실제 AI 추론이나 Android 배터리 탐색 E2E 성공 증거가 아니에요.

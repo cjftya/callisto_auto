@@ -10,12 +10,13 @@ Skill, owns planning, exploration, operation, checking, recovery and reporting.
 
 ## Execution environment
 
-- In ChatGPT Work: **do not execute any AI-provider CLI, `callisto run`, or the
-  live acceptance script.** Implement/review code and run offline mocked tests
-  only. Give the user the local-machine commands below for real inference/device tests.
-- On the user's explicitly selected local execution machine: use the installed
+- On the user's selected execution machine: use the installed
   provider CLI's own official login. Never read/copy login tokens or convert
   subscription credentials into API calls.
+- Run authorized Android tests through `callisto run` and the preserved Pro engine.
+  Do not replace test navigation or verification with direct ADB commands.
+- For offline development/tests, set `CALLISTO_FORBID_LIVE_CLI=1`; this explicit
+  switch blocks real inference independently of the hosting application.
 - Callisto creates separate provider CLI child processes and transmits the full
   agent message history. It does not reuse the hosting assistant's current conversation.
 

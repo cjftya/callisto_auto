@@ -2,7 +2,7 @@
 
 Google ARTEMIS의 **기존 Pro 그래프·에이전트는 유지**하고, 모델 통신을 인증된 로컬 AI CLI로 연결하는 Android 자동 테스트 도구예요.
 
-v4.1에서 **인증 환경변수 격리, 검증 결과와 종료 코드 일치, 스킬 설치와 Helper 배포**를 개선했어요. 실제 CLI 모델 호환성과 Android E2E는 사용자 PC에서 확인해야 해요. Work 내부에서 AI CLI를 실행하지 않으며, 그 실행 실패를 개발 중단 조건으로 사용하지 않아요.
+v4.1에서 **인증 환경변수 격리, 검증 결과와 종료 코드 일치, 스킬 설치와 Helper 배포**를 개선했어요. 실제 CLI 모델 호환성과 Android E2E는 공식 CLI와 기기가 연결된 실행 환경에서 확인해야 해요.
 
 ## 로컬 PC 설치
 
@@ -32,7 +32,7 @@ AI CLI 로그인은 해당 CLI의 공식 절차로 사용자 PC에서 수행하�
 ## 사용자 PC에서만 수행하는 검증과 실행
 
 ```sh
-# 실제 모델 호출을 수행하므로 ChatGPT Work에서는 실행하지 마세요.
+# 실제 모델을 호출하는 명시적 수용 검증
 python tools/verify_local_cli.py --allow-live-cli
 adb devices
 callisto run "설정 앱에서 배터리 화면을 열고 배터리 항목이 표시되는지 확인" --device-serial SERIAL

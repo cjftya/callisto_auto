@@ -3,8 +3,24 @@
 # Callisto v4 전환 상태 — 2026-10-19
 
 **코드 정리 완료, 실제 CLI·Android 실사용 검증 미완료.**
-Work에서 실제 `codex`/`claude`/`gemini`, 로그인/버전 probe, `callisto run`은 실행하지 않아요.
-모든 자동 검증은 fake CLI·모킹·정적 검사 또는 CLI 도움말/import 검사예요.
+호스팅 앱에 따른 실제 CLI 실행 금지 규칙은 제거했어요. 선택된 실행 환경에서
+공식 CLI를 통해 승인된 Pro 테스트를 실행해요. 자동 회귀는 명시적 오프라인
+스위치로 실제 추론을 차단하고 fake CLI·모킹·정적 검사·도움말/import를 검증해요.
+
+## Helper 서비스 이름 수정 — 2026-10-19
+
+전체형과 축약형 Android 서비스 이름을 정규화해 접근성 상태 오판을 수정했어요.
+상태 확인뿐 아니라 활성화 시 중복 등록 방지와 재연결/삭제 시 서비스 제거에도 적용해요.
+다른 패키지나 클래스는 일치하지 않으며 다른 접근성 서비스는 유지해요.
+Windows / Python 3.13 전체 회귀는 **2158 passed, 7 skipped, 8 deselected**이고
+`pip check` 및 원본 보존 해시 32개 + 엔진 해시 23개가 통과했어요.
+수정 후 연결 기기의 Helper 상태는 활성화·응답·프로토콜 지원 모두 true로 확인됐어요.
+정식 Skill과 사용자 영역의 관리 중인 Skill 모두 Work별 실행 금지 문구를 제거했어요.
+프런트엔드 없는 wheel 빌드와 `tools/verify_wheel.py`의 clean venv 설치,
+Pro/config import, CLI 도움말, Skill install/update/status 검증도 통과했어요.
+로그: `traces/helper-fix-pytest.log`, `traces/helper-fix-wheel.log`;
+wheel 보고서: `traces/helper-fix-wheel-report.json`. 기본 wheel에는 Helper APK가 없어요.
+실제 AI CLI 및 배터리 화면 자동화 성공 여부는 여전히 미검증이에요.
 
 ## 변경 결과
 
@@ -52,7 +68,7 @@ Work에서 실제 `codex`/`claude`/`gemini`, 로그인/버전 probe, `callisto r
 - **Helper APK 바이너리는 저장소/wheel에 없어요.** 소스·버전 manifest는 보존해요. 사용자 PC에서 소스를 빌드하거나 호환 Helper를 먼저 설치해야 하며, 번들 자동 설치 성공을 주장하지 않아요. UIAutomator2 fallback은 유지해요.
 - Windows fake Python 프로세스 회귀는 실제 Codex 또는 npm `.cmd` launcher 호환성까지 보증하지 않아요.
 
-## 사용자 PC에서만 실행할 수용 검증
+## 선택된 실행 환경의 수용 검증
 
 ```sh
 python tools/verify_local_cli.py --allow-live-cli

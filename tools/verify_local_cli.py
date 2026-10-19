@@ -1,4 +1,4 @@
-"""Explicit opt-in acceptance test for the user's local machine. NEVER run in Work.
+"""Explicit opt-in acceptance test on the selected CLI execution machine.
 
 This script invokes a real, authenticated AI CLI only with --allow-live-cli.
 Offline CI uses tests/callisto instead.
@@ -76,7 +76,7 @@ def main():
     parser.add_argument("--output", type=Path, default=Path("traces/local-cli-acceptance.json"))
     args = parser.parse_args()
     if not args.allow_live_cli:
-        parser.error("Run only on your local machine with --allow-live-cli; never inside ChatGPT Work")
+        parser.error("Pass --allow-live-cli to authorize real AI CLI inference on this machine")
     report = asyncio.run(verify())
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
