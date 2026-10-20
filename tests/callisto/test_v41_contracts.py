@@ -106,7 +106,7 @@ def test_standard_skill_scope_uses_home_agents_skills(monkeypatch, tmp_path):
     report = install_skill()
     assert Path(report["path"]) == tmp_path / ".agents/skills/callisto"
     assert report["host_recognition"] == "not_checked"
-    assert CliRunner().invoke(app, ["skill", "status"]).exit_code == 0
+    assert CliRunner().invoke(app, ["skill", "status", "--ai-cli", "codex"]).exit_code == 0
 
 
 @pytest.mark.parametrize("diagnostic", ["unexpected argument --ignore-user-config", "unknown feature plugins", "unknown option --json"])
