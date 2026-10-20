@@ -1,8 +1,14 @@
-param([string]$Python = "python")
+param(
+    [string]$Python,
+    [switch]$Check,
+    [switch]$NonInteractive,
+    [string]$DeviceSerial,
+    [ValidateSet("codex","claude","gemini","antigravity")][string]$AiCli
+)
 $ErrorActionPreference = "Stop"
-& $Python -m venv .venv
-if ($LASTEXITCODE -ne 0) { throw "Python 3.12+ is required" }
-& .\.venv\Scripts\python.exe -m pip install -e ".[dev]"
-if ($LASTEXITCODE -ne 0) { throw "Callisto installation failed" }
-Write-Host "Install ADB and log in to your AI CLI separately on this machine."
-Write-Host "Then run .\.venv\Scripts\callisto.exe doctor --json"
+Write-Warning 'scripts/setup.ps1 is deprecated; use the root setup.ps1 installer.'
+if ($PSBoundParameters.ContainsKey('Python')) {
+    throw 'The legacy -Python parameter is no longer supported. Root setup.ps1 selects Python 3.12+ from the official launchers/PATH.'
+}
+& (Join-Path (Split-Path -Parent $PSScriptRoot) 'setup.ps1') @PSBoundParameters
+exit $LASTEXITCODE

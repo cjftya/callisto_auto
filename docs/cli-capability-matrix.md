@@ -23,6 +23,8 @@ Evidence: [Antigravity integration](maintenance/antigravity-integration.md).
 
 ## Pro 및 데이터 경계
 
+자동 탐색의 Setup은 지원 호스트 중 하나의 launcher·Skill·확인된 인증 상태가 준비되고 공통 Python·ADB·Helper 조건이 충족되면 `READY`임. 나머지 호스트 문제는 `clis.<host>.issues` 및 `warnings`에 남김. Doctor는 launcher·설정·ADB 경로만 확인하며 Skill·로그인·기기 연결을 검사하지 않음. 두 명령 모두 `ready_providers`, `unsupported_hosts`를 제공하고 Antigravity만 있거나 명시적으로 선택하면 `UNSUPPORTED`(종료 코드 2), 사용 가능한 지원 호스트가 없으면 `ACTION_REQUIRED`(1)임. 혼합 환경의 Antigravity는 준비된 지원 호스트를 차단하지 않음. `READY`는 추론·실기기 성공 증거가 아님.
+
 | 영역 | 현재 지원 계약 | 한계 |
 | --- | --- | --- |
 | Pro | 원본 그래프·프롬프트·도구 schema·검증·재시도·복구·체크포인트·메모리 유지 | mock 성공을 실제 모델 동등성으로 간주하지 않음 |

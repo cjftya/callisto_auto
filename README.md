@@ -24,6 +24,8 @@ Linux:
 ./setup.sh
 ```
 
+공식 설치 진입점은 루트 `setup.ps1` / `setup.sh`임. `scripts/setup.ps1`은 경고 후 루트 설치기로 위임하며, 과거 `-Python` 옵션은 거부함.
+
 - Python 3.12 이상 확인 후 **Setup 스크립트가 있는 프로젝트 루트**에 `.venv`를 생성하고 Python 의존성과 Callisto를 설치함. 다른 작업 디렉터리에서 스크립트의 전체 경로로 호출해도 설치 위치는 같음. AI CLI·ADB·Helper 상태도 점검함.
 - Windows에서 Python 설치가 필요하면 사용자 동의를 요청함. Linux에서 Python이 없으면 별도 설치 필요.
 - 사용할 AI CLI(Codex·Claude Code·Gemini CLI 중 하나)는 공식 설치 및 로그인이 필요함. Callisto는 CLI 인증이나 시스템 PATH를 임의로 변경하지 않음.
@@ -105,8 +107,8 @@ AI CLI에서는 “칼리스토 완전히 삭제해줘”라고 요청 가능함
 
 ### 스크립트를 실행할 수 없는 경우 수동 제거
 
-1. Callisto 작업·Setup 및 해당 설치를 사용하는 Codex·Claude·Gemini 세션을 종료함.
-2. `~/.agents/skills/callisto/`, `~/.claude/skills/callisto/`, `~/.gemini/skills/callisto/`의 `callisto-install.json`을 확인함. `python_executable`이 **삭제하려는 설치의 `.venv`**를 가리키는지 확인한 뒤 해당 Skill 폴더만 삭제함. 사용자 수정 내용은 먼저 백업함. 손상된 메타데이터만으로 연결을 추정하지 않음.
+1. Callisto 작업·Setup 및 해당 설치를 사용하는 Codex·Claude·Gemini·Antigravity CLI 세션을 종료함.
+2. `~/.agents/skills/callisto/`, `~/.claude/skills/callisto/`, `~/.gemini/skills/callisto/`, `~/.gemini/antigravity-cli/skills/callisto/`의 `callisto-install.json`을 확인함. `python_executable`이 **삭제하려는 설치의 `.venv`**를 가리키고 관리 파일이 수정되지 않았음을 확인한 뒤 해당 Skill 폴더만 삭제함. 다른 설치의 Skill, 사용자 수정 Skill, 인증 정보와 IDE 전용 Antigravity Skill은 보존함. 손상된 메타데이터만으로 연결을 추정하지 않음. 기기의 Helper 앱은 제거 대상이 아님.
 3. 사용자가 압축 해제한 실제 Callisto 설치 폴더를 확인하여 폴더 전체를 삭제함. `.venv`와 내부 Trace도 제거됨. 홈·드라이브 루트·다른 프로젝트 경로를 지정하지 않음.
 4. 다른 설치에서 사용하지 않는 경우에만 전용 설정을 정리함. Windows 기본 위치는 `%LOCALAPPDATA%\callisto\settings.json`, Linux는 `${XDG_CONFIG_HOME:-~/.config}/callisto/settings.json`임. 전용 디렉터리도 내부 파일을 확인한 뒤 정리함. `CALLISTO_CONFIG`가 설정되어 있으면 그 위치와 공유 여부를 별도로 확인함.
 5. 외부 Trace·사용자 파일은 직접 확인 후 정리함. 일부 삭제 실패 시 결과에 기록된 나머지 경로와 잠금/권한 원인을 확인한 뒤 수동 정리함. 이미 원본 파일이 일부 사라진 설치는 검증 실패할 수 있으므로 제거 스크립트 재실행 성공을 가정하지 않음.

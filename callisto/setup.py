@@ -115,21 +115,25 @@ def setup_report(*, repair=False, device=None, check_login=True, interactive=Fal
     if not providers:
         issues.append("No supported AI CLI installation found. Install and log in to Codex, Claude Code, Gemini CLI or Antigravity CLI, then rerun setup.")
     report["clis"], report["authentications"], report["skills"] = {}, {}, {}
+    report["warnings"], report["unsupported_hosts"], report["ready_providers"] = [], {}, []
     for provider in providers:
+        host_issues = []
         launcher = executable_command(provider)
         supported = bool(launcher)
-        cli = {"installed": bool(discover_executable(provider)), "native_launcher": supported}
+        cli = {"installed": bool(discover_executable(provider)), "native_launcher": supported,
+               "inference_supported": provider != "antigravity", "issues": host_issues}
         if provider == "antigravity":
             cli["inference"] = "UNSUPPORTED"
             from callisto.llm_adapter.providers import ANTIGRAVITY_UNSUPPORTED
-            issues.append(ANTIGRAVITY_UNSUPPORTED)
+            report["unsupported_hosts"][provider] = ANTIGRAVITY_UNSUPPORTED
+            host_issues.append(ANTIGRAVITY_UNSUPPORTED)
         report["clis"][provider] = cli
         if not supported:
-            issues.append(f"Install or update the official {provider} CLI so Callisto can launch it on this PC.")
+            host_issues.append(f"Install or update the official {provider} CLI so Callisto can launch it on this PC.")
         authentication = login_state(provider, launcher[0]) if supported and check_login else "not_checked"
         report["authentications"][provider] = authentication
         if authentication in ("login_required", "probe_failed"):
-            issues.append(f"Check the official {provider} CLI login on this PC.")
+            host_issues.append(f"Check the official {provider} CLI login on this PC.")
         try:
             skill = skill_status(provider=provider)
             if repair and (not skill["installed"] or skill["managed"]) and not skill["current"]:
@@ -137,10 +141,19 @@ def setup_report(*, repair=False, device=None, check_login=True, interactive=Fal
                 report["changes"].append("skill" if len(providers) == 1 else f"skill:{provider}")
             report["skills"][provider] = {k: skill[k] for k in ("installed", "managed", "current")}
             if not skill["current"]:
-                issues.append(f"{provider} Skill needs repair; move any modified/unmanaged Skill yourself before retrying.")
+                host_issues.append(f"{provider} Skill needs repair; move any modified/unmanaged Skill yourself before retrying.")
         except (OSError, ValueError, RuntimeError):
             report["skills"][provider] = {"installed": False, "managed": False, "current": False}
-            issues.append(f"{provider} Skill preparation failed; existing user files were preserved.")
+            host_issues.append(f"{provider} Skill preparation failed; existing user files were preserved.")
+        cli["ready"] = not host_issues
+        if cli["ready"]:
+            report["ready_providers"].append(provider)
+    # A usable host is sufficient in auto mode; shared prerequisites still block.
+    host_issues = [issue for cli in report["clis"].values() for issue in cli["issues"]]
+    if report["ready_providers"]:
+        report["warnings"].extend(host_issues)
+    else:
+        issues.extend(host_issues)
     # Retain single-host report fields for callers using an explicit --ai-cli.
     if len(providers) == 1:
         single = providers[0]

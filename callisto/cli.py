@@ -29,13 +29,13 @@ def doctor(json_output: Annotated[bool, typer.Option("--json")] = False,
            ai_cli: Annotated[str | None, typer.Option("--ai-cli", help="Optional host filter: codex, claude, gemini or antigravity")] = None):
     """Check installation and configuration only; no inference or login probe."""
     from callisto.settings import effective_settings
-    from callisto.llm_adapter.discovery import available_providers, executable_command, resolve_provider
+    from callisto.llm_adapter.discovery import available_providers, discover_executable, executable_command, resolve_provider
     try:
         configuration = effective_settings(provider=ai_cli)
         providers = (available_providers() if configuration.provider == "auto"
                      else [resolve_provider(configuration.provider)])
     except ValueError:
-        typer.echo(json.dumps({"config_error": "Invalid AI CLI; use auto, codex, claude, gemini or antigravity",
+        typer.echo(json.dumps({"status": "ACTION_REQUIRED", "config_error": "Invalid AI CLI; use auto, codex, claude, gemini or antigravity",
             "provider": "auto", "providers": [], "provider_implemented": False, "cli_installed": False,
             "adb_installed": bool(shutil.which("adb")), "authentication": "not_checked",
             "live_inference": "not_checked", "profile": "pro", "servers_required": False}))
@@ -49,9 +49,10 @@ def doctor(json_output: Annotated[bool, typer.Option("--json")] = False,
         # Validation must not infer a different CLI from the current host.
     except Exception:
         config_error = "Invalid CLI transport configuration"
-    installed = bool(providers) and all(resolved.values())
+    ready_providers = [name for name in providers if name != "antigravity" and resolved[name]]
+    installed = any(resolved.values())
     report = {"provider": provider, "providers": providers,
-        "provider_implemented": bool(providers) and "antigravity" not in providers, "cli_installed": installed,
+        "provider_implemented": any(name != "antigravity" for name in providers), "cli_installed": installed,
         "clis": resolved, "adb_installed": bool(shutil.which("adb")),
         "config_error": config_error, "authentication": "not_checked",
         "live_inference": "not_checked", "profile": "pro", "servers_required": False}
@@ -59,10 +60,22 @@ def doctor(json_output: Annotated[bool, typer.Option("--json")] = False,
         from callisto.llm_adapter.providers import ANTIGRAVITY_UNSUPPORTED
         report["unsupported"] = {"antigravity": ANTIGRAVITY_UNSUPPORTED}
     report["launcher_supported"] = installed
+    report["ready_providers"] = ready_providers
+    report["unsupported_hosts"] = report.get("unsupported", {})
+    report["hosts"] = {name: {
+        "installed": bool(discover_executable(name)), "native_launcher": resolved[name],
+        "inference_supported": name != "antigravity",
+        "issues": ([report["unsupported_hosts"][name]] if name == "antigravity" else [])
+                  + ([] if resolved[name] else [f"Install or update the official {name} CLI."])
+    } for name in providers}
+    report["warnings"] = [issue for host in report["hosts"].values() for issue in host["issues"]]
+    report["status"] = ("UNSUPPORTED" if providers == ["antigravity"] else
+                        "ACTION_REQUIRED" if config_error or not ready_providers or not report["adb_installed"]
+                        else "READY")
     typer.echo(json.dumps(report, indent=2) if json_output else
                "\n".join(f"{key}: {value}" for key, value in report.items()))
-    if config_error or not installed or not report["adb_installed"] or not report["provider_implemented"]:
-        raise typer.Exit(1)
+    if report["status"] != "READY":
+        raise typer.Exit(2 if report["status"] == "UNSUPPORTED" else 1)
 
 
 @app.command()

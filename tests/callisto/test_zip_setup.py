@@ -13,6 +13,37 @@ from callisto import skill_install
 ROOT = Path(__file__).resolve().parents[2]
 
 
+@pytest.mark.parametrize("legacy_python", [False, True])
+def test_legacy_setup_delegates_from_script_location(tmp_path, legacy_python):
+    shell = shutil.which("powershell") or shutil.which("pwsh")
+    if not shell:
+        pytest.skip("PowerShell is not installed on this host")
+    checkout = tmp_path / "fixture install"
+    (checkout / "scripts").mkdir(parents=True)
+    shutil.copyfile(ROOT / "scripts/setup.ps1", checkout / "scripts/setup.ps1")
+    # An inert root installer records forwarded values and a nonzero exit code.
+    (checkout / "setup.ps1").write_text(
+        'param([switch]$Check, [switch]$NonInteractive, [string]$DeviceSerial, [string]$AiCli)\n'
+        '$PSBoundParameters | ConvertTo-Json -Compress\nexit 7\n', encoding="ascii")
+    elsewhere = tmp_path / "elsewhere"
+    elsewhere.mkdir()
+    flags = (["-Python", "python"] if legacy_python else
+             ["-Check", "-NonInteractive", "-DeviceSerial", "fixture serial", "-AiCli", "gemini"])
+    result = subprocess.run([shell, "-NoProfile", "-NonInteractive", "-File",
+                             str(checkout / "scripts/setup.ps1"), *flags],
+                            cwd=elsewhere, capture_output=True, text=True, timeout=30)
+    assert "deprecated" in result.stdout
+    if legacy_python:
+        assert result.returncode != 0
+        assert "-Python parameter is no longer supported" in result.stderr
+    else:
+        assert result.returncode == 7, result.stdout + result.stderr
+        payload = next(line for line in result.stdout.splitlines() if line.startswith("{"))
+        assert json.loads(payload) == {"Check": {"IsPresent": True}, "NonInteractive": {"IsPresent": True},
+                                       "DeviceSerial": "fixture serial", "AiCli": "gemini"}
+    assert not (elsewhere / ".venv").exists()
+
+
 @pytest.mark.parametrize("launcher", ["setup.ps1", "setup.sh"])
 def test_launcher_resolves_checkout_from_another_working_directory(tmp_path, launcher):
     if launcher.endswith(".ps1"):

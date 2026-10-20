@@ -45,7 +45,7 @@ Explorer의 `flash` 탐색 tier는 독립 Flash 프로필과 다르며 유지됨
 - `artemis` CLI 별칭, 내부 모듈명, `_legacy_imports.py`의 import 별칭 및 저장된 경로·진단 ID 유지됨.
 - 원격 SDK `artemis_client`는 `artemis.interfaces.sdk.client`와 공개 export가 참조하므로 보존됨. Callisto는 HTTP Daemon을 제공하지 않음.
 - 루트 `artemis_client/`는 기존 소스 직접 실행에 사용됨. wheel과 독립 SDK 패키지는 `packages/artemis-client/src/artemis_client/`를 사용함. 동일한 6개 파일을 임의로 제거·이동하지 않음.
-- `scripts/setup.ps1`은 기존 개발 설치 경로 보존용임. 사용자 기본 설치는 루트 `setup.ps1` / `setup.sh`임.
+- `scripts/setup.ps1`은 폐기 예정 경고 후 루트 설치기로 위임하는 호환 경로임. 기존 `-Python`은 명시적으로 거부함. 공식 설치 진입점은 루트 `setup.ps1` / `setup.sh`임.
 - `mcp<2`는 내부 FastMCP v1 계약에 필요함. `google-genai`는 native 데이터형에 필요함. `httpx`는 기존 perception/OCR 시그니처와 테스트에서 사용됨.
 - Android 패키지 `com.artemis.helper`, 서비스 ID와 APK 파일명은 설치 호환용임. UIAutomator2 fallback 유지됨.
 - `helper/ArtemisAccessibilityHelper.apk`는 canonical bundle이 아니며 canonical manifest 해시와 다름. 과거 APK를 복사하거나 manifest를 바꿔 검증된 번들로 만들지 않음. 외부 번들 경로는 기존 `CALLISTO_HELPER_DIR` 사용함.

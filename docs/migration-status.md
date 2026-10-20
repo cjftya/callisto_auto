@@ -12,6 +12,10 @@ CLI 스킬 기반 전환이 구현되어 있음. 기존 ARTEMIS Pro 엔진이 �
 
 현재 구조는 [아키텍처](architecture.md), 구현된 기능과 한계는 [지원 범위](cli-capability-matrix.md), 설치·Helper 문제 해결은 [README](../README.md)와 [고급 가이드](advanced-setup.md)를 기준으로 함.
 
+## 최신 리뷰 후속 개선
+
+2026-10-21 최신 리뷰 후속 변경: 자동 Setup/Doctor는 사용 가능한 지원 호스트가 하나 이상이면 다른 호스트의 문제를 분리해 표시함. Antigravity만 있거나 명시적으로 선택하면 계속 `UNSUPPORTED`(2)임. 공통 준비 조건 오류는 계속 실패 처리하며 `READY`는 실제 추론·Android 성공을 의미하지 않음. 수동 제거의 네 호스트 경로와 루트 Setup 진입점을 통일함. 변경·검증 근거는 [후속 개선 기록](maintenance/latest-review-improvements.md) 참조.
+
 ## ZIP 설치 및 글로벌 Skill 안내
 
 기존 Setup·Skill 등록 구현을 유지하고 README에 ZIP 다운로드·임의 고정 경로·스크립트 위치 기준 `.venv`·세 CLI 글로벌 Skill의 역할을 명시함. 설치 폴더 이동·이름 변경은 지원하지 않으며 경로 변경 시 새 위치의 `.venv` 재생성과 Setup 재실행이 필요함. 재실행·경로 갱신·사용자 수정 보호 및 Windows/Linux 검증 근거와 실기기 미검증 범위는 [ZIP 설치 점검](maintenance/zip-setup-validation.md)에서 관리함.
