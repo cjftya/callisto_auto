@@ -120,9 +120,8 @@ def test_windows_cmd_is_rejected_without_running_shell(monkeypatch, tmp_path):
     from callisto.llm_adapter import providers
     monkeypatch.delenv("CALLISTO_FORBID_LIVE_CLI")
     monkeypatch.setattr(providers, "os", SimpleNamespace(name="nt", environ=os.environ))
-    from callisto.llm_adapter import discovery
-    monkeypatch.setattr(discovery.os, "name", "nt", raising=False)
-    monkeypatch.setattr(discovery.shutil, "which", lambda _: r"C:\Program Files\Codex\codex.cmd")
+    monkeypatch.setattr(providers, "executable_command", lambda _: None)
+    monkeypatch.setattr(providers, "discover_executable", lambda _: r"C:\Program Files\Codex\codex.cmd")
     with pytest.raises(UnsupportedCapability, match="verified npm"):
         command_for("codex", None, tmp_path, [], tmp_path / "schema.json")
 
