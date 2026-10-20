@@ -25,17 +25,18 @@ def main(version: Annotated[bool, typer.Option("--version", "-v", is_eager=True)
 
 
 @app.command()
-def doctor(json_output: Annotated[bool, typer.Option("--json")] = False):
+def doctor(json_output: Annotated[bool, typer.Option("--json")] = False,
+           ai_cli: Annotated[str | None, typer.Option("--ai-cli", help="codex, claude or gemini; auto when only one is installed")] = None):
     """Check installation and configuration only; no inference or login probe."""
     from callisto.settings import effective_settings
-    from callisto.llm_adapter.discovery import discover_executable
+    from callisto.llm_adapter.discovery import executable_command, resolve_provider
     try:
-        configuration = effective_settings()
+        configuration = effective_settings(provider=ai_cli)
+        provider = resolve_provider(configuration.provider)
     except ValueError:
         typer.echo(json.dumps({"config_error": "Invalid Callisto user settings", "authentication": "not_checked"}))
         raise typer.Exit(1) from None
-    provider = configuration.provider
-    resolved = discover_executable(provider)
+    resolved = executable_command(provider)
     from artemis.config.llm import get_default_llm_config
     config_error = None
     try:
@@ -43,13 +44,13 @@ def doctor(json_output: Annotated[bool, typer.Option("--json")] = False):
         from callisto.llm_adapter.model import configured_model
         configured_model()
     except Exception:
-        config_error = "Invalid CLI model configuration"
-    implemented = provider in ("codex", "claude")
+        config_error = "Invalid CLI transport configuration"
+    implemented = provider in ("codex", "claude", "gemini")
     report = {"provider": provider, "provider_implemented": implemented,
         "cli_installed": bool(resolved), "adb_installed": bool(shutil.which("adb")),
         "config_error": config_error, "authentication": "not_checked",
         "live_inference": "not_checked", "profile": "pro", "servers_required": False}
-    report["launcher_supported"] = not (os.name == "nt" and resolved and not resolved.lower().endswith(".exe"))
+    report["launcher_supported"] = bool(resolved)
     typer.echo(json.dumps(report, indent=2) if json_output else
                "\n".join(f"{key}: {value}" for key, value in report.items()))
     if not implemented or config_error or not report["cli_installed"] or not report["adb_installed"] or not report["launcher_supported"]:
@@ -65,6 +66,7 @@ def run(
     verification_level: Annotated[str, typer.Option("--verification-level")] = "final",
     profile: Annotated[str, typer.Option("--profile")] = "pro",
     image_policy: Annotated[str | None, typer.Option("--image-policy", help="off, balanced, quality or economy; diagnostics compare actual CLI usage")] = None,
+    ai_cli: Annotated[str | None, typer.Option("--ai-cli", help="Calling AI CLI: codex, claude or gemini")] = None,
 ):
     """Run an Android test with Callisto's preserved Pro engine, local ADB and traces."""
     if profile != "pro":
@@ -77,8 +79,10 @@ def run(
     from callisto.settings import effective_settings, runtime_settings
     from callisto.usage import collect_usage, write_usage, usage_summary
     try:
-        configuration = effective_settings(image_policy=image_policy,
+        configuration = effective_settings(provider=ai_cli, image_policy=image_policy,
                                            device_serial=device_serial)
+        from callisto.llm_adapter.discovery import resolve_provider
+        selected_provider = resolve_provider(configuration.provider)
     except ValueError:
         raise typer.BadParameter("Invalid Callisto run settings") from None
     device_serial = configuration.device_serial
@@ -94,7 +98,7 @@ def run(
     try:
         if hasattr(signal, "SIGTERM"):
             previous = signal.signal(signal.SIGTERM, lambda *_: (_ for _ in ()).throw(KeyboardInterrupt()))
-        with runtime_settings(image_policy=image_policy), collect_usage() as records:
+        with runtime_settings(provider=selected_provider, image_policy=image_policy), collect_usage() as records:
             asyncio.run(execute_task(goal=goal, device_serial=device_serial, profile="pro",
                 session_id=session_id, test_name=session_id, traces_output_path_str=str(traces_path),
                 output_description=output_description, verification_level=verification_level,

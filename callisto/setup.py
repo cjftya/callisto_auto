@@ -8,7 +8,7 @@ from typing import Annotated
 
 import typer
 
-from callisto.llm_adapter.discovery import discover_executable
+from callisto.llm_adapter.discovery import executable_command, resolve_provider
 from callisto.llm_adapter.environment import cli_environment
 from callisto.settings import effective_settings, save_settings, settings_path
 from callisto.skill_install import install_skill, skill_status
@@ -20,7 +20,7 @@ def login_state(provider, executable):
     if os.environ.get("CALLISTO_FORBID_LIVE_CLI") == "1":
         return "not_checked_offline"
     if provider != "codex":
-        return "unsupported_probe"
+        return "not_checked_offline"  # No documented non-inference auth probe for this CLI.
     try:
         result = subprocess.run([executable, "login", "status"], stdin=subprocess.DEVNULL,
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=15,
@@ -88,35 +88,33 @@ def dependencies_ready():
         return False
 
 
-def setup_report(*, repair=False, device=None, check_login=True, interactive=False):
+def setup_report(*, repair=False, device=None, check_login=True, interactive=False, ai_cli=None):
     issues = []
     report = {"status": "ACTION_REQUIRED", "os": platform.system(), "architecture": platform.machine(),
               "python": platform.python_version(), "profile": "pro", "live_inference": "not_run",
               "config_file": str(settings_path()), "changes": []}
     try:
-        settings = effective_settings()
+        settings = effective_settings(provider=ai_cli)
+        selected_provider = resolve_provider(settings.provider)
     except ValueError:
         report.update(issues=["Invalid user configuration; fix the settings file before retrying."], next_action="Inspect the Callisto user settings file.")
         return report
-    report.update(provider=settings.provider, image_policy=settings.image_policy)
+    report.update(provider=selected_provider, image_policy=settings.image_policy)
     report["dependencies_ready"] = dependencies_ready()
     if not report["dependencies_ready"]:
         issues.append("Rerun setup.ps1 or setup.sh to repair the Python package environment.")
-    if settings.provider != "codex":
-        report.update(status="UNSUPPORTED", issues=["Claude is experimental text-only; Gemini is not implemented for Android image inference."], next_action="Select Codex for Android tests.")
-        return report
-    executable = discover_executable(settings.provider)
-    supported = bool(executable and (os.name != "nt" or executable.lower().endswith(".exe")))
-    report["cli"] = {"installed": bool(executable), "native_launcher": supported}
+    launcher = executable_command(selected_provider)
+    supported = bool(launcher)
+    report["cli"] = {"installed": bool(launcher), "native_launcher": supported}
     if not supported:
-        issues.append("Install official Codex native binary; set CALLISTO_CODEX_EXECUTABLE to its .exe on Windows.")
-    report["authentication"] = login_state(settings.provider, executable) if supported and check_login else "not_checked"
-    if report["authentication"] != "authenticated":
-        issues.append("Use official Codex login, then rerun callisto setup check on the execution PC.")
+        issues.append(f"Install the official {selected_provider} CLI and use its normal login on this PC.")
+    report["authentication"] = login_state(selected_provider, launcher[0]) if supported and check_login else "not_checked"
+    if report["authentication"] in ("login_required", "probe_failed"):
+        issues.append(f"Check the official {selected_provider} CLI login on this PC.")
     try:
-        skill = skill_status()
+        skill = skill_status(provider=selected_provider)
         if repair and (not skill["installed"] or skill["managed"]) and not skill["current"]:
-            skill = install_skill()
+            skill = install_skill(provider=selected_provider)
             report["changes"].append("skill")
         report["skill"] = {k: skill[k] for k in ("installed", "managed", "current")}
         if not skill["current"]:
@@ -142,8 +140,7 @@ def setup_report(*, repair=False, device=None, check_login=True, interactive=Fal
     report["device_serial"] = selected if selected in ready else None
     if repair:
         updates = {"device_serial": selected} if selected in ready and explicitly_selected else {}
-        if supported and not settings.codex_executable:
-            updates["codex_executable"] = executable
+        # Do not persist the selected CLI executable or provider from a one-off Skill invocation.
         if save_settings(**updates):
             report["changes"].append("settings")
     try:
@@ -158,13 +155,13 @@ def setup_report(*, repair=False, device=None, check_login=True, interactive=Fal
         report["helper"] = {"backend": "uiautomator2_fallback", "error_type": type(error).__name__}
         issues.append("Helper check failed; inspect callisto helper status on the execution PC.")
     report.update(status="ACTION_REQUIRED" if issues else "READY", issues=issues,
-                  next_action=issues[0] if issues else "Ask Codex to test Android with Callisto.")
+                  next_action=issues[0] if issues else f"Ask {selected_provider} to test Android with Callisto.")
     return report
 
 
-def _execute(repair, device, skip_login, as_json, interactive=False):
+def _execute(repair, device, skip_login, as_json, interactive=False, ai_cli=None):
     try:
-        report = setup_report(repair=repair, device=device, check_login=not skip_login, interactive=interactive)
+        report = setup_report(repair=repair, device=device, check_login=not skip_login, interactive=interactive, ai_cli=ai_cli)
     except (OSError, ValueError):
         report = {"status": "ACTION_REQUIRED", "next_action": "Resolve local settings/file permissions and rerun callisto setup repair."}
     typer.echo(json.dumps(report, indent=2) if as_json else report["status"] + "\n" + report["next_action"] + "\n" + json.dumps(report, indent=2))
@@ -175,22 +172,25 @@ def _execute(repair, device, skip_login, as_json, interactive=False):
 def setup(ctx: typer.Context,
           device: Annotated[str | None, typer.Option("--device-serial")] = None,
           skip_login: Annotated[bool, typer.Option("--skip-login-check")] = False,
-          as_json: Annotated[bool, typer.Option("--json")] = False):
+          as_json: Annotated[bool, typer.Option("--json")] = False,
+          ai_cli: Annotated[str | None, typer.Option("--ai-cli")] = None):
     if ctx.invoked_subcommand is None:
-        _execute(True, device, skip_login, as_json, interactive=sys.stdin.isatty() and not as_json)
+        _execute(True, device, skip_login, as_json, interactive=sys.stdin.isatty() and not as_json, ai_cli=ai_cli)
 
 
 @setup_app.command("check")
 def check(device: Annotated[str | None, typer.Option("--device-serial")] = None,
           skip_login: Annotated[bool, typer.Option("--skip-login-check")] = False,
-          as_json: Annotated[bool, typer.Option("--json")] = False):
+          as_json: Annotated[bool, typer.Option("--json")] = False,
+          ai_cli: Annotated[str | None, typer.Option("--ai-cli")] = None):
     """Read-only checks: official login status, ADB, Skill and Helper. No inference."""
-    _execute(False, device, skip_login, as_json)
+    _execute(False, device, skip_login, as_json, ai_cli=ai_cli)
 
 
 @setup_app.command("repair")
 def repair(device: Annotated[str | None, typer.Option("--device-serial")] = None,
            skip_login: Annotated[bool, typer.Option("--skip-login-check")] = False,
-           as_json: Annotated[bool, typer.Option("--json")] = False):
+           as_json: Annotated[bool, typer.Option("--json")] = False,
+           ai_cli: Annotated[str | None, typer.Option("--ai-cli")] = None):
     """Repair managed settings/Skill and provision a verified Helper on the selected device."""
-    _execute(True, device, skip_login, as_json, interactive=sys.stdin.isatty() and not as_json)
+    _execute(True, device, skip_login, as_json, interactive=sys.stdin.isatty() and not as_json, ai_cli=ai_cli)

@@ -9,7 +9,7 @@ import sys
 
 import typer
 
-skill_app = typer.Typer(help="Install, update and inspect the Codex Skill without launching AI.")
+skill_app = typer.Typer(help="Install, update and inspect the Callisto Skill for supported AI CLIs.")
 
 
 def canonical_skill() -> Path:
@@ -25,14 +25,17 @@ def canonical_skill() -> Path:
     raise RuntimeError("Canonical Callisto Skill is missing; reinstall callisto-auto")
 
 
-def skill_directory(directory: Path | None = None) -> Path:
-    # Current Codex user scope, independent of the project and Python venv.
-    return (directory if directory is not None else Path.home() / ".agents/skills") / "callisto"
+def skill_directory(directory: Path | None = None, *, provider="codex") -> Path:
+    # Native user Skill locations; none requires an external MCP server.
+    scopes = {"codex": ".agents/skills", "claude": ".claude/skills", "gemini": ".gemini/skills"}
+    if provider not in scopes:
+        raise ValueError("Unsupported Skill host")
+    return (directory if directory is not None else Path.home() / scopes[provider]) / "callisto"
 
 
-def skill_status(directory: Path | None = None) -> dict:
+def skill_status(directory: Path | None = None, *, provider="codex") -> dict:
     dist = distribution("callisto-auto")
-    target = skill_directory(directory)
+    target = skill_directory(directory, provider=provider)
     source_hash = hashlib.sha256(canonical_skill().read_bytes()).hexdigest()
     installed = target / "SKILL.md"
     installed_hash = hashlib.sha256(installed.read_bytes()).hexdigest() if installed.is_file() else None
@@ -52,9 +55,9 @@ def skill_status(directory: Path | None = None) -> dict:
             "discovery": "filesystem_only", "host_recognition": "not_checked"}
 
 
-def install_skill(directory: Path | None = None) -> dict:
-    status = skill_status(directory)
-    target = skill_directory(directory)
+def install_skill(directory: Path | None = None, *, provider="codex") -> dict:
+    status = skill_status(directory, provider=provider)
+    target = skill_directory(directory, provider=provider)
     if target.is_symlink() or (target.exists() and not status["managed"]):
         raise ValueError("Existing unmanaged/modified Callisto Skill is preserved; choose --directory or move it first")
     content = canonical_skill().read_bytes()
@@ -71,27 +74,30 @@ def install_skill(directory: Path | None = None) -> dict:
     write("SKILL.md", content)
     write("callisto-install.json", json.dumps({"package": "callisto-auto",
         "version": status["package_version"], "python_executable": sys.executable, "sha256": hashlib.sha256(content).hexdigest()}, indent=2).encode())
-    return skill_status(directory)
+    return skill_status(directory, provider=provider)
 
 
 @skill_app.command("install")
-def install(directory: Path | None = typer.Option(None, "--directory", help="Skills parent directory; default ~/.agents/skills")):
+def install(directory: Path | None = typer.Option(None, "--directory", help="Skills parent directory"),
+            provider: str = typer.Option("codex", "--ai-cli")):
     """Install or update a previously managed Skill; preserve user modifications."""
     try:
-        typer.echo(json.dumps(install_skill(directory), indent=2))
+        typer.echo(json.dumps(install_skill(directory, provider=provider), indent=2))
     except (OSError, ValueError, RuntimeError) as error:
         raise typer.BadParameter(str(error)) from None
 
 
 @skill_app.command("update")
-def update(directory: Path | None = typer.Option(None, "--directory")):
+def update(directory: Path | None = typer.Option(None, "--directory"),
+           provider: str = typer.Option("codex", "--ai-cli")):
     """Update the managed Skill to this installed package version."""
-    install(directory)
+    install(directory, provider)
 
 
 @skill_app.command("status")
-def status(directory: Path | None = typer.Option(None, "--directory")):
+def status(directory: Path | None = typer.Option(None, "--directory"),
+           provider: str = typer.Option("codex", "--ai-cli")):
     """Inspect version/hash and discovery path; never start the host AI CLI."""
-    report = skill_status(directory)
+    report = skill_status(directory, provider=provider)
     typer.echo(json.dumps(report, indent=2))
     raise typer.Exit(0 if report["current"] else 1)

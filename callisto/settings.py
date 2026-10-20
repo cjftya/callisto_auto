@@ -12,16 +12,18 @@ from pydantic import BaseModel, ConfigDict
 
 class Settings(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
-    provider: Literal["codex", "claude", "gemini"] = "codex"
+    provider: Literal["auto", "codex", "claude", "gemini"] = "auto"
     image_policy: Literal["off", "balanced", "quality", "economy"] = "balanced"
     device_serial: str | None = None
     codex_executable: str | None = None
     claude_executable: str | None = None
+    gemini_executable: str | None = None
 
 
 ENV = {"provider": "CALLISTO_AI_CLI", "image_policy": "CALLISTO_IMAGE_POLICY",
        "device_serial": "CALLISTO_DEVICE_SERIAL", "codex_executable": "CALLISTO_CODEX_EXECUTABLE",
-       "claude_executable": "CALLISTO_CLAUDE_EXECUTABLE"}
+       "claude_executable": "CALLISTO_CLAUDE_EXECUTABLE",
+       "gemini_executable": "CALLISTO_GEMINI_EXECUTABLE"}
 _OVERRIDES = ContextVar("callisto_settings_overrides", default={})
 
 

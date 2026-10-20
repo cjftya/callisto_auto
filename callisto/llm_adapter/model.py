@@ -19,6 +19,7 @@ from callisto.llm_adapter.errors import CLIProtocolError, UnsupportedCapability
 from callisto.llm_adapter.process import run_process
 from callisto.llm_adapter.providers import command_for, decode_result
 from callisto.settings import effective_settings
+from callisto.llm_adapter.discovery import resolve_provider
 from callisto.usage import agent_label, stage_label, record_call
 
 _LOOP_LOCKS = weakref.WeakKeyDictionary()
@@ -165,6 +166,6 @@ class CLIChatModel(BaseChatModel):
 def configured_model(*, model=None, timeout=180, reasoning_effort=None):
     """Ignore legacy routing hints; inference uses the provider CLI defaults."""
     settings = effective_settings()
-    return CLIChatModel(provider=settings.provider, model_name=None,
+    return CLIChatModel(provider=resolve_provider(settings.provider), model_name=None,
                         timeout_seconds=timeout, reasoning_effort=None,
                         image_policy=settings.image_policy)

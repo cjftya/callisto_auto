@@ -17,8 +17,13 @@ Skill, owns planning, exploration, operation, checking, recovery and reporting.
   Do not replace test navigation or verification with direct ADB commands.
 - For offline development/tests, set `CALLISTO_FORBID_LIVE_CLI=1`; this explicit
   switch blocks real inference independently of the hosting application.
-- Callisto creates separate provider CLI child processes and transmits the full
-  agent message history. It does not reuse the hosting assistant's current conversation.
+- Callisto creates separate authenticated child processes for inference. It does
+  not reuse the hosting assistant's conversation or automatically inherit an
+  interactive-only choice. The child CLI reads its own official user defaults.
+- Identify the current hosting CLI from the host application (Codex: codex,
+  Claude Code: claude, Gemini CLI: gemini) and pass it as `--ai-cli` on
+  both setup checks and runs. Never guess from installed executables when the
+  host is known. Never select a model or a reasoning setting in Callisto.
 
 ## Workflow on the local machine
 
@@ -26,7 +31,7 @@ Skill, owns planning, exploration, operation, checking, recovery and reporting.
    `callisto-install.json` (not a login file) and use its `python_executable` as
    `<python> -m callisto.cli` for all commands. This supports the setup venv without
    activation or system PATH changes. Never guess a different project's Python.
-2. Run `callisto setup check --json`. It checks configuration, official CLI login
+2. Run `callisto setup check --json --ai-cli <host-cli>`. It checks configuration, official CLI login
    status, authorized devices, Skill and Helper without model inference. Treat
    ACTION_REQUIRED/UNSUPPORTED as a real stop with the reported next action.
    In offline development use `--skip-login-check`; this is not live readiness.
@@ -36,7 +41,7 @@ Skill, owns planning, exploration, operation, checking, recovery and reporting.
 4. A live model acceptance probe is optional and can consume subscription quota.
    Only when explicitly requested, run `python tools/verify_local_cli.py --allow-live-cli`
    from the checkout. Normal setup does not require this probe.
-5. Run `callisto run "<goal>" --device-serial <serial> --verification-level final`.
+5. Run `callisto run "<goal>" --ai-cli <host-cli> --device-serial <serial> --verification-level final`.
    Use `--expected-output` for an explicit output requirement. Only Pro is available.
 6. Collect the printed result-file path and the original ARTEMIS trace artifacts.
    Inspect `run_outcome.json` and `test_summary` before claiming a test passed.
@@ -49,9 +54,11 @@ artifacts. No web UI, HTTP daemon or external MCP server is involved.
 
 ## Capability boundaries
 
-Codex is the initial implemented image transport. Claude text transport is
-experimental and uses `CALLISTO_AI_CLI=claude` to select the transport.
-Gemini CLI is not implemented. Google-native Files, Interactions, explicit cloud
+The Codex, Claude and Gemini adapters support image-bearing requests and
+structured agent responses in offline contract tests. The installed official
+CLI version, login and actual Android vision accuracy must be tested locally.
+Gemini is launched in read-only plan mode; its internal image-loading and
+tool event boundaries still require local validation. Google-native Files, Interactions, explicit cloud
 caches, audio and server-side search have no validated CLI equivalent and must
 not be reported as supported. See `docs/cli-capability-matrix.md`.
 

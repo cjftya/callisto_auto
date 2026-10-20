@@ -15,6 +15,7 @@ API_KEY_VARIABLES = frozenset({
 
 PROVIDER_OVERRIDES = {
     "codex": frozenset({"OPENAI_BASE_URL", "OPENAI_API_BASE", "AZURE_OPENAI_ENDPOINT"}),
+    "gemini": frozenset({"GOOGLE_GEMINI_BASE_URL"}),
     "claude": frozenset({
         "ANTHROPIC_BASE_URL", "ANTHROPIC_AWS_BASE_URL", "ANTHROPIC_AWS_WORKSPACE_ID",
         "CLAUDE_CODE_USE_BEDROCK", "CLAUDE_CODE_USE_VERTEX", "CLAUDE_CODE_USE_FOUNDRY",
@@ -31,4 +32,4 @@ def cli_environment(provider: str | None = None, *, source=None) -> dict[str, st
     source = os.environ if source is None else source
     # Select by name before accessing values. Official CLI OAuth login and
     # standard OS/keychain discovery are inherited normally, never extracted.
-    return {key: source[key] for key in source if key.upper() not in blocked}
+    return {key: source[key] for key in source if key.upper() not in blocked and key.upper() != "CLAUDECODE"}
