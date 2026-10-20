@@ -1,5 +1,7 @@
 """Setup/configuration contracts using isolated homes and mocked device/CLI probes."""
 import json
+import subprocess
+import sys
 from types import SimpleNamespace
 from unittest.mock import Mock
 
@@ -83,6 +85,77 @@ def test_absent_unapproved_offline_multiple_devices_never_guess(prepared, monkey
     assert report["device_serial"] is None and report["status"] == "ACTION_REQUIRED"
     if len(devices) == 2:
         assert setup.setup_report(device="b")["device_serial"] == "b"
+
+
+def test_adb_devices_decodes_utf8_and_invalid_bytes(monkeypatch):
+    from artemis.runtime import adb_endpoint
+
+    # Exercise the real subprocess decoder, including stderr, without launching ADB.
+    output = "List of devices attached\n연결\none\tdevice\ntwo\tunauthorized\nthree\toffline\nfour\tno permissions\n".encode() + b"\xff\n"
+    with pytest.raises(UnicodeDecodeError):
+        output.decode("cp949")
+    command = [sys.executable, "-c", f"import os; os.write(1, {output!r}); os.write(2, b'\\xff')"]
+    monkeypatch.setattr(adb_endpoint, "adb_command", lambda args: command)
+    assert setup.adb_devices() == ([
+        {"serial": "one", "state": "device"},
+        {"serial": "two", "state": "unauthorized"},
+        {"serial": "three", "state": "offline"},
+        {"serial": "four", "state": "no"},
+    ], None)
+
+
+@pytest.mark.parametrize("failure, expected", [
+    (FileNotFoundError("adb"), "adb_unavailable"),
+    (PermissionError("adb"), "adb_failed"),
+    (OSError("invalid executable"), "adb_failed"),
+    (subprocess.TimeoutExpired("adb", 15), "adb_timeout"),
+    (None, "adb_failed"),
+])
+def test_adb_devices_classifies_failures(monkeypatch, failure, expected):
+    from artemis.runtime import adb_endpoint
+
+    monkeypatch.setattr(adb_endpoint, "adb_command", lambda args: ["adb", *args])
+    run = Mock(side_effect=failure, return_value=SimpleNamespace(returncode=1))
+    monkeypatch.setattr(setup.subprocess, "run", run)
+    assert setup.adb_devices() == ([], expected)
+
+
+def test_adb_devices_missing_during_path_resolution(monkeypatch):
+    from artemis.runtime import adb_endpoint
+
+    monkeypatch.setattr(adb_endpoint, "adb_command", Mock(side_effect=FileNotFoundError("adb")))
+    run = Mock(side_effect=AssertionError("must not launch missing adb"))
+    monkeypatch.setattr(setup.subprocess, "run", run)
+    assert setup.adb_devices() == ([], "adb_unavailable")
+    run.assert_not_called()
+
+
+@pytest.mark.parametrize("command", [[], ["check"], ["repair"]])
+@pytest.mark.parametrize("devices, error, message", [
+    ([], "adb_unavailable", "Install Android platform-tools"),
+    ([], "adb_failed", "ADB device discovery failed"),
+    ([], "adb_timeout", "ADB device discovery timed out"),
+    ([], None, "No Android devices found"),
+    ([{"serial": "one", "state": "unauthorized"}], None, "Authorize USB debugging"),
+    ([{"serial": "one", "state": "offline"}], None, "Android device is offline"),
+])
+def test_setup_adb_guidance_matches_cause(prepared, monkeypatch, command, devices, error, message):
+    monkeypatch.setattr(setup, "adb_devices", lambda: (devices, error))
+    result = CliRunner().invoke(app, ["setup", *command, "--json"])
+    assert result.exit_code == 1
+    report = json.loads(result.stdout)
+    assert report["status"] == "ACTION_REQUIRED"
+    assert report["devices"] == devices and report["device_serial"] is None
+    assert report["next_action"].startswith(message)
+    assert report["issues"] == [report["next_action"]]
+    assert report["helper"]["backend"] == "uiautomator2_fallback"
+    assert prepared.exists() == (command != ["check"])
+
+
+def test_selected_device_guidance_ignores_other_devices(prepared, monkeypatch):
+    devices = [{"serial": "one", "state": "unauthorized"}, {"serial": "two", "state": "offline"}]
+    monkeypatch.setattr(setup, "adb_devices", lambda: (devices, None))
+    assert setup.setup_report(device="two")["next_action"].startswith("Android device is offline")
 
 
 def test_invalid_helper_is_action_required(prepared, monkeypatch):

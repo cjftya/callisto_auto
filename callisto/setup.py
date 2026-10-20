@@ -34,7 +34,7 @@ def adb_devices():
     from artemis.runtime.adb_endpoint import adb_command
     try:
         result = subprocess.run(adb_command(["devices"]), stdin=subprocess.DEVNULL,
-            capture_output=True, text=True, timeout=15, check=False)
+            capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=15, check=False)
         if result.returncode != 0:
             return [], "adb_failed"
         devices = []
@@ -43,8 +43,12 @@ def adb_devices():
             if len(parts) >= 2 and parts[1] in ("device", "unauthorized", "offline", "no"):
                 devices.append({"serial": parts[0], "state": parts[1]})
         return devices, None
-    except (OSError, subprocess.TimeoutExpired):
+    except FileNotFoundError:
         return [], "adb_unavailable"
+    except subprocess.TimeoutExpired:
+        return [], "adb_timeout"
+    except OSError:
+        return [], "adb_failed"
 
 
 def helper_state(serial, repair=False):
@@ -150,10 +154,22 @@ def setup_report(*, repair=False, device=None, check_login=True, interactive=Fal
             typer.echo(f"{i}: {serial}")
         selected = ready[typer.prompt("Select device number", type=typer.IntRange(1, len(ready))) - 1]
         explicitly_selected = True
-    if error:
+    if error == "adb_unavailable":
         issues.append("Install Android platform-tools and ensure adb is available, then reconnect USB.")
+    elif error == "adb_timeout":
+        issues.append("ADB device discovery timed out; check the configured ADB server and USB connection, then rerun setup.")
+    elif error:
+        issues.append("ADB device discovery failed; check adb executable permissions and the configured ADB server, then rerun setup.")
     elif selected not in ready:
-        issues.append("Connect and authorize USB debugging; with multiple devices pass --device-serial explicitly.")
+        states = {d["state"] for d in devices if not selected or d["serial"] == selected}
+        if "unauthorized" in states:
+            issues.append("Authorize USB debugging on the Android device, then rerun setup.")
+        elif "offline" in states:
+            issues.append("Android device is offline; reconnect it and check USB debugging, then rerun setup.")
+        elif not devices:
+            issues.append("No Android devices found; connect a device and enable USB debugging, then rerun setup.")
+        else:
+            issues.append("Connect and authorize USB debugging; with multiple devices pass --device-serial explicitly.")
     report["device_serial"] = selected if selected in ready else None
     if repair:
         updates = {"device_serial": selected} if selected in ready and explicitly_selected else {}

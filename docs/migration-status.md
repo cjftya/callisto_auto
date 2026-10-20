@@ -6,6 +6,12 @@ CLI 스킬 기반 전환이 구현되어 있음. 기존 ARTEMIS Pro 엔진이 �
 
 현재 구조는 [아키텍처](architecture.md), 구현된 기능과 한계는 [지원 범위](cli-capability-matrix.md), 설치·Helper 문제 해결은 [README](../README.md)와 [고급 가이드](advanced-setup.md)를 기준으로 함.
 
+## Windows ADB 설정 진단
+
+`callisto/setup.py`의 `adb devices` 출력에 `encoding="utf-8", errors="replace"`를 적용함. 실행 파일 미발견에만 platform-tools 설치를 안내하고, 실행 실패·시간 초과·기기 미연결·unauthorized·offline은 원인별 조치를 안내함. 기존 ADB 경로·서버·Skill·인증·Helper fallback 흐름은 유지함.
+
+Windows Python 3.13.15, 기본 CP949, UTF-8 모드 꺼짐 환경에서 관련 설정 회귀 64개 및 전체 오프라인 회귀 **2274 passed / 11 skipped / 8 deselected**가 통과함. 실제 자식 프로세스의 UTF-8·잘못된 바이트 출력 디코딩과 `setup`·`setup check`·`setup repair`의 원인별 안내를 검증함. 린트·`pip check`·프런트엔드 없는 wheel 빌드도 통과함. 실제 ADB·Android·모델 CLI 및 PowerShell 7 직접 실행은 수행하지 않음. Linux 로컬 실행 환경은 없으며, Linux 회귀는 해당 커밋의 기존 Actions 결과로 확인함.
+
 ## 전체 정리 상태
 
 정리 범위·파일별 삭제/보존 판단·기준선 및 정리 후 검증은 [정리 결과 보고서](maintenance/cleanup-report.md)에서 관리함. 런타임 알고리즘·정책·기본값·공개 import·설치 경로·Helper·이미지/좌표·최종 판정은 변경하지 않음.
