@@ -65,6 +65,40 @@ Android 기기를 USB로 연결하고 **개발자 옵션 → USB 디버깅**을 
 
 스킬이 실행 명령을 전달하고 기존 Pro 엔진이 Android 테스트 및 검증을 수행함. 사용자가 직접 모델이나 추론 수준을 Callisto에 설정할 필요 없음. 다만 호스트 AI 대화에서 일시적으로 선택한 모델은 별도 자식 CLI 프로세스에 자동 상속되지 않으며, 자식 CLI는 자체 공식 사용자 기본 설정을 사용함.
 
+## 설치 제거(완전 삭제)
+
+실행 중인 Callisto 테스트·Setup을 먼저 종료하고 필요한 파일을 백업함. **스크립트가 있는 설치 폴더 전체를 영구 삭제함.** `.venv`, 내부 Trace 및 사용자가 추가한 개인 파일도 함께 삭제됨. 다른 작업 폴더에서 전체 경로로 호출해도 동일한 설치를 대상으로 함.
+
+Windows PowerShell(실제 설치 폴더에서):
+
+```powershell
+.\uninstall.ps1 -DryRun
+.\uninstall.ps1
+```
+
+Linux(실제 설치 폴더에서):
+
+```sh
+./uninstall.sh --dry-run
+./uninstall.sh
+```
+
+미리보기로 삭제·보존 경로 확인 → 설치 폴더의 전체 경로를 입력하여 최종 승인 → 외부 작업자에서 제거 → 출력된 `result.json` 확인 순서임. `SCHEDULED`는 접수 상태이며 완료가 아님. Windows에서는 호출 PowerShell 프로세스가 종료되어야 삭제를 시작함. 기존 PowerShell 창에서 실행했다면 경로를 복사한 뒤 해당 창을 닫아야 함(60초 대기 후에도 열려 있으면 삭제하지 않고 실패 기록함). 결과의 `status`, `removed`, `failed`, `preserved`를 확인함. 임시 작업 스크립트는 자체 정리하며 결과·로그 폴더는 확인 후 직접 정리 가능함.
+
+등록 메타데이터가 현재 설치의 `.venv`를 가리키고 관리 해시가 일치하는 글로벌 Skill만 제거함. 다른 설치·수정된 Skill·추가 파일이 있는 Skill은 보존함. 시스템 Python, 타 프로젝트 가상환경, Android SDK/ADB·연결 기기·설치된 Helper 앱, AI CLI와 로그인·인증 정보, 외부 사용자 파일·Trace 및 다른 Callisto 설치는 유지됨.
+
+Callisto 사용자 설정은 여러 설치가 공유할 수 있어 **기본 보존함**. 다른 설치가 사용하지 않음을 확인한 경우에만 Windows `-RemoveSettings` 또는 Linux `--remove-settings`를 미리보기와 실행에 동일하게 추가함. 다른 설치/비관리 Skill이 발견되거나 설정 디렉터리에 추가 파일이 있으면 계속 보존함. `CALLISTO_CONFIG`로 지정한 커스텀 설정은 자동 삭제하지 않음. 스크립트는 등록되지 않은 다른 설치까지 탐색하지 않으므로 설정 공유 여부는 사용자가 확인해야 함.
+
+AI CLI에서는 “칼리스토 완전히 삭제해줘”라고 요청 가능함. Skill이 실제 설치 경로를 검증하고 미리보기와 백업 안내를 제시한 뒤 최종 승인을 받아 공식 스크립트를 실행함. 승인된 비대화형 호출에 한해 Windows `-ConfirmRoot '<미리보기의 전체 설치 경로>'` 또는 Linux `--confirm-root '<미리보기의 전체 설치 경로>'` 사용 가능함. 일반 비대화형 호출은 삭제를 거부함. 설치 폴더 이동·이름 변경은 계속 지원하지 않으며 새 위치에서 Setup 재실행 필요함.
+
+### 스크립트를 실행할 수 없는 경우 수동 제거
+
+1. Callisto 작업·Setup 및 해당 설치를 사용하는 Codex·Claude·Gemini 세션을 종료함.
+2. `~/.agents/skills/callisto/`, `~/.claude/skills/callisto/`, `~/.gemini/skills/callisto/`의 `callisto-install.json`을 확인함. `python_executable`이 **삭제하려는 설치의 `.venv`**를 가리키는지 확인한 뒤 해당 Skill 폴더만 삭제함. 사용자 수정 내용은 먼저 백업함. 손상된 메타데이터만으로 연결을 추정하지 않음.
+3. 사용자가 압축 해제한 실제 Callisto 설치 폴더를 확인하여 폴더 전체를 삭제함. `.venv`와 내부 Trace도 제거됨. 홈·드라이브 루트·다른 프로젝트 경로를 지정하지 않음.
+4. 다른 설치에서 사용하지 않는 경우에만 전용 설정을 정리함. Windows 기본 위치는 `%LOCALAPPDATA%\callisto\settings.json`, Linux는 `${XDG_CONFIG_HOME:-~/.config}/callisto/settings.json`임. 전용 디렉터리도 내부 파일을 확인한 뒤 정리함. `CALLISTO_CONFIG`가 설정되어 있으면 그 위치와 공유 여부를 별도로 확인함.
+5. 외부 Trace·사용자 파일은 직접 확인 후 정리함. 일부 삭제 실패 시 결과에 기록된 나머지 경로와 잠금/권한 원인을 확인한 뒤 수동 정리함. 이미 원본 파일이 일부 사라진 설치는 검증 실패할 수 있으므로 제거 스크립트 재실행 성공을 가정하지 않음.
+
 ## Helper APK 설치 및 권한 문제 해결
 
 **Callisto Accessibility Helper**는 Android 화면의 접근성 계층을 읽는 보조 앱임. 신뢰할 수 있는 Callisto 빌드에만 접근성 권한을 허용해야 함. 권한 설정은 기기 보안 정책과 사용자 승인이 필요할 수 있음.

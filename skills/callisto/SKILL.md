@@ -52,6 +52,33 @@ Skill, owns planning, exploration, operation, checking, recovery and reporting.
 `callisto trace list` and `callisto trace view <session_name>` inspect local
 artifacts. No web UI, HTTP daemon or external MCP server is involved.
 
+## Complete uninstall requests
+
+For an explicit request to completely remove Callisto, use the official source
+installation's `uninstall.ps1` (Windows) or `uninstall.sh` (Linux). Locate it from
+the adjacent registration's `python_executable` under `.venv`; treat metadata as
+a hint and verify the root's setup scripts, package metadata and source markers.
+Never construct broad recursive deletion commands from registration data.
+
+Run `-DryRun` / `--dry-run` first. Show the exact root, deleted/preserved Skills
+and settings, and warn that the ENTIRE root, .venv, internal Traces and extra
+personal files are permanently removed. Ask for explicit final approval of this
+concrete scope. Only then invoke the same official script with
+`-ConfirmRoot '<exact preview root>'` / `--confirm-root '<exact preview root>'`.
+Use an external system Python/PowerShell; never run the remover with the target
+venv Python. On Windows launch a short-lived PowerShell process with `-File` so
+it exits and releases the installation; the worker waits up to 60 seconds.
+
+Default settings are shared and preserved. Only if the user confirms no other
+installation uses them, include `-RemoveSettings` / `--remove-settings` in BOTH
+preview and approved invocation. Custom `CALLISTO_CONFIG` paths and unrecognized
+content are preserved. Do not infer absence of other installs from registrations.
+`SCHEDULED` is not success: read the external `result.json` and report removed,
+failed and preserved paths. Do not terminate the hosting AI CLI to unlock files.
+If scripts/metadata are missing or damaged, give README's manual removal guide
+and verify paths with the user; do not bypass checks or touch AI CLI credentials,
+system Python/ADB, device Helper, external files or other installations.
+
 ## Capability boundaries
 
 The Codex, Claude and Gemini adapters support image-bearing requests and

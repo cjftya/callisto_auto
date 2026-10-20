@@ -25,7 +25,7 @@
 | `config/artemis.jsonc` | 소스 작업 공간의 설정. `artemis/resources/config/`는 독립 설치 기본값 |
 | `packages/artemis-accessibility-helper/` | Helper 소스, 개발 서명 키, manifest 및 선택적 빌드 APK |
 | `skills/callisto/SKILL.md` | 유일한 스킬 원본. `.agents/skills/callisto/SKILL.md`는 발견용 포인터 |
-| `tools/`, 루트 `setup.*` | 설치 bootstrap, Helper 빌드, 실제 수용 검증 및 wheel 검증 |
+| `tools/`, 루트 `setup.*` / `uninstall.*` | 설치 bootstrap, 검증·승인 기반 소스 설치 제거, Helper 빌드, 실제 수용 검증 및 wheel 검증 |
 | `tests/unit/`, `tests/callisto/`, `tests/tools/` | 현재 오프라인 회귀. 원격 SDK mock 계약도 별도 기본 수집됨 |
 | `tests/integration/`, `tests/e2e/` | 명시적 환경·기기 검증. 기본 회귀의 통과와 구분함 |
 | `tests/upstream_removed/` | 제거된 기능의 원본 테스트 이력. 현재 회귀가 아님 |

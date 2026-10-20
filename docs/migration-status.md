@@ -10,6 +10,10 @@ CLI 스킬 기반 전환이 구현되어 있음. 기존 ARTEMIS Pro 엔진이 �
 
 기존 Setup·Skill 등록 구현을 유지하고 README에 ZIP 다운로드·임의 고정 경로·스크립트 위치 기준 `.venv`·세 CLI 글로벌 Skill의 역할을 명시함. 설치 폴더 이동·이름 변경은 지원하지 않으며 경로 변경 시 새 위치의 `.venv` 재생성과 Setup 재실행이 필요함. 재실행·경로 갱신·사용자 수정 보호 및 Windows/Linux 검증 근거와 실기기 미검증 범위는 [ZIP 설치 점검](maintenance/zip-setup-validation.md)에서 관리함.
 
+## 소스 설치 완전 제거
+
+루트 `uninstall.ps1` / `uninstall.sh`와 표준 라이브러리 공통 작업자를 추가함. 스크립트 위치의 소스 마커·보호 경로·링크·실행 프로세스·글로벌 Skill 등록을 검사하고, 미리보기 및 정확한 설치 경로의 명시적 승인 후 설치 폴더 전체를 삭제함. 기본 설정은 공유 가능성 때문에 보존하며 별도 opt-in 검사로만 제거함. README 자동/수동 안내와 canonical Skill의 최종 승인 절차를 반영함. Pro·setup·보존 manifest는 변경하지 않음. 최신 검증과 실제 호스트별 미검증 범위는 [제거 검증 기록](maintenance/uninstall-validation.md) 참조.
+
 ## Helper APK 기본 번들
 
 사용자 요청에 따라 [c451c8f의 Windows Helper CI](https://github.com/cjftya/callisto_auto/actions/runs/39434029212)에서 생성한 APK와 대응 manifest를 `packages/artemis-accessibility-helper/`에 함께 포함함. 버전 1.2.1 / versionCode 7 / protocol 2, APK SHA-256은 `73590b206d576abd24beb0d35aee2657b6bd65af1e060db188e0a5de3365d6ec`임. 원본 엔진·과거 `helper/` APK·보존 manifest는 변경하지 않음.
