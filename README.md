@@ -8,7 +8,9 @@ Callisto는 Google ARTEMIS의 **기존 Pro 자동화 엔진을 유지**하면서
 
 ### 1. 설치 스크립트 실행
 
-저장소 폴더에서 운영체제에 맞게 실행함.
+1. [GitHub 저장소](https://github.com/cjftya/callisto_auto)의 **Code → Download ZIP**으로 다운로드함.
+2. 사용자가 원하는 고정 경로에 압축을 해제함. 예: Windows `D:\Tools\Callisto`, Linux `~/tools/Callisto`. 특정 디렉터리는 필요하지 않음.
+3. 압축을 해제한 프로젝트 폴더에서 운영체제에 맞게 아래 Setup을 실행함.
 
 Windows PowerShell:
 
@@ -22,11 +24,30 @@ Linux:
 ./setup.sh
 ```
 
-- Python 3.12 이상 확인, 가상환경·패키지·스킬 준비, AI CLI·ADB·Helper 상태 점검을 진행함.
+- Python 3.12 이상 확인 후 **Setup 스크립트가 있는 프로젝트 루트**에 `.venv`를 생성하고 Python 의존성과 Callisto를 설치함. 다른 작업 디렉터리에서 스크립트의 전체 경로로 호출해도 설치 위치는 같음. AI CLI·ADB·Helper 상태도 점검함.
 - Windows에서 Python 설치가 필요하면 사용자 동의를 요청함. Linux에서 Python이 없으면 별도 설치 필요.
 - 사용할 AI CLI(Codex·Claude Code·Gemini CLI 중 하나)는 공식 설치 및 로그인이 필요함. Callisto는 CLI 인증이나 시스템 PATH를 임의로 변경하지 않음.
 - 설치된 Codex·Claude Code·Gemini CLI를 자동 탐색하고, 사용 가능한 모든 CLI에 Callisto 스킬을 각각 등록함. 설치 시 CLI를 선택할 필요 없음. 특정 CLI만 점검·복구할 때만 `--ai-cli` 옵션 사용.
 - 중단 이후 재실행 시 준비된 환경을 재사용함. 미해결 조건은 `ACTION_REQUIRED`와 후속 조치로 표시됨.
+
+### 설치 폴더와 글로벌 Skill
+
+Callisto 엔진과 Python 라이브러리는 압축을 해제한 원본 폴더와 그 안의 `.venv`에 유지됨. 글로벌 Skill에는 다음 두 파일만 등록하며 ZIP·엔진 복사본이나 심볼릭 링크를 만들지 않음.
+
+| AI CLI | 글로벌 Skill 폴더 |
+| --- | --- |
+| Codex | `~/.agents/skills/callisto/` |
+| Claude Code | `~/.claude/skills/callisto/` |
+| Gemini CLI | `~/.gemini/skills/callisto/` |
+
+- `SKILL.md`: canonical `skills/callisto/SKILL.md`에서 등록한 실행 지침.
+- `callisto-install.json`: 해당 `.venv` Python의 절대 경로(`python_executable`), 패키지 버전 및 Skill 관리 해시. Skill은 이 Python으로 실행할 수 있으므로 가상환경 활성화나 시스템 PATH 변경이 필요하지 않음.
+
+> Callisto는 Setup 스크립트가 있는 프로젝트의 실제 위치를 설치 기준 경로로 사용함. **설치 후 원본 폴더 이동·이름 변경은 지원하지 않음.** 글로벌 Skill의 절대 실행 경로와 가상환경이 유효하지 않을 수 있음.
+
+설치 위치를 변경하려면 새 위치의 프로젝트에서 기존 `.venv`를 제거하고 Setup을 다시 실행함. 새 `.venv`를 생성하고 관리 중인 글로벌 Skill의 Python 실행 경로를 갱신함. 기존 사용자 설정과 AI CLI 인증 정보는 삭제하지 않음. 사용자 수정 Skill은 자동 덮어쓰지 않으며 `ACTION_REQUIRED` 안내에 따라 직접 백업·이동한 뒤 재실행해야 함.
+
+설치 완료 후 다운로드한 ZIP은 삭제해도 됨. **압축을 해제한 설치 폴더는 계속 유지해야 함.**
 
 ### 2. Android 연결 및 권한 승인
 

@@ -6,6 +6,10 @@ CLI 스킬 기반 전환이 구현되어 있음. 기존 ARTEMIS Pro 엔진이 �
 
 현재 구조는 [아키텍처](architecture.md), 구현된 기능과 한계는 [지원 범위](cli-capability-matrix.md), 설치·Helper 문제 해결은 [README](../README.md)와 [고급 가이드](advanced-setup.md)를 기준으로 함.
 
+## ZIP 설치 및 글로벌 Skill 안내
+
+기존 Setup·Skill 등록 구현을 유지하고 README에 ZIP 다운로드·임의 고정 경로·스크립트 위치 기준 `.venv`·세 CLI 글로벌 Skill의 역할을 명시함. 설치 폴더 이동·이름 변경은 지원하지 않으며 경로 변경 시 새 위치의 `.venv` 재생성과 Setup 재실행이 필요함. 재실행·경로 갱신·사용자 수정 보호 및 Windows/Linux 검증 근거와 실기기 미검증 범위는 [ZIP 설치 점검](maintenance/zip-setup-validation.md)에서 관리함.
+
 ## Helper APK 기본 번들
 
 사용자 요청에 따라 [c451c8f의 Windows Helper CI](https://github.com/cjftya/callisto_auto/actions/runs/39434029212)에서 생성한 APK와 대응 manifest를 `packages/artemis-accessibility-helper/`에 함께 포함함. 버전 1.2.1 / versionCode 7 / protocol 2, APK SHA-256은 `73590b206d576abd24beb0d35aee2657b6bd65af1e060db188e0a5de3365d6ec`임. 원본 엔진·과거 `helper/` APK·보존 manifest는 변경하지 않음.

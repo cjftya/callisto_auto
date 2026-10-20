@@ -32,6 +32,7 @@
 ## 설치·호환성
 
 - Windows PowerShell·Linux bootstrap과 setup/check/repair, 자동 다중 호스트 스킬 등록 구현됨. 스킬 실행은 현재 호출 호스트를 명시함.
+- ZIP 설치는 스크립트 위치의 `.venv`와 두 파일의 글로벌 Skill 등록을 사용함. 설치 후 폴더 이동·이름 변경은 지원하지 않으며 새 위치에서 `.venv` 재생성·Setup 재실행이 필요함. 경로·재등록 오프라인 검증과 실제 기기 설치의 구분은 [ZIP 설치 점검](maintenance/zip-setup-validation.md) 참조.
 - setup의 `adb devices` 출력은 UTF-8 및 대체 문자로 디코딩함. ADB 미설치·실행 실패·시간 초과와 기기 미연결·unauthorized·offline 안내를 구분함. Windows Python 3.13/CP949 오프라인 회귀는 통과했으며 실제 기기 연결 검증과 구분함.
 - Windows는 native 실행 파일 또는 확인된 npm JS 엔트리포인트를 사용함. 필요한 옵션을 거부하는 구버전 CLI에 안전 옵션을 빼고 재시도하지 않음.
 - Helper는 APK·manifest 해시·버전·프로토콜을 확인하고 선택 기기 락을 사용함. canonical APK 미포함 배포는 기존 호환 Helper 또는 UIAutomator2 fallback 사용함.
