@@ -1,12 +1,8 @@
 {
   "default": {
     "provider": "cli",
-    "model": "gpt-6.1-sol",
-    "reasoning_effort": "medium",
     "fallback": {
-      "provider": "cli",
-      "model": "gpt-6.1-sol",
-      "reasoning_effort": "medium"
+      "provider": "cli"
     }
   },
   "nodes": {
@@ -78,7 +74,6 @@
         "max_steps": 12,
         "min_steps": 3,
         "target_source_tokens": 2000,
-        "model": "gpt-6.1-sol",
         "max_chunks": 8
       },
       "recall": {
