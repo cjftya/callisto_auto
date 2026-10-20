@@ -1,3 +1,5 @@
+> **과거 기록 — 현재 구현 지침이 아님.** 작성 당시의 모델·설치·지원 상태이며, 현재 기준은 [아키텍처](../architecture.md), [지원 범위](../cli-capability-matrix.md), [전환 현황](../migration-status.md)임.
+
 # Callisto — ARTEMIS AI API → AI CLI 전환 계획서 v3.0
 
 > **핵심 원칙:** ARTEMIS의 내부 에이전트·테스트 기능과 Pro 실행 흐름은 유지한다. **AI 모델을 직접 호출하던 API 계층만, 설치·인증된 AI CLI를 호출하는 어댑터 계층으로 교체한다.** 사용자용 웹 UI와 외부 MCP 서버는 제외한다.

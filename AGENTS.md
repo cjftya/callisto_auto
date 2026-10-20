@@ -28,5 +28,26 @@
   --no-build-isolation -w dist .`, then `python tools/verify_wheel.py <wheel>`.
   The latter creates a clean venv; help/import checks never execute AI CLIs.
 - The canonical Skill is `skills/callisto/SKILL.md`; the discovery pointer and
-  wheel package must use that source. Helper APK is absent: preserve source and
-  manifest, and report this instead of claiming bundled provisioning passed.
+  wheel package must use that source. The canonical source bundle has no APK by
+  default: preserve Helper source,
+  manifest and the historical `helper/` artifact. A CI-built APK-bearing wheel is
+  optional; inspect that build before claiming bundled provisioning passed.
+
+## Current documentation and cleanup boundary
+
+- Read `docs/architecture.md` for the current structure, `docs/cli-capability-matrix.md`
+  for support limits, and `docs/migration-status.md` for current evidence. README
+  owns user setup; the canonical Skill owns host routing and execution steps.
+- `docs/archive/`, the remote SDK DESIGN/example, and `tests/upstream_removed/`
+  are historical evidence, not current execution or model configuration guidance.
+  Do not restore obsolete model pins, daemon commands or branch instructions.
+- Cleanup must preserve observable behavior, defaults, public imports/paths,
+  launch contracts, image/coordinate policy, Helper and verdicts. Record potential
+  functional defects separately. Unknown usage is a reason to retain a file.
+- Keep both `artemis_client/` trees: direct checkout imports use the root copy;
+  wheel and standalone SDK builds use `packages/artemis-client/src/`. They are
+  public compatibility code, not proof that Callisto serves a remote daemon.
+- Do not remove apparently unused re-exports, import aliases or prompt resources
+  merely from lint results. Preservation manifests are immutable evidence.
+- Record cleanup evidence in `docs/maintenance/`; do not append old release
+  histories to active architecture/support guides.

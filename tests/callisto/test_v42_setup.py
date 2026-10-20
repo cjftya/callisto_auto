@@ -1,6 +1,5 @@
 """Setup/configuration contracts using isolated homes and mocked device/CLI probes."""
 import json
-from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock
 

@@ -1,88 +1,51 @@
-> **v4.1 최신 결과:** [기능 보존·호환성·검증 보고서](cli-v4.1-report.md). 아래 v4 기록은 당시 상태예요. v4.1은 Native Explorer opt-in, 인증 환경 격리, 검증 누락 exit 2, 스킬 설치 명령 및 선택적 Helper 포함 wheel을 추가해요. 실제 AI CLI·Android 검증은 여전히 미완료예요.
+# CLI 지원 범위
 
-# CLI capability matrix
-
-2026-10-19. 공식 CLI와 기기가 연결된 선택된 실행 환경에서 승인된 실제 검증을 수행해요.
-호스팅 앱 이름으로 CLI 실행을 금지하지 않아요. 오프라인 테스트는
-`CALLISTO_FORBID_LIVE_CLI=1`을 명시적으로 설정해 실제 추론을 차단해요.
-아래의 “오프라인 통과”는 fake CLI/모킹 결과이며 실제 모델의 호환성 증거가 아니에요.
+기준: 2026-10-20 `main`. 구조는 [아키텍처](architecture.md), 실제 설치·설정은 [고급 가이드](advanced-setup.md) 참조. 아래 구현·오프라인 계약 검사와 실제 공식 CLI·Android 수용 결과는 구분됨.
 
 | 기능 | Codex | Claude Code | Gemini CLI |
-|---|---|---|---|
-| 비대화형 전송 | JSONL | JSON + 구조화 출력 | stream-json |
-| 텍스트·이력·도구 응답 데이터 | 오프라인 계약 검사 | 오프라인 계약 검사 | 오프라인 계약 검사 |
-| 스크린샷 | `--image` | multimodal stream-json base64 | `@절대경로` 이미지 첨부 |
-| 결과 검증 | 완료 이벤트 + Schema | `--json-schema` + 로컬 Schema | 완료 이벤트 + 로컬 Schema |
-| 내부 도구 제한 | read-only, shell/MCP 비활성화 | `--tools ""`, MCP 차단 | plan mode, 임시 deny 정책, 도구 이벤트 검사 |
-| 사용자 모델 선택 | 공식 Codex 설정을 읽음 | 공식 Claude 설정을 읽음 | 공식 Gemini 설정을 읽음 |
-| 스킬 설치 | `~/.agents/skills` | `~/.claude/skills` | `~/.gemini/skills` |
-| 인증·Android E2E | 사용자 PC 검증 필요 | 사용자 PC 검증 필요 | 사용자 PC 검증 필요 |
+| --- | --- | --- | --- |
+| 비대화형 전송 | JSONL | JSON 출력 + stream-json 입력 | stream-json |
+| 텍스트·이력·도구 응답 데이터 | 구현·오프라인 검사 | 구현·오프라인 검사 | 구현·오프라인 검사 |
+| 스크린샷 | `--image` | base64 멀티모달 입력 | `@절대경로` 첨부 |
+| 결과 검증 | 완료 이벤트 + schema | `--json-schema` + 로컬 schema | 완료 이벤트 + 로컬 schema |
+| CLI 자체 도구 제한 | read-only, shell/apps/MCP 등 차단 | `--tools ""`, MCP 차단 | plan mode, deny 정책, 도구 이벤트 검사 |
+| 모델·추론 수준 | 공식 CLI 사용자 기본값 | 공식 CLI 사용자 기본값 | 공식 CLI 사용자 기본값 |
+| 스킬 경로 | `~/.agents/skills` | `~/.claude/skills` | `~/.gemini/skills` |
+| 실제 버전·인증·시각 인지·Android E2E | 선택된 실행 PC 검증 필요 | 선택된 실행 PC 검증 필요 | 선택된 실행 PC 검증 필요 |
 
-**중요:** 이 표는 구현된 CLI 변환 경로만 의미합니다. 실제 구독 로그인, CLI 버전·옵션 호환성, 이미지 인식 정확도와 Android 실기기 실행 성공을 주장하지 않습니다. 현재 대화에서 일시적으로 선택한 모델까지 독립 CLI 자식 프로세스가 자동 상속한다고 주장하지 않습니다.
+구현된 공급자 목록과 현재 PC에서 실행 가능한 launcher는 다름. `doctor`는 경로·설정을 검사하며 모델 CLI를 실행하지 않음. `setup check`는 발견한 CLI별 스킬·준비 상태를 구분하고 Codex의 공식 로그인 상태를 조회할 수 있음. `READY`도 모델 추론·Android 성공을 의미하지 않음. 호스트 대화의 일시적인 모델 선택은 별도 자식 CLI에 자동 상속되지 않음.
 
-## 구조화 도구 호출 방식
+## Pro 및 데이터 경계
 
-CLI 자체가 Android 액션을 수행하지 않아요. CLI 출력은 `{content, tool_calls}` JSON envelope예요.
-`tool_calls`의 `args_json`을 파싱하고 기존 도구 JSON Schema로 검증한 뒤 LangChain `AIMessage.tool_calls`로 반환해요.
-실제 호출과 도구 결과 처리는 기존 ARTEMIS 그래프가 수행해요. CLI의 내장 shell/MCP tool 실행을 ARTEMIS 도구 호출과 혼동하지 않아요.
+| 영역 | 현재 지원 계약 | 한계 |
+| --- | --- | --- |
+| Pro | 원본 그래프·프롬프트·도구 schema·검증·재시도·복구·체크포인트·메모리 유지 | mock 성공을 실제 모델 동등성으로 간주하지 않음 |
+| 구조화 도구 | `{content, tool_calls}` 응답을 schema 검사 후 기존 Pro가 실행 | CLI 자체 shell/MCP 실행 이벤트는 실패 처리 |
+| Explorer·영상 | 기존 Universal 경로 기본, `CALLISTO_EXPLORER_ENGINE=native` opt-in 포트 | native Files/Interactions/agentic video 동등성 보장 없음 |
+| native 데이터형 | `google.genai.types` 호환, 추론은 공통 CLI 어댑터 | SDK Client·직접 AI API 호출 없음 |
+| 미지원 native 기능 | Files, Interactions, 명시적 cloud cache, 음성, server-side search 요청은 명시적 오류 | 가짜 cloud URI·성공·토큰 수 생성 없음 |
+| OCR | `CALLISTO_OCR=1` opt-in, CLI 이미지 포트와 원본 픽셀 역변환 | 실제 좌표·작은 글씨 정확도는 기기 검증 필요 |
+| 이미지 | balanced/quality/economy/off, MIME·저장 픽셀·EXIF·범위 검사, 동일 첨부 중복 제거 | 원본 캡처·XML·Trace·Pro 정규화 좌표 유지; 절감률 미확인 |
+| usage | 실제 CLI 토큰·이미지·시간·단계 집계 | 알 수 없는 값은 null; cached input 이중 합산 없음 |
+| 판정 | 0 PASS / 1 FAIL / 2 INCOMPLETE / 130 CANCELLED | 결과 JSON 및 원본 Trace 확인 필요 |
 
-## native Gemini 및 기능 차이
+## 설치·호환성
 
-- Google SDK의 `types` 데이터 구조만 남기고, 에이전트의 SDK Client 생성은 Callisto 로컬 native port로 연결했어요.
-- native 텍스트·이미지·function declarations/response 및 JSON schema 호환 포트를 구현했어요. 모델 추론은 공통 CLI 어댑터를 통과해요.
-- native Files upload/get/list/delete, Interactions/agentic video, 명시적 cloud context cache, 음성 블록, server-side search는 미지원이며 명시적 오류예요. fake cloud URI, 가짜 토큰 수 또는 성공 결과를 만들지 않아요.
-- CLI 설정은 원본의 기존 Universal Explorer/영상 프레임 경로를 사용해요. 해당 경로는 원래 ARTEMIS의 구현이고 에이전트를 새 반복 루프로 재작성하지 않았어요. 실제 native 경로와의 의미·정확도 동등성은 미확인이에요.
-- 기본 설정의 Google 검색 grounding은 활성화하지 않았어요. `enable_grounding=true`로 요청하면 조용히 무시하지 않고 오류를 반환해요.
-- Google 모델별 thinking budget, 원시 thought signature, 캐시 사용량은 CLI의 동일 기능이라고 간주하지 않아요. 실제 CLI가 반환한 usage만 기록해요.
-- 일반 CLI 모델로 변경된 object detector의 정밀 좌표 인지 정확도는 실제 기기에서 확인해야 해요.
-- OCR은 선택적 CLI 이미지 포트로 교체했어요. Google Vision API를 직접 호출하지 않아요. `CALLISTO_OCR=1`의 정확도·지연은 실제 검증 전이에요.
+- Windows PowerShell·Linux bootstrap과 setup/check/repair, 자동 다중 호스트 스킬 등록 구현됨. 스킬 실행은 현재 호출 호스트를 명시함.
+- Windows는 native 실행 파일 또는 확인된 npm JS 엔트리포인트를 사용함. 필요한 옵션을 거부하는 구버전 CLI에 안전 옵션을 빼고 재시도하지 않음.
+- Helper는 APK·manifest 해시·버전·프로토콜을 확인하고 선택 기기 락을 사용함. canonical APK 미포함 배포는 기존 호환 Helper 또는 UIAutomator2 fallback 사용함.
+- CI의 Helper 빌드는 개발 서명 APK·대응 manifest·wheel을 생성하도록 구성됨. 성공 여부는 해당 SHA의 Actions 결과로 확인함.
+- 내부 in-process MCP, Explorer `flash` tier, 공유 summarizer/compressor, SDK 공개 import는 보존됨. 웹 UI·HTTP Daemon·외부 MCP·독립 Flash 실행 프로필은 지원하지 않음.
+- 원격 SDK는 import 호환용이며 Callisto 원격 서버 제공을 의미하지 않음. 기존 진단 ID·경로·`artemis` 별칭 유지됨.
 
-## 실제 PC의 수용 검증
+## 실제 수용 검증
 
-`python tools/verify_local_cli.py --allow-live-cli --ai-cli codex`는 텍스트, schema, 도구 인자,
-도구 결과 왕복, 대화 이력, 이미지 색상 인지를 실제 CLI로 확인해요.
-결과는 `traces/local-cli-acceptance.json`으로 저장해요. 이후 Android 기기 테스트,
-실제 공급자 실패·취소·긴 입력 및 Windows 프로세스 정리 검증도 필요해요.
-현재 P0의 실제 공급자 동등성 검증과 P5의 Android E2E를 통과했다고 주장하지 않아요.
+공식 CLI와 Android가 준비된 실행 PC에서 명시적으로 수행함. 이번 정리에서는 실행하지 않음.
 
-공식 인터페이스 참고:
-- https://learn.chatgpt.com/docs/non-interactive-mode
-- https://code.claude.com/docs/en/headless
-- https://geminicli.com/docs/cli/headless/
+```sh
+python tools/verify_local_cli.py --allow-live-cli --ai-cli codex
+callisto run "설정 앱의 배터리 화면 확인" --ai-cli codex --device-serial SERIAL --verification-level final
+callisto trace list
+```
 
-## v4 경계 및 배포 제한
-
-- API 키 환경 변수는 Explorer/영상 엔진을 선택하지 않아요. 기본 경로는 기존 Universal 프레임/이미지 엔진이에요.
-- 직접 API 공급자는 모두 거부해요. 레거시 Settings 키 getter는 항상 None이고 키 저장/ADC 검증은 명시적으로 거부해요.
-- Codex의 shell/apps/plugins/hooks/subagent/search 기능을 끄는 명령을 구성해요. 공급자 자체 도구 실행 이벤트가 발견된 응답도 실패로 처리해요.
-- 공식 CLI 플래그를 문서와 대조했지만 실제 설치 버전별 호환성, 로그인, 정확도는 사용자 PC 확인이 필요해요.
-- CLI Skill과 Helper 버전 manifest는 wheel에 들어가요. APK 바이너리는 없으므로 번들 Helper 설치는 검증하지 않았어요.
-- 내부 액션 세션은 mcp v1 API를 사용하므로 `mcp>=1.26,<2`를 유지해요. 설치된 Google SDK는 데이터 타입 용도이며 직접 Client 생성은 활성 소스에 없어요.
-- 과거 진단 ID (`gemini_api_key`, `vision_ocr_key`)와 서버 경로 상수는 저장된 보고서/import 호환용이에요. 외부 서버를 실행하지 않아요.
-
-## Helper 접근성 진단 수정 — 2026-10-19
-
-- Android의 축약형(`com.artemis.helper/.ArtemisAccessibilityService`)과 전체형
-  (`com.artemis.helper/com.artemis.helper.ArtemisAccessibilityService`)을 같은 서비스로 인식해요.
-  상태 조회, 활성화, 재연결, 삭제 모두 같은 비교를 사용해요.
-- 수정 전 연결 기기에서 Android 접근성 설정은 전체형으로 활성화돼 있었고,
-  Helper 응답은 버전 코드 6 / 프로토콜 2였어요. 문자열 비교 때문에 Callisto만 비활성화로 오판했어요.
-- 수정 후 같은 기기(`R3CY50L9M6K`)의 `callisto helper status --json`에서
-  `enabled`, `reachable`, `protocol_supported`가 모두 true로 확인됐어요.
-- Windows / Python 3.13 오프라인 전체 회귀: **2158 passed, 7 skipped, 8 deselected**.
-  Helper 모의 회귀 54개에 전체형/축약형 감지, 중복 등록 방지, 다른 서비스 보존 검사가 포함돼요.
-- 이 진단은 실제 AI 추론이나 Android 배터리 탐색 E2E 성공 증거가 아니에요.
-
-## v4.2 — inference boundary and setup
-
-| Area | Implemented contract | Evidence / limit |
-|---|---|---|
-| Image transport | balanced/quality/economy/off; actual PNG/JPEG/WebP MIME; stored-pixel EXIF handling; alpha/RGB conversion; bounded cache and request limits | Offline image boundary tests; real small-text accuracy is unverified |
-| Coordinates | Pro normalized coordinates unchanged; opt-in CLI OCR pixel polygons inverse-mapped and bounds checked | Portrait/landscape/foldable/tall frame roundtrip tests; device acceptance pending |
-| Repeated context | Exact duplicates share an attachment index, with all message/tool references preserved; off keeps duplicates | Distinct historical evidence is not discarded; existing Transcript summaries/scrub/recall preserved |
-| Setup | setup.ps1/setup.sh; setup/check/repair; user settings precedence; native discovery; official login status; explicit device selection; managed Skill preservation | Offline fake-process/config tests and isolated wheel imports; fresh Windows/real device validation pending |
-| Helper | Setup refuses hash mismatch or undeclared/old protocol; build emits protocol_version; selected-device lock around provisioning | APK-free distribution reports fallback. Legacy helper/ APK is outside canonical bundle and mismatches manifest |
-| Usage | Actual CLI usage, image metrics, elapsed time, agent/stage aggregation; unknown remains null; no cache double counting | compare_usage.py compares paired real run reports; no paid inference baseline was captured in Work |
-| Git | CI push trigger uses main only | Remote master deletion requires a Git-authenticated client or signed-in GitHub browser; not claimed complete |
-
-See [v4.2 verification report](cli-v4.2-report.md) and [setup guide](advanced-setup.md).
+공급자별 로그인·긴 입력·이미지·다중 턴·timeout·취소, Windows 프로세스 종료, Android 조작·검증·복구를 확인해야 함. 과거 기록과 최신 정리 검증은 [전환 현황](migration-status.md)에서 구분함.

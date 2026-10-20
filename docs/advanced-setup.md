@@ -2,7 +2,7 @@
 
 Google ARTEMIS의 **기존 Pro 그래프·에이전트는 유지**하고, 모델 통신을 인증된 로컬 AI CLI로 연결하는 Android 자동 테스트 도구예요.
 
-v4.1에서 **인증 환경변수 격리, 검증 결과와 종료 코드 일치, 스킬 설치와 Helper 배포**를 개선했어요. 실제 CLI 모델 호환성과 Android E2E는 공식 CLI와 기기가 연결된 실행 환경에서 확인해야 해요.
+현재 구조와 지원 판정은 [아키텍처](architecture.md) 및 [지원 범위](cli-capability-matrix.md)를 기준으로 해요. 실제 CLI 모델 호환성과 Android E2E는 공식 CLI와 기기가 연결된 실행 환경에서 확인해야 해요.
 
 ## 로컬 PC 설치
 
@@ -90,7 +90,7 @@ callisto skill install --ai-cli claude
 
 ## Helper 빌드와 배포
 
-소스 checkout과 기본 wheel에는 APK가 없어요. 기존 호환 Helper가 있으면 버전/프로토콜을 확인해 연결하고, 없으면 `auto` 계층 모드에서 UIAutomator2로 fallback해요. 실제 기기 호환성은 미검증이에요.
+기본 canonical 번들과 기본 wheel에는 APK가 없어요. 저장소 루트 `helper/`의 과거 APK는 현재 번들이 아니에요. 기존 호환 Helper가 있으면 버전/프로토콜을 확인해 연결하고, 없으면 `auto` 계층 모드에서 UIAutomator2로 fallback해요. 실제 기기 호환성은 미검증이에요.
 
 Linux/Windows 모두 JDK 17과 Android SDK Platform 35/Build Tools 35.0.0을 준비하면 셸 스크립트 없이 빌드할 수 있어요.
 
@@ -101,19 +101,17 @@ callisto helper bundle-status
 python -m pip wheel --no-deps --no-build-isolation -w dist .
 ```
 
-`helper-build` CI는 두 OS에서 개발용 APK/manifest와 APK 포함 wheel을 빌드해 Actions artifact로 제공해요. 이는 기존 debug 서명을 사용하는 개발 빌드이며 production release는 아니에요. 빌드·서명·독립 wheel 설치의 성공 여부는 [v4.1 결과](docs/cli-v4.1-report.md)에 구분해서 기록해요.
+`helper-build` CI는 두 OS에서 개발용 APK/manifest와 APK 포함 wheel을 빌드해 Actions artifact로 제공해요. 이는 기존 debug 서명을 사용하는 개발 빌드이며 production release는 아니에요. 빌드·서명·독립 wheel 설치의 성공 여부는 [Actions 실행 결과](https://github.com/cjftya/callisto_auto/actions/workflows/offline.yml)에 구분해서 기록해요.
 
 별도 APK를 사용할 때는 **APK와 일치하는 `helper_manifest.json`을 같은 폴더에** 두고 `CALLISTO_HELPER_DIR`로 지정하세요. `callisto helper bundle-status`는 기기 접근 없이 경로/버전/SHA-256을 검사해요. 패키지·버전·해시가 맞지 않는 번들은 설치하지 않아요. `callisto helper status --serial SERIAL --json`은 사용자 PC에서 설치 버전과 응답 프로토콜을 확인해요. 이미 설치된 앱을 강제로 다운그레이드하지 않아요.
 
-- [v4.1 기능 보존·개선·검증 보고서](docs/cli-v4.1-report.md)
-- [v4 감사 및 변경 근거](docs/cli-v4-audit.md)
-- [CLI 지원 현황](docs/cli-capability-matrix.md)
-- [전환 진행 상황](docs/migration-status.md)
-- [원본 보존 기준](docs/upstream-baseline.md)
-- [CLI Skill](skills/callisto/SKILL.md)
-- [라이선스](LICENSE), [제3자 고지](third_party/mobile_use/NOTICE)
+- [현재 아키텍처](architecture.md) · [CLI 지원 현황](cli-capability-matrix.md)
+- [전환 진행 상황](migration-status.md) · [원본 보존 기준](upstream-baseline.md)
+- [CLI Skill](../skills/callisto/SKILL.md)
+- [라이선스](../LICENSE), [제3자 고지](../third_party/mobile_use/NOTICE)
+- [과거 검증 기록](archive/README.md)
 
-## v4.2 원클릭 설정과 우선순위
+## 원클릭 설정과 우선순위
 
 Windows는 `setup.ps1`, Linux는 `setup.sh`가 동일한 표준 라이브러리 bootstrap을 사용해요. Python 3.12+ 가상환경을 재사용하고, 소스 fingerprint가 달라지거나 설치가 없을 때만 pip 설치를 다시 해요. 매번 pip check와 CLI 도움말을 확인하고 setup을 이어서 실행해요. 실패 후 같은 명령으로 재개해요. 오래된 Python으로 만든 `.venv`는 자동 삭제하지 않고 명확히 실패해요.
 

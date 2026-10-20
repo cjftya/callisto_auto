@@ -135,6 +135,8 @@ callisto trace list
 ## 참고 문서
 
 - [고급 설치·설정·제한사항](docs/advanced-setup.md)
-- [v4.2 구현·검증 보고서](docs/cli-v4.2-report.md)
+- [현재 아키텍처와 문서 역할](docs/architecture.md)
 - [지원 범위](docs/cli-capability-matrix.md) · [전환 현황](docs/migration-status.md)
 - [원본 보존 기준](docs/upstream-baseline.md) · [라이선스](LICENSE)
+
+과거 계획·검증 보고서는 [아카이브](docs/archive/README.md)에 보관됨. 현재 사용법과 구현 판단에는 위 활성 문서를 우선함.

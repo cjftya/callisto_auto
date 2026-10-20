@@ -1,3 +1,5 @@
+> **원본 원격 SDK 설계 기록 — Callisto 실행 설계가 아님.** HTTP Daemon은 Callisto 지원 대상이 아니며, 이 패키지는 import 호환용으로 보존됨. [현재 아키텍처](../../docs/architecture.md) 참조.
+
 # Artemis Thin Client Design
 
 ## Goals

@@ -1,0 +1,15 @@
+{
+  "wheel": "callisto_auto-0.1.2-py3-none-any.whl",
+  "installed": true,
+  "pip_check": "passed",
+  "pro_import": "passed",
+  "cli_help": "passed",
+  "canonical_skill": "included",
+  "skill_install_update_status": "passed",
+  "host_skill_recognition": "not_run",
+  "helper_manifest": "included",
+  "helper_apk_bundled": false,
+  "live_cli": "not_run",
+  "android": "not_run",
+  "platform": "posix"
+}
