@@ -1,5 +1,11 @@
 # CLI 지원 범위
 
+Antigravity CLI (`agy`) supports host registration, explicit selection and managed Skill removal.
+Global directory: `~/.gemini/antigravity-cli/skills/callisto/` (separate from IDE/app).
+Pro inference with `--ai-cli antigravity` is UNSUPPORTED pending validated non-tool image
+input, complete tool blocking, structured output/usage and Android E2E. No provider fallback.
+Evidence: [Antigravity integration](maintenance/antigravity-integration.md).
+
 기준: 2026-10-20 `main`. 구조는 [아키텍처](architecture.md), 실제 설치·설정은 [고급 가이드](advanced-setup.md) 참조. 아래 구현·오프라인 계약 검사와 실제 공식 CLI·Android 수용 결과는 구분됨.
 
 | 기능 | Codex | Claude Code | Gemini CLI |

@@ -14,6 +14,8 @@ API_KEY_VARIABLES = frozenset({
 })
 
 PROVIDER_OVERRIDES = {
+    "antigravity": frozenset({"GOOGLE_GEMINI_BASE_URL", "AGY_ADC_AUTH",
+                              "GOOGLE_APPLICATION_CREDENTIALS", "GOOGLE_GENAI_USE_VERTEXAI"}),
     "codex": frozenset({"OPENAI_BASE_URL", "OPENAI_API_BASE", "AZURE_OPENAI_ENDPOINT"}),
     "gemini": frozenset({"GOOGLE_GEMINI_BASE_URL"}),
     "claude": frozenset({

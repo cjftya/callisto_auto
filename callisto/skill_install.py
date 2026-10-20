@@ -28,7 +28,8 @@ def canonical_skill() -> Path:
 
 def skill_directory(directory: Path | None = None, *, provider="codex") -> Path:
     # Native user Skill locations; none requires an external MCP server.
-    scopes = {"codex": ".agents/skills", "claude": ".claude/skills", "gemini": ".gemini/skills"}
+    scopes = {"codex": ".agents/skills", "claude": ".claude/skills", "gemini": ".gemini/skills",
+              "antigravity": ".gemini/antigravity-cli/skills"}
     if provider not in scopes:
         raise ValueError("Unsupported Skill host")
     return (directory if directory is not None else Path.home() / scopes[provider]) / "callisto"
@@ -80,13 +81,13 @@ def install_skill(directory: Path | None = None, *, provider="codex") -> dict:
 
 def _skill_hosts(directory: Path | None, provider: str) -> list[str]:
     """Automatically register each usable host in its own native Skill directory."""
-    if provider not in ("auto", "codex", "claude", "gemini"):
-        raise ValueError("Use --ai-cli auto, codex, claude or gemini")
+    if provider not in ("auto", "codex", "claude", "gemini", "antigravity"):
+        raise ValueError("Use --ai-cli auto, codex, claude, gemini or antigravity")
     if provider != "auto":
         return [provider]
     hosts = available_providers()
     if not hosts:
-        raise ValueError("No supported AI CLI found; install Codex, Claude Code or Gemini CLI first")
+        raise ValueError("No supported AI CLI found; install Codex, Claude Code, Gemini CLI or Antigravity CLI first")
     if directory is not None and len(hosts) > 1:
         raise ValueError("With --directory and multiple AI CLIs, select one with --ai-cli")
     return hosts

@@ -12,7 +12,7 @@ import tempfile
 import time
 
 
-SCOPES = (".agents/skills/callisto", ".claude/skills/callisto", ".gemini/skills/callisto")
+SCOPES = (".agents/skills/callisto", ".claude/skills/callisto", ".gemini/skills/callisto", ".gemini/antigravity-cli/skills/callisto")
 
 
 def absolute(path):
@@ -104,7 +104,7 @@ def make_plan(root, remove_settings=False):
             if set(p.name for p in config.parent.iterdir()) != {"settings.json"}:
                 raise ValueError("unknown files in config directory; inspect manually")
             content = json.loads(config.read_text(encoding="utf-8"))
-            keys = {"provider", "model", "reasoning", "image_policy", "device_serial", "codex_executable", "claude_executable", "gemini_executable"}
+            keys = {"provider", "model", "reasoning", "image_policy", "device_serial", "codex_executable", "claude_executable", "gemini_executable", "antigravity_executable"}
             if not isinstance(content, dict) or not set(content) <= keys:
                 raise ValueError("unrecognized settings; inspect manually")
             targets.append({"path": str(config), "kind": "settings", "sha256": digest(config)})

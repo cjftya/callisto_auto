@@ -1,4 +1,4 @@
-param([switch]$Check, [switch]$NonInteractive, [string]$DeviceSerial, [ValidateSet("codex","claude","gemini")][string]$AiCli)
+param([switch]$Check, [switch]$NonInteractive, [string]$DeviceSerial, [ValidateSet("codex","claude","gemini","antigravity")][string]$AiCli)
 $ErrorActionPreference = 'Stop'
 # No execution-policy, system PATH or provider configuration changes.
 $Candidates = @(@('py', '-3.12'), @('py', '-3'), @('python'))

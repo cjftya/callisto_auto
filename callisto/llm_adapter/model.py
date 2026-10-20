@@ -91,6 +91,8 @@ class CLIChatModel(BaseChatModel):
         if stop:
             raise UnsupportedCapability("CLI stop sequences are not supported; response truncation is forbidden")
         provider = resolve_provider(self.provider)
+        from callisto.llm_adapter.providers import require_inference_support
+        require_inference_support(provider)
         if metrics is not None:
             metrics["provider"] = provider
         tools = kwargs.get("tools", [])

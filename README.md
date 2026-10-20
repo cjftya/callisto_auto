@@ -39,6 +39,18 @@ Callisto 엔진과 Python 라이브러리는 압축을 해제한 원본 폴더�
 | Codex | `~/.agents/skills/callisto/` |
 | Claude Code | `~/.claude/skills/callisto/` |
 | Gemini CLI | `~/.gemini/skills/callisto/` |
+| Antigravity CLI (`agy`, host registration only) | `~/.gemini/antigravity-cli/skills/callisto/` |
+
+Antigravity CLI가 설치되어 있으면 Setup이 해당 호스트의 Skill도 등록함.
+`callisto setup check --json --ai-cli antigravity`로 점검하며,
+`callisto skill install --ai-cli antigravity`의 `install`을 `update`·`status`로 바꿔 갱신·확인 가능함.
+**Pro 추론은 현재 `UNSUPPORTED`**: 비도구 이미지 입력과 전체 도구 차단이 검증되지 않음.
+`run --ai-cli antigravity`는 종료 코드 2로 중단하고 다른 CLI로 전환하지 않음.
+제거 스크립트는 이 설치에 연결된 관리 Skill만 삭제하며 사용자 수정·비관리 Skill은 보존함.
+IDE/앱의 `~/.gemini/config/skills/`는 설치·제거 대상이 아님.
+탐색에는 PATH, `CALLISTO_ANTIGRAVITY_EXECUTABLE` 또는 공식 기본 경로인
+Windows `%LOCALAPPDATA%/agy/bin/agy.exe`, Linux `~/.local/bin/agy`를 사용함.
+설치·로그인은 공식 CLI에서 수행함. [통합 검증 기록](docs/maintenance/antigravity-integration.md) 참조.
 
 - `SKILL.md`: canonical `skills/callisto/SKILL.md`에서 등록한 실행 지침.
 - `callisto-install.json`: 해당 `.venv` Python의 절대 경로(`python_executable`), 패키지 버전 및 Skill 관리 해시. Skill은 이 Python으로 실행할 수 있으므로 가상환경 활성화나 시스템 PATH 변경이 필요하지 않음.

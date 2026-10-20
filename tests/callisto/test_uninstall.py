@@ -60,13 +60,15 @@ def settings(home):
     return path
 
 
-def test_full_removal_and_preserved_external_data(install):
+@pytest.mark.parametrize("scope", uninstall.SCOPES)
+def test_full_removal_and_preserved_external_data(install, scope):
     root, home = install
-    target = register(home, root)
+    target = register(home, root, scope)
     config = settings(home)
     external = home / "external-trace.txt"
     external.write_text("keep")
     auth = home / ".agents/auth.json"
+    auth.parent.mkdir(parents=True, exist_ok=True)
     auth.write_text("do not inspect or remove")
     plan = uninstall.make_plan(root, True)
     report = uninstall.execute(plan)
@@ -76,9 +78,10 @@ def test_full_removal_and_preserved_external_data(install):
 
 
 @pytest.mark.parametrize("variation", ["other", "modified", "extra", "corrupt", "list", "relative"])
-def test_unmanaged_or_other_install_is_preserved(install, variation):
+@pytest.mark.parametrize("scope", uninstall.SCOPES)
+def test_unmanaged_or_other_install_is_preserved(install, variation, scope):
     root, home = install
-    target = register(home, root if variation != "other" else home / "other")
+    target = register(home, root if variation != "other" else home / "other", scope)
     metadata = target / "callisto-install.json"
     if variation == "modified":
         (target / "SKILL.md").write_text("custom")

@@ -1,5 +1,11 @@
 # 고급 설치·운영 가이드
 
+Antigravity CLI (`agy`) supports host registration, explicit selection and managed Skill removal.
+Global directory: `~/.gemini/antigravity-cli/skills/callisto/` (separate from IDE/app).
+Pro inference with `--ai-cli antigravity` is UNSUPPORTED pending validated non-tool image
+input, complete tool blocking, structured output/usage and Android E2E. No provider fallback.
+Evidence: [Antigravity integration](maintenance/antigravity-integration.md).
+
 Google ARTEMIS의 **기존 Pro 그래프·에이전트는 유지**하고, 모델 통신을 인증된 로컬 AI CLI로 연결하는 Android 자동 테스트 도구예요.
 
 현재 구조와 지원 판정은 [아키텍처](architecture.md) 및 [지원 범위](cli-capability-matrix.md)를 기준으로 해요. 실제 CLI 모델 호환성과 Android E2E는 공식 CLI와 기기가 연결된 실행 환경에서 확인해야 해요.

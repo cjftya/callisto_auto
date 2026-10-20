@@ -1,5 +1,11 @@
 # Callisto 전환 현황
 
+Antigravity CLI (`agy`) supports host registration, explicit selection and managed Skill removal.
+Global directory: `~/.gemini/antigravity-cli/skills/callisto/` (separate from IDE/app).
+Pro inference with `--ai-cli antigravity` is UNSUPPORTED pending validated non-tool image
+input, complete tool blocking, structured output/usage and Android E2E. No provider fallback.
+Evidence: [Antigravity integration](maintenance/antigravity-integration.md).
+
 기준: 2026-10-20, 정리 시작 `main` SHA `e2b2b36fd79c002a3758ad7e7eb672b688ae31c4`.
 
 CLI 스킬 기반 전환이 구현되어 있음. 기존 ARTEMIS Pro 엔진이 계획·탐색·조작·검증·복구를 수행하고, Codex·Claude Code·Gemini CLI 어댑터가 별도 공식 CLI 프로세스로 추론을 전달함. 모델·추론 수준은 공식 CLI 사용자 기본값에 위임됨.

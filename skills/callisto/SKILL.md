@@ -21,7 +21,7 @@ Skill, owns planning, exploration, operation, checking, recovery and reporting.
   not reuse the hosting assistant's conversation or automatically inherit an
   interactive-only choice. The child CLI reads its own official user defaults.
 - Identify the current hosting CLI from the host application (Codex: codex,
-  Claude Code: claude, Gemini CLI: gemini) and pass it as `--ai-cli` on
+  Claude Code: claude, Gemini CLI: gemini, Antigravity CLI: antigravity) and pass it as `--ai-cli` on
   both setup checks and runs. Never guess from installed executables when the
   host is known. Never select a model or a reasoning setting in Callisto.
 
@@ -80,6 +80,14 @@ and verify paths with the user; do not bypass checks or touch AI CLI credentials
 system Python/ADB, device Helper, external files or other installations.
 
 ## Capability boundaries
+
+Antigravity CLI (`agy`) host registration uses
+`~/.gemini/antigravity-cli/skills/callisto/`; the IDE/app directory is separate
+and is not installed. Pass `--ai-cli antigravity` for this host. Pro inference
+is currently UNSUPPORTED: non-tool image input and complete CLI tool blocking
+have not been validated. Stop at setup's UNSUPPORTED result; never fall back to
+Gemini or another provider, omit screenshots or ask agy to read them with tools.
+Skill registration and filesystem status do not prove host recognition or E2E.
 
 The Codex, Claude and Gemini adapters support image-bearing requests and
 structured agent responses in offline contract tests. The installed official

@@ -1,5 +1,11 @@
 # Callisto 현재 아키텍처
 
+Antigravity CLI (`agy`) supports host registration, explicit selection and managed Skill removal.
+Global directory: `~/.gemini/antigravity-cli/skills/callisto/` (separate from IDE/app).
+Pro inference with `--ai-cli antigravity` is UNSUPPORTED pending validated non-tool image
+input, complete tool blocking, structured output/usage and Android E2E. No provider fallback.
+Evidence: [Antigravity integration](maintenance/antigravity-integration.md).
+
 기준: `main`, 2026-10-20. 현재 구조의 기준 문서임. 실행 계약은 `skills/callisto/SKILL.md`, 변경 금지 사항은 `AGENTS.md`에서 관리함. 과거 계획보다 현재 코드·활성 문서가 우선함.
 
 ## 실행 경로

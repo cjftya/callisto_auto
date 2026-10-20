@@ -26,7 +26,7 @@ def main(version: Annotated[bool, typer.Option("--version", "-v", is_eager=True)
 
 @app.command()
 def doctor(json_output: Annotated[bool, typer.Option("--json")] = False,
-           ai_cli: Annotated[str | None, typer.Option("--ai-cli", help="Optional host filter: codex, claude or gemini")] = None):
+           ai_cli: Annotated[str | None, typer.Option("--ai-cli", help="Optional host filter: codex, claude, gemini or antigravity")] = None):
     """Check installation and configuration only; no inference or login probe."""
     from callisto.settings import effective_settings
     from callisto.llm_adapter.discovery import available_providers, executable_command, resolve_provider
@@ -35,7 +35,7 @@ def doctor(json_output: Annotated[bool, typer.Option("--json")] = False,
         providers = (available_providers() if configuration.provider == "auto"
                      else [resolve_provider(configuration.provider)])
     except ValueError:
-        typer.echo(json.dumps({"config_error": "Invalid AI CLI; use auto, codex, claude or gemini",
+        typer.echo(json.dumps({"config_error": "Invalid AI CLI; use auto, codex, claude, gemini or antigravity",
             "provider": "auto", "providers": [], "provider_implemented": False, "cli_installed": False,
             "adb_installed": bool(shutil.which("adb")), "authentication": "not_checked",
             "live_inference": "not_checked", "profile": "pro", "servers_required": False}))
@@ -51,14 +51,17 @@ def doctor(json_output: Annotated[bool, typer.Option("--json")] = False,
         config_error = "Invalid CLI transport configuration"
     installed = bool(providers) and all(resolved.values())
     report = {"provider": provider, "providers": providers,
-        "provider_implemented": bool(providers), "cli_installed": installed,
+        "provider_implemented": bool(providers) and "antigravity" not in providers, "cli_installed": installed,
         "clis": resolved, "adb_installed": bool(shutil.which("adb")),
         "config_error": config_error, "authentication": "not_checked",
         "live_inference": "not_checked", "profile": "pro", "servers_required": False}
+    if "antigravity" in providers:
+        from callisto.llm_adapter.providers import ANTIGRAVITY_UNSUPPORTED
+        report["unsupported"] = {"antigravity": ANTIGRAVITY_UNSUPPORTED}
     report["launcher_supported"] = installed
     typer.echo(json.dumps(report, indent=2) if json_output else
                "\n".join(f"{key}: {value}" for key, value in report.items()))
-    if config_error or not installed or not report["adb_installed"]:
+    if config_error or not installed or not report["adb_installed"] or not report["provider_implemented"]:
         raise typer.Exit(1)
 
 
@@ -71,7 +74,7 @@ def run(
     verification_level: Annotated[str, typer.Option("--verification-level")] = "final",
     profile: Annotated[str, typer.Option("--profile")] = "pro",
     image_policy: Annotated[str | None, typer.Option("--image-policy", help="off, balanced, quality or economy; diagnostics compare actual CLI usage")] = None,
-    ai_cli: Annotated[str | None, typer.Option("--ai-cli", help="Calling AI CLI: codex, claude or gemini")] = None,
+    ai_cli: Annotated[str | None, typer.Option("--ai-cli", help="Calling AI CLI: codex, claude, gemini or antigravity")] = None,
 ):
     """Run an Android test with Callisto's preserved Pro engine, local ADB and traces."""
     if profile != "pro":
@@ -90,6 +93,10 @@ def run(
         selected_provider = resolve_provider(configuration.provider)
     except ValueError:
         raise typer.BadParameter("Invalid Callisto run settings") from None
+    if selected_provider == "antigravity":
+        from callisto.llm_adapter.providers import ANTIGRAVITY_UNSUPPORTED
+        typer.echo(ANTIGRAVITY_UNSUPPORTED, err=True)
+        raise typer.Exit(2)
     device_serial = configuration.device_serial
     session_id = str(uuid4())
     traces_path = traces_path.resolve()

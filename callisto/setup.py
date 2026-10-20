@@ -104,7 +104,7 @@ def setup_report(*, repair=False, device=None, check_login=True, interactive=Fal
         providers = (available_providers() if settings.provider == "auto"
                      else [resolve_provider(settings.provider)])
     except ValueError:
-        report.update(issues=["Invalid AI CLI setting; use auto, codex, claude or gemini."],
+        report.update(issues=["Invalid AI CLI setting; use auto, codex, claude, gemini or antigravity."],
                       next_action="Correct the CLI selection or repair invalid Callisto settings.")
         return report
     report.update(provider=providers[0] if len(providers) == 1 else "auto",
@@ -113,12 +113,16 @@ def setup_report(*, repair=False, device=None, check_login=True, interactive=Fal
     if not report["dependencies_ready"]:
         issues.append("Rerun setup.ps1 or setup.sh to repair the Python package environment.")
     if not providers:
-        issues.append("No supported AI CLI installation found. Install and log in to Codex, Claude Code or Gemini CLI, then rerun setup.")
+        issues.append("No supported AI CLI installation found. Install and log in to Codex, Claude Code, Gemini CLI or Antigravity CLI, then rerun setup.")
     report["clis"], report["authentications"], report["skills"] = {}, {}, {}
     for provider in providers:
         launcher = executable_command(provider)
         supported = bool(launcher)
         cli = {"installed": bool(discover_executable(provider)), "native_launcher": supported}
+        if provider == "antigravity":
+            cli["inference"] = "UNSUPPORTED"
+            from callisto.llm_adapter.providers import ANTIGRAVITY_UNSUPPORTED
+            issues.append(ANTIGRAVITY_UNSUPPORTED)
         report["clis"][provider] = cli
         if not supported:
             issues.append(f"Install or update the official {provider} CLI so Callisto can launch it on this PC.")
@@ -191,6 +195,8 @@ def setup_report(*, repair=False, device=None, check_login=True, interactive=Fal
                    else f"Ask {providers[0]} to test Android with Callisto.")
     report.update(status="ACTION_REQUIRED" if issues else "READY", issues=issues,
                   next_action=issues[0] if issues else next_action)
+    if providers == ["antigravity"]:
+        report["status"] = "UNSUPPORTED"
     return report
 
 

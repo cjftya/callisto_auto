@@ -15,7 +15,20 @@ from callisto.llm_adapter.errors import CLIAuthenticationError, CLIError, CLIPro
 from callisto.llm_adapter.discovery import discover_executable, executable_command
 
 
+ANTIGRAVITY_UNSUPPORTED = (
+    "Antigravity CLI Pro inference is UNSUPPORTED: official headless stdin supports "
+    "text blocks only; non-tool multimodal image input and complete CLI tool blocking "
+    "have not been validated. Skill registration is supported. No provider fallback."
+)
+
+
+def require_inference_support(provider):
+    if provider == "antigravity":
+        raise UnsupportedCapability(ANTIGRAVITY_UNSUPPORTED)
+
+
 def command_for(provider, model, directory, images, schema_path, reasoning_effort=None):
+    require_inference_support(provider)
     if os.environ.get("CALLISTO_FORBID_LIVE_CLI") == "1":
         raise CLIError("Live AI CLI execution is forbidden in this environment")
     if provider not in ("codex", "claude", "gemini"):
@@ -66,6 +79,7 @@ def command_for(provider, model, directory, images, schema_path, reasoning_effor
 
 def build_stdin(provider, prompt, images):
     """Emit the official provider's supported input format without losing images."""
+    require_inference_support(provider)
     if provider == "claude":
         content = [{"type": "text", "text": prompt}]
         for filename in images:
@@ -119,6 +133,7 @@ def _gemini_usage(stats):
 
 
 def decode_result(provider, result):
+    require_inference_support(provider)
     if provider not in ("codex", "claude", "gemini"):
         raise UnsupportedCapability(f"CLI provider {provider!r} is not implemented")
     if result.returncode:

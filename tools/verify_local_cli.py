@@ -74,7 +74,7 @@ async def verify():
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--allow-live-cli", action="store_true")
-    parser.add_argument("--ai-cli", choices=("codex", "claude", "gemini"),
+    parser.add_argument("--ai-cli", choices=("codex", "claude", "gemini", "antigravity"),
                         help="Invoking AI CLI. Required when more than one CLI is installed.")
     parser.add_argument("--output", type=Path, default=Path("traces/local-cli-acceptance.json"))
     args = parser.parse_args()
