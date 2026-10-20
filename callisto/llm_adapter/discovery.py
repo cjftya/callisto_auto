@@ -31,8 +31,8 @@ def discover_executable(provider):
 
 
 def available_providers():
-    """Detect host CLIs that Callisto can launch, without starting them."""
-    return [name for name in ("codex", "claude", "gemini") if executable_command(name)]
+    """Find installed host CLIs without starting them, even if a launcher needs repair."""
+    return [name for name in ("codex", "claude", "gemini") if discover_executable(name)]
 
 
 def resolve_provider(requested=None):
