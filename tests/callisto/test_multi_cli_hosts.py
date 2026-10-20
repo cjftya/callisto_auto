@@ -134,3 +134,15 @@ def test_cli_run_selects_exact_host(monkeypatch, tmp_path, provider):
                                       "--traces-path", str(tmp_path)])
     assert result.exit_code == 0, result.output
     assert json.loads(result.stdout)["status"] == "completed"
+
+
+def test_stale_persisted_codex_does_not_override_host(tmp_path, monkeypatch):
+    from callisto.settings import effective_settings, save_settings
+    conf = tmp_path / "settings.json"
+    monkeypatch.setenv("CALLISTO_CONFIG", str(conf))
+    monkeypatch.delenv("CALLISTO_AI_CLI", raising=False)
+    conf.write_text(json.dumps({"provider": "codex", "image_policy": "balanced"}))
+    assert effective_settings().provider == "auto"
+    assert effective_settings(provider="gemini").provider == "gemini"
+    assert save_settings()
+    assert "provider" not in json.loads(conf.read_text())

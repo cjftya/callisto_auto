@@ -42,7 +42,9 @@ def user_settings():
         values = json.loads(path.read_text(encoding="utf-8"))
         if isinstance(values, dict):
             # Old v4.2 config may contain hardcoded model defaults. Never apply them.
-            values = {k: v for k, v in values.items() if k not in ("model", "reasoning")}
+            values = {k: v for k, v in values.items() if k not in ("model", "reasoning", "provider")}
+            # Before host routing, provider=codex was saved as a default on setup.
+            # Never treat a stale persisted provider as the current hosting CLI.
         return Settings.model_validate(values).model_dump(exclude_unset=True)
     except (OSError, ValueError):
         raise ValueError("Invalid Callisto settings; inspect the user settings file") from None
@@ -67,7 +69,8 @@ def runtime_settings(**values):
 
 def save_settings(**updates):
     validated = Settings.model_validate({**user_settings(), **updates})
-    content = json.dumps(validated.model_dump(), indent=2) + "\n"
+    # Provider is a per-invocation host choice, never a persisted default.
+    content = json.dumps(validated.model_dump(exclude={"provider"}), indent=2) + "\n"
     path = settings_path()
     if path.is_file() and path.read_text(encoding="utf-8") == content:
         return False
