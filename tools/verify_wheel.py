@@ -41,6 +41,10 @@ def main():
     environment.pop('PYTHONPATH', None)
     with tempfile.TemporaryDirectory(prefix='callisto-wheel-') as temp:
         root = Path(temp)
+        # Offline import/config fixture: no provider binary or user settings are
+        # required. This selects a transport contract, never a model or CLI run.
+        environment['CALLISTO_AI_CLI'] = 'codex'
+        environment['CALLISTO_CONFIG'] = str(root / 'offline-settings.json')
         target = root / 'venv'
         venv.EnvBuilder(with_pip=True).create(target)
         bindir = target / ('Scripts' if os.name == 'nt' else 'bin')
@@ -54,9 +58,12 @@ def main():
                       ['setup', '--help'], ['setup', 'check', '--help'], ['setup', 'repair', '--help'], ['--version']):
             run([cli, *flags])
         skill_dir = root / 'external-user-skills'
-        run([cli, 'skill', 'install', '--directory', skill_dir])
-        run([cli, 'skill', 'update', '--directory', skill_dir])
-        run([cli, 'skill', 'status', '--directory', skill_dir])
+        # Explicit host scope tests file installation without assuming that an AI
+        # CLI exists in this clean venv. Discovery is covered by offline fixtures.
+        for provider in ('codex', 'claude', 'gemini'):
+            provider_dir = skill_dir / provider
+            for action in ('install', 'update', 'status'):
+                run([cli, 'skill', action, '--ai-cli', provider, '--directory', provider_dir])
         if args.require_helper:
             run([cli, 'helper', 'bundle-status'])
         run([python, '-c', '''from artemis.config.llm import get_default_llm_config

@@ -7,7 +7,6 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from langchain_core.messages import AIMessage
 
 from callisto.llm_adapter.errors import CLIError, CLIProtocolError, UnsupportedCapability
 from callisto.llm_adapter.process import ProcessResult, run_process

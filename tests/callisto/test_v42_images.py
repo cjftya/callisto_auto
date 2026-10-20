@@ -2,7 +2,6 @@
 import base64
 from io import BytesIO
 import json
-from pathlib import Path
 
 from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 from PIL import Image

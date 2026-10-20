@@ -1,6 +1,5 @@
 """Bootstrap tests only launch mocked Python/pip processes."""
 import json
-from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock
 

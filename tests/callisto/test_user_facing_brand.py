@@ -37,7 +37,7 @@ def test_helper_branding_preserves_existing_android_package_identity():
 
 def test_skill_transition_and_android_app_user_facing_labels():
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
-    assert "CLI 스킬" in readme
+    assert "AI CLI용 스킬" in readme
     assert "기존 Pro 자동화 엔진을 유지" in readme
 
     resources = (ROOT / "packages/artemis-accessibility-helper/app/src/main/res/values/strings.xml").read_text(encoding="utf-8")
