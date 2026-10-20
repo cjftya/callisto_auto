@@ -75,7 +75,7 @@ def test_codex_command_is_built_without_executing_provider(monkeypatch, tmp_path
     monkeypatch.setattr('callisto.llm_adapter.providers.shutil.which', lambda _: 'fake-codex.exe')
     args = command_for('codex', 'gpt-6.1-sol', tmp_path, ['first.png', 'second.png'], tmp_path / 'schema.json', 'high')
     assert args[:2] == ['fake-codex.exe', 'exec'] and args[-1] == '-'
-    for option in ('--ignore-rules', '--ephemeral', '--json', '--output-schema'):
+    for option in ('--ephemeral', '--json', '--output-schema'):
         assert option in args
     assert args[args.index('--sandbox') + 1] == 'read-only'
     assert args[args.index('--image') + 1] == 'first.png'

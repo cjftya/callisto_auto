@@ -30,7 +30,7 @@ def command_for(provider, model, directory, images, schema_path, reasoning_effor
     if provider == "codex":
         # Do NOT use --ignore-user-config: it discards the user's selected CLI defaults.
         # Disable CLI-owned effects and explicitly request a read-only sandbox.
-        command = [*launcher, "exec", "--ignore-rules", "--ephemeral",
+        command = [*launcher, "exec", "--ephemeral",
                    "--skip-git-repo-check", "--sandbox", "read-only",
                    "--disable", "shell_tool", "--disable", "apps",
                    "--disable", "plugins", "--disable", "hooks",
@@ -59,8 +59,9 @@ def command_for(provider, model, directory, images, schema_path, reasoning_effor
         '[[rule]]\ntoolName = "*"\ndecision = "deny"\npriority = 999\n',
         encoding="utf-8",
     )
-    return [*launcher, "--prompt", "", "--output-format", "stream-json",
-            "--approval-mode", "plan", "--skip-trust"]
+    return [*launcher, "--prompt", "Respond to the request supplied on standard input.",
+            "--output-format", "stream-json", "--approval-mode", "plan",
+            "--policy", str(policy / "callisto-deny.toml"), "--skip-trust"]
 
 
 def build_stdin(provider, prompt, images):

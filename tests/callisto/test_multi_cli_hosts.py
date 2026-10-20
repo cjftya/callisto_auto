@@ -54,7 +54,7 @@ def test_codex_keeps_user_defaults_and_disables_provider_tools(monkeypatch, tmp_
     monkeypatch.setattr(providers, "executable_command", lambda _: ["/fake/codex"])
     command = command_for("codex", "IGNORED", tmp_path, ["screen.png"], tmp_path / "schema.json", "high")
     assert command[:2] == ["/fake/codex", "exec"]
-    assert "--ignore-user-config" not in command
+    assert "--ignore-user-config" not in command and "--ignore-rules" not in command
     assert "--model" not in command
     assert "model_reasoning_effort" not in " ".join(command)
     assert command[command.index("--sandbox") + 1] == "read-only"
@@ -96,6 +96,7 @@ def test_gemini_image_and_verified_completion(monkeypatch, tmp_path):
     args = command_for("gemini", None, tmp_path, ["screen.jpg"], tmp_path / "schema.json")
     assert args[:2] == ["/fake/gemini", "--prompt"]
     assert args[args.index("--approval-mode") + 1] == "plan"
+    assert args[args.index("--policy") + 1] == str(tmp_path / ".gemini/policies/callisto-deny.toml")
     assert "--model" not in args
     assert "decision = \"deny\"" in (tmp_path / ".gemini/policies/callisto-deny.toml").read_text()
     image = tmp_path / "screen.jpg"
