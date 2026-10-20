@@ -8,7 +8,7 @@ from typing import Annotated
 
 import typer
 
-from callisto.llm_adapter.discovery import available_providers, executable_command, resolve_provider
+from callisto.llm_adapter.discovery import available_providers, discover_executable, executable_command, resolve_provider
 from callisto.llm_adapter.environment import cli_environment
 from callisto.settings import effective_settings, save_settings, settings_path
 from callisto.skill_install import install_skill, skill_status
@@ -109,15 +109,15 @@ def setup_report(*, repair=False, device=None, check_login=True, interactive=Fal
     if not report["dependencies_ready"]:
         issues.append("Rerun setup.ps1 or setup.sh to repair the Python package environment.")
     if not providers:
-        issues.append("No usable AI CLI found. Install and log in to Codex, Claude Code or Gemini CLI, then rerun setup.")
+        issues.append("No supported AI CLI installation found. Install and log in to Codex, Claude Code or Gemini CLI, then rerun setup.")
     report["clis"], report["authentications"], report["skills"] = {}, {}, {}
     for provider in providers:
         launcher = executable_command(provider)
         supported = bool(launcher)
-        cli = {"installed": supported, "native_launcher": supported}
+        cli = {"installed": bool(discover_executable(provider)), "native_launcher": supported}
         report["clis"][provider] = cli
         if not supported:
-            issues.append(f"Install the official {provider} CLI and use its normal login on this PC.")
+            issues.append(f"Install or update the official {provider} CLI so Callisto can launch it on this PC.")
         authentication = login_state(provider, launcher[0]) if supported and check_login else "not_checked"
         report["authentications"][provider] = authentication
         if authentication in ("login_required", "probe_failed"):
