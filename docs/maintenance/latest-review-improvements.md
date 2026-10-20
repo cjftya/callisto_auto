@@ -80,8 +80,22 @@ therefore run on the normal host without weakening the runtime or process checks
 - Skips: POSIX process assertion (1), Linux uninstall launcher (1), absent POSIX
   setup shell (1), absent Android device (4), opt-in live SDK-role tests (2),
   unavailable DataEngine fixture (1). Eight configured deselections are retained.
-  Linux execution is delegated to the new commit's CI; baseline CI alone is not
-  evidence for these changes.
+  New-commit Windows/Linux CI has not run: remote publication awaits explicit
+  approval. Baseline CI alone is not evidence for these changes.
+
+## Local commits and publication
+
+Plan A is local commit `4524496` (readiness, installer compatibility, docs and
+regressions). Plan B is a separate local documentation commit containing the
+official-interface gate review. No remote branch was changed.
+
+Automatic approval review rejected the attempted push to `origin/main`, stating
+that implementation/validation were authorized but publication to the shared
+default branch lacked trusted user authorization. The command was rejected
+before execution; the report commit was then completed separately with no push.
+Explicit user approval is required to publish these local commits and obtain
+their Windows/Linux CI results. Thus local implementation/verification and the
+unsupported transport decision are complete; remote integration/CI remain pending.
 
 ## Separate observed defect: history fixture thread race
 

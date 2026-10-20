@@ -32,6 +32,26 @@ inference boundary. The preserved Pro engine and preservation manifests are unch
 
 ## Implemented boundary
 
+### Follow-up transport gate (2026-10-21)
+
+The public official documentation was rechecked for plan B independently of the
+Setup/Doctor fix. This review did not launch `agy`, inspect credentials, change
+global settings, or run inference. Version 1.4.2 above is prior local evidence,
+not a fresh cross-platform compatibility result.
+
+| Required contract | Current evidence | Gate |
+| --- | --- | --- |
+| Non-tool image bytes | [Headless input](https://www.antigravity.google/docs/cli/headless/#stream-prompts-from-stdin) accepts text blocks only; other block types fail. | Unmet |
+| Per-request tool blocking | [CLI permissions](https://www.antigravity.google/docs/permissions/#cli-fine-grained-permissions) documents global rules and workspace auto-allow. An isolated complete request-level disable contract is unverified. | Unmet |
+| Schema, history, tool intent | Headless schema output and continuation exist. Stream tool records describe execution; a lossless Pro intent exchange is unverified. | Partial documentation only |
+| Completion, errors, usage, cancellation | Headless statuses, usage and timeout are documented. Runtime compatibility and partial-output behavior are untested. | Unverified |
+| Windows/Linux executable and auth | Prior Windows version/help evidence exists; Linux runtime and cross-platform authentication remain untested. | Unverified |
+
+Decision: retain `UNSUPPORTED`. The text-only input contract already fails a
+required gate. No transport implementation or live Android acceptance follows.
+Revisit only after official image input and isolated tool blocking are documented
+and validated; filesystem image reads and relaxed permissions cannot satisfy it.
+
 `antigravity` selects `agy`, including PATH, explicit non-secret executable setting
 and official installation fallback. Shell wrappers and non-native binaries are rejected.
 Setup/repair and Skill install/update/status register the canonical two-file bundle.
