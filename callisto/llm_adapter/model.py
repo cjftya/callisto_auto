@@ -17,7 +17,7 @@ from pydantic import Field
 from callisto.llm_adapter.codec import encode_messages, encode_prompt
 from callisto.llm_adapter.errors import CLIProtocolError, UnsupportedCapability
 from callisto.llm_adapter.process import run_process
-from callisto.llm_adapter.providers import command_for, decode_result
+from callisto.llm_adapter.providers import build_stdin, command_for, decode_result
 from callisto.settings import effective_settings
 from callisto.llm_adapter.discovery import resolve_provider
 from callisto.usage import agent_label, stage_label, record_call
@@ -107,7 +107,7 @@ class CLIChatModel(BaseChatModel):
                     prompt = encode_prompt(history, tools, tool_choice, schema)
                     command = command_for(self.provider, self.model_name, directory, images,
                                           schema_path, self.reasoning_effort)
-                    result = await run_process(command, stdin=prompt, cwd=str(directory),
+                    result = await run_process(command, stdin=build_stdin(self.provider, prompt, images), cwd=str(directory),
                                                timeout=self.timeout_seconds, provider=self.provider)
                     text, usage = decode_result(self.provider, result)
                     usage = {key: value for key, value in usage.items()
