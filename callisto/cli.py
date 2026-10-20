@@ -26,20 +26,22 @@ def main(version: Annotated[bool, typer.Option("--version", "-v", is_eager=True)
 
 @app.command()
 def doctor(json_output: Annotated[bool, typer.Option("--json")] = False,
-           ai_cli: Annotated[str | None, typer.Option("--ai-cli", help="codex, claude or gemini; auto when only one is installed")] = None):
+           ai_cli: Annotated[str | None, typer.Option("--ai-cli", help="Optional host filter: codex, claude or gemini")] = None):
     """Check installation and configuration only; no inference or login probe."""
     from callisto.settings import effective_settings
-    from callisto.llm_adapter.discovery import executable_command, resolve_provider
+    from callisto.llm_adapter.discovery import available_providers, executable_command, resolve_provider
     try:
         configuration = effective_settings(provider=ai_cli)
-        provider = resolve_provider(configuration.provider)
+        providers = (available_providers() if configuration.provider == "auto"
+                     else [resolve_provider(configuration.provider)])
     except ValueError:
-        typer.echo(json.dumps({"config_error": "Select an AI CLI with --ai-cli codex, claude or gemini",
-            "provider": "auto", "provider_implemented": False, "cli_installed": False,
+        typer.echo(json.dumps({"config_error": "Invalid AI CLI; use auto, codex, claude or gemini",
+            "provider": "auto", "providers": [], "provider_implemented": False, "cli_installed": False,
             "adb_installed": bool(shutil.which("adb")), "authentication": "not_checked",
             "live_inference": "not_checked", "profile": "pro", "servers_required": False}))
         raise typer.Exit(1) from None
-    resolved = executable_command(provider)
+    provider = providers[0] if len(providers) == 1 else "auto"
+    resolved = {name: bool(executable_command(name)) for name in providers}
     from artemis.config.llm import get_default_llm_config
     config_error = None
     try:
@@ -47,15 +49,16 @@ def doctor(json_output: Annotated[bool, typer.Option("--json")] = False,
         # Validation must not infer a different CLI from the current host.
     except Exception:
         config_error = "Invalid CLI transport configuration"
-    implemented = provider in ("codex", "claude", "gemini")
-    report = {"provider": provider, "provider_implemented": implemented,
-        "cli_installed": bool(resolved), "adb_installed": bool(shutil.which("adb")),
+    installed = bool(providers) and all(resolved.values())
+    report = {"provider": provider, "providers": providers,
+        "provider_implemented": installed, "cli_installed": installed,
+        "clis": resolved, "adb_installed": bool(shutil.which("adb")),
         "config_error": config_error, "authentication": "not_checked",
         "live_inference": "not_checked", "profile": "pro", "servers_required": False}
-    report["launcher_supported"] = bool(resolved)
+    report["launcher_supported"] = installed
     typer.echo(json.dumps(report, indent=2) if json_output else
                "\n".join(f"{key}: {value}" for key, value in report.items()))
-    if not implemented or config_error or not report["cli_installed"] or not report["adb_installed"] or not report["launcher_supported"]:
+    if config_error or not installed or not report["adb_installed"]:
         raise typer.Exit(1)
 
 
