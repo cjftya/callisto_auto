@@ -125,7 +125,7 @@ Windows `-Check` / Linux `--check`는 설치·설정 파일을 변경하지 않�
 .\.venv\Scripts\python.exe -m callisto.cli setup repair --device-serial SERIAL
 ```
 
-설정 파일은 Windows `%LOCALAPPDATA%/callisto/settings.json`, Linux `$XDG_CONFIG_HOME/callisto/settings.json` (기본 `~/.config/callisto/settings.json`) 한 곳이에요. `CALLISTO_CONFIG`로 파일 위치를 바꿀 수 있어요. 파일에는 provider/image_policy/device_serial과 native 실행 파일 경로만 저장해요. 비밀정보·인증은 저장하지 않아요.
+설정 파일은 Windows `%LOCALAPPDATA%/callisto/settings.json`, Linux `$XDG_CONFIG_HOME/callisto/settings.json` (기본 `~/.config/callisto/settings.json`) 한 곳이에요. `CALLISTO_CONFIG`로 파일 위치를 바꿀 수 있어요. 파일에는 image_policy/device_serial과 CLI 실행 파일 경로만 저장해요. AI CLI 선택은 실행할 때 `--ai-cli`로 전달하며 이전 버전이 저장한 `provider` 값은 무시하고 재저장 시 정리해요. 비밀정보·인증은 저장하지 않아요.
 
 | 설정 | 실행 옵션 | 환경변수 | 내장 기본값 |
 |---|---|---|---|
