@@ -166,6 +166,38 @@ def test_busy_process_refuses(install, monkeypatch):
         uninstall.check_busy(root)
 
 
+def test_proc_inventory_with_restricted_executable_link(tmp_path, monkeypatch):
+    proc = tmp_path / "proc"
+    (proc / "self").mkdir(parents=True)
+    (proc / "self/cmdline").write_bytes(b"python")
+    entry = proc / "123"
+    entry.mkdir()
+    (entry / "cmdline").write_bytes(b"/tools/callisto/.venv/bin/python\0-m\0callisto.cli\0run")
+    (entry / "stat").write_text("123 (python process) S 1 0 0")
+    def restricted(path):
+        raise PermissionError("ptrace restriction")
+    monkeypatch.setattr(os, "readlink", restricted)
+    assert uninstall.posix_processes(proc) == [(123, 1, " /tools/callisto/.venv/bin/python -m callisto.cli run")]
+
+
+def test_unreadable_same_user_command_line_blocks(tmp_path, monkeypatch):
+    proc = tmp_path / "proc"
+    (proc / "self").mkdir(parents=True)
+    (proc / "self/cmdline").touch()
+    entry = proc / "123"
+    entry.mkdir()
+    (entry / "cmdline").touch()
+    original = Path.read_bytes
+    def restricted(path):
+        if path == entry / "cmdline":
+            raise PermissionError("hidden command line")
+        return original(path)
+    monkeypatch.setattr(Path, "read_bytes", restricted)
+    monkeypatch.setattr(os, "getuid", lambda: entry.stat().st_uid, raising=False)
+    with pytest.raises(ValueError, match="Cannot inspect same-user process 123"):
+        uninstall.posix_processes(proc)
+
+
 def test_noninteractive_and_wrong_confirmation_preserve(install):
     root, home = install
     env = dict(os.environ, HOME=str(home), USERPROFILE=str(home))

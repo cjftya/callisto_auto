@@ -127,16 +127,26 @@ def processes():
                                 capture_output=True, encoding="utf-8", errors="replace", check=True, timeout=30)
         data = json.loads(result.stdout)
         return [(int(p["ProcessId"]), int(p["ParentProcessId"]), (p.get("ExecutablePath") or "") + " " + (p.get("CommandLine") or "")) for p in (data if isinstance(data, list) else [data])]
-    if not Path("/proc/self/cmdline").exists():
+    return posix_processes()
+
+
+def posix_processes(proc=Path("/proc")):
+    if not (proc / "self/cmdline").exists():
         raise ValueError("Process inventory unavailable; stop Callisto and use manual removal")
     result = []
-    for entry in Path("/proc").iterdir():
+    for entry in proc.iterdir():
         if not entry.name.isdigit():
             continue
         try:
             command = (entry / "cmdline").read_bytes().replace(b"\0", b" ").decode(errors="replace")
             parent = int((entry / "stat").read_text().rsplit(")", 1)[1].split()[1])
-            executable = os.readlink(entry / "exe")
+            try:
+                executable = os.readlink(entry / "exe")
+            except PermissionError:
+                # Non-dumpable same-user services can expose cmdline/stat but
+                # restrict exe via ptrace policy. Readable command lines still
+                # identify source/venv launches and `-m callisto` invocations.
+                executable = ""
             result.append((int(entry.name), parent, executable + " " + command))
         except (FileNotFoundError, ProcessLookupError):
             continue

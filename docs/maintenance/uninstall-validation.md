@@ -22,6 +22,8 @@
 - `python tools/verify_wheel.py dist/callisto_auto-0.1.2-py3-none-any.whl --report dist/uninstall-wheel-report.json --require-helper`: 격리 설치·의존성·Pro/import·CLI help·세 호스트 Skill install/update/status·canonical Skill·Helper APK/manifest 확인 통과함. 실제 CLI/Android를 실행하지 않음.
 - 첫 전체 회귀는 **1 failed / 2300 passed / 7 skipped / 8 deselected**. 변경하지 않은 `test_data_engine_handler_queue_buffering_and_background_worker`에서 0.4초 안에 50개 중 24개 로그만 반영되어 실패함. 해당 테스트 단독 재실행은 **1 passed**임. 이 시간 의존 실패를 숨기기 위해 엔진이나 테스트 대기값을 변경하지 않음.
 - 프로세스 수정 후 최종 `python -m pytest -q --junitxml=dist/uninstall-final-tests.xml`은 **2300 passed / 10 skipped / 8 deselected**로 통과함. POSIX 전용 3개, Android 진단 4개, Gemini live SDK 2개, DataEngine fixture 1개가 skip됨. 추가한 PowerShell 7 매개변수 검사는 별도 2개 런처 검사에 포함됨. `git diff --check`와 staged diff 검사 통과함.
+- [첫 원격 CI](https://github.com/cjftya/callisto_auto/actions/runs/39443357380)에서 양쪽 Helper APK-bearing wheel 검증을 수행함. Linux 회귀는 동일 사용자 서비스의 `/proc/<pid>/exe` ptrace 제한 때문에 제거 검사 4개가 안전 중단되어 **4 failed / 2296 passed / 11 skipped / 8 deselected**임. `cmdline`/`stat`을 읽을 수 있으면 실행 파일 링크는 보조 정보로만 사용하도록 수정함. 동일 사용자 `cmdline` 자체를 읽지 못하면 여전히 중단함. 두 조건을 재현한 회귀를 추가했고 Windows 제거 회귀는 **22 passed / 1 skipped**로 통과함.
+- 2026-10-21 로컬 최종 회귀(`dist/uninstall-procfs-tests.xml`)는 **2303 passed / 10 skipped / 8 deselected**, lint·`pip check`·프런트엔드 없는 wheel 재빌드도 통과함. 첫 원격 CI의 Windows 회귀는 **406 passed / 2 skipped**이며 양쪽 Helper 빌드·APK-bearing wheel 격리 검증이 통과함. 플랫폼 보완은 제거 도구와 그 회귀에만 적용되어 wheel의 엔진·패키지 코드는 변경되지 않음.
 
 ## 한계
 
