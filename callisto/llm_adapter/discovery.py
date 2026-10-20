@@ -30,6 +30,11 @@ def discover_executable(provider):
     return found
 
 
+def available_providers():
+    """Detect host CLIs that Callisto can launch, without starting them."""
+    return [name for name in ("codex", "claude", "gemini") if executable_command(name)]
+
+
 def resolve_provider(requested=None):
     """Choose the hosting CLI, never silently fall back to Codex in multi-CLI installs."""
     choice = requested or effective_settings().provider
