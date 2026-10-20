@@ -51,7 +51,7 @@ def doctor(json_output: Annotated[bool, typer.Option("--json")] = False,
         config_error = "Invalid CLI transport configuration"
     installed = bool(providers) and all(resolved.values())
     report = {"provider": provider, "providers": providers,
-        "provider_implemented": installed, "cli_installed": installed,
+        "provider_implemented": bool(providers), "cli_installed": installed,
         "clis": resolved, "adb_installed": bool(shutil.which("adb")),
         "config_error": config_error, "authentication": "not_checked",
         "live_inference": "not_checked", "profile": "pro", "servers_required": False}
