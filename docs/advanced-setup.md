@@ -75,18 +75,18 @@ python -m pip wheel --no-deps --no-build-isolation -w dist .
 
 ## 스킬 설치 및 업데이트
 
-wheel은 프런트엔드 없이 설치되고, 정식 스킬 원본을 함께 배포해요. 설치한 Python 환경에서 아래 명령을 실행하면 Codex `~/.agents/skills/callisto`, Claude `~/.claude/skills/callisto`, Gemini `~/.gemini/skills/callisto` 중 지정한 호스트 경로로 스킬을 설치해요. pip 설치는 사용자 홈을 자동 변경하지 않아요.
+wheel은 프런트엔드 없이 설치되고, 정식 스킬 원본을 함께 배포해요. `setup.ps1` / `setup.sh` 실행 시 사용 가능한 Codex·Claude·Gemini를 탐색해 각 호스트의 스킬 경로(`~/.agents/skills/callisto`, `~/.claude/skills/callisto`, `~/.gemini/skills/callisto`)에 자동 등록해요. 수동 설치도 별도 CLI 선택 없이 실행할 수 있어요. pip 설치만으로는 사용자 홈을 변경하지 않아요.
 
 ```sh
-callisto skill install --ai-cli codex
-callisto skill install --ai-cli claude
-callisto skill install --ai-cli gemini
-callisto skill status --ai-cli codex
+callisto skill install
+callisto skill status
 # 패키지 업데이트 후
 callisto skill update
+# 선택 사항: 특정 CLI만 복구
+callisto skill install --ai-cli claude
 ```
 
-`--directory <스킬 상위 폴더>`로 별도 경로도 지정할 수 있어요. 패키지 버전·내용 해시·설치 상태를 기록하고, 사용자가 수정한 파일이나 기존의 관리되지 않는 스킬은 덮어쓰지 않아요. 실행 중인 AI CLI에 스킬이 나타나지 않으면 재시작하세요. 이 명령은 파일 경로만 검증하며 실제 호스트 인식 여부는 사용자 PC에서 확인해야 해요.
+`--directory <스킬 상위 폴더>`로 별도 경로도 지정할 수 있지만 여러 CLI를 탐색한 경우 경로 충돌 방지를 위해 `--ai-cli`로 하나를 지정해야 해요. CLI를 찾지 못하면 설치를 진행하지 않고 설치 안내를 출력해요. 패키지 버전·내용 해시·설치 상태를 기록하고, 사용자가 수정한 파일이나 기존의 관리되지 않는 스킬은 덮어쓰지 않아요. 실행 중인 AI CLI에 스킬이 나타나지 않으면 재시작하세요. 이 명령은 파일 경로만 검증하며 실제 호스트 인식 여부는 사용자 PC에서 확인해야 해요.
 
 ## Helper 빌드와 배포
 
@@ -117,7 +117,7 @@ python -m pip wheel --no-deps --no-build-isolation -w dist .
 
 Windows는 `setup.ps1`, Linux는 `setup.sh`가 동일한 표준 라이브러리 bootstrap을 사용해요. Python 3.12+ 가상환경을 재사용하고, 소스 fingerprint가 달라지거나 설치가 없을 때만 pip 설치를 다시 해요. 매번 pip check와 CLI 도움말을 확인하고 setup을 이어서 실행해요. 실패 후 같은 명령으로 재개해요. 오래된 Python으로 만든 `.venv`는 자동 삭제하지 않고 명확히 실패해요.
 
-Windows `-Check` / Linux `--check`는 설치·설정 파일을 변경하지 않아요. Windows `-NonInteractive`, Linux `--non-interactive`는 입력을 요구하지 않고 JSON 결과를 반환해요. 여러 기기는 명시적으로 `-DeviceSerial SERIAL` / `--device-serial SERIAL`을 선택해요. 공식 로그인은 각각의 CLI에서 진행하고, USB 디버깅은 사용자 승인으로 처리해요. 원클릭 설정이 실제 AI 수용 검증을 실행하지 않아요.
+Windows `-Check` / Linux `--check`는 설치·설정 파일을 변경하지 않아요. 기본 설치에서는 사용 가능한 모든 AI CLI에 스킬을 등록하고, CLI를 별도로 고르지 않아요. `--ai-cli` / `-AiCli`는 특정 CLI만 점검·복구할 때 선택적으로 사용해요. Windows `-NonInteractive`, Linux `--non-interactive`는 입력을 요구하지 않고 JSON 결과를 반환해요. 여러 기기는 명시적으로 `-DeviceSerial SERIAL` / `--device-serial SERIAL`을 선택해요. 공식 로그인은 각각의 CLI에서 진행하고, USB 디버깅은 사용자 승인으로 처리해요. 원클릭 설정이 실제 AI 수용 검증을 실행하지 않아요.
 
 ```powershell
 .\setup.ps1 -Check -NonInteractive
@@ -125,18 +125,18 @@ Windows `-Check` / Linux `--check`는 설치·설정 파일을 변경하지 않�
 .\.venv\Scripts\python.exe -m callisto.cli setup repair --device-serial SERIAL
 ```
 
-설정 파일은 Windows `%LOCALAPPDATA%/callisto/settings.json`, Linux `$XDG_CONFIG_HOME/callisto/settings.json` (기본 `~/.config/callisto/settings.json`) 한 곳이에요. `CALLISTO_CONFIG`로 파일 위치를 바꿀 수 있어요. 파일에는 image_policy/device_serial과 CLI 실행 파일 경로만 저장해요. AI CLI 선택은 실행할 때 `--ai-cli`로 전달하며 이전 버전이 저장한 `provider` 값은 무시하고 재저장 시 정리해요. 비밀정보·인증은 저장하지 않아요.
+설정 파일은 Windows `%LOCALAPPDATA%/callisto/settings.json`, Linux `$XDG_CONFIG_HOME/callisto/settings.json` (기본 `~/.config/callisto/settings.json`) 한 곳이에요. `CALLISTO_CONFIG`로 파일 위치를 바꿀 수 있어요. 파일에는 image_policy/device_serial과 CLI 실행 파일 경로만 저장해요. 설치 과정에서는 CLI 선택을 저장하지 않아요. 스킬이 실행할 때 호출 호스트를 `--ai-cli`로 전달하며 이전 버전이 저장한 `provider` 값은 무시하고 재저장 시 정리해요. 비밀정보·인증은 저장하지 않아요.
 
 | 설정 | 실행 옵션 | 환경변수 | 내장 기본값 |
 |---|---|---|---|
 | 이미지 | `--image-policy` | `CALLISTO_IMAGE_POLICY` | `balanced` |
 | 기기 | `--device-serial` | `CALLISTO_DEVICE_SERIAL` | 준비된 기기 1대일 때 자동 선택 |
-| CLI 호스트 | `--ai-cli` | `CALLISTO_AI_CLI` | `auto` (단일 설치 시에만 자동 인식) |
+| CLI 호스트 | `--ai-cli` | `CALLISTO_AI_CLI` | 설치·스킬 명령은 전체 자동 탐색, `run`은 단일 CLI일 때만 자동 식별 |
 | CLI 실행 파일 | 공급자별 실행 파일 설정 | `CALLISTO_CODEX_EXECUTABLE` 등 | PATH 및 공식 실행 파일 탐색 |
 
 우선순위는 실행 옵션 > 명시 환경변수 > 사용자 설정 > 기본값이에요. 기존 `config/artemis.jsonc`의 에이전트 구성·기능 설정은 유지해요. 기존 노드별 모델·추론 값은 내부 호환용으로만 보존하며 실제 CLI 호출에는 전달하지 않아요. 이전 버전의 저장된 모델 설정도 무시하고 재저장 시 정리해요. setup은 이 파일을 수정하지 않아요. 잘못된 사용자 설정은 보존하고 실패를 알려요.
 
-`doctor`는 provider CLI를 실행하지 않는 경로·설정 검사예요. `setup check`는 Codex에 대해 공식 `codex login status`로 로그인 상태를 확인하되 출력과 인증 파일을 수집하지 않아요. `--skip-login-check` 또는 `CALLISTO_FORBID_LIVE_CLI=1`에서는 이를 생략하고 미확인 상태로 표시해요. 로그인 성공 여부만으로 특정 모델의 추론 성공이나 구독 인증 종류를 보장하지 않아요.
+`doctor`는 provider CLI를 실행하지 않는 경로·설정 검사예요. 설정 시 `setup check --json`은 탐색된 각 CLI의 설치·스킬 상태를 `clis`·`skills`로 반환해요. `setup check`는 Codex에 대해 공식 `codex login status`로 로그인 상태를 확인하되 출력과 인증 파일을 수집하지 않아요. `--skip-login-check` 또는 `CALLISTO_FORBID_LIVE_CLI=1`에서는 이를 생략하고 미확인 상태로 표시해요. 로그인 성공 여부만으로 특정 모델의 추론 성공이나 구독 인증 종류를 보장하지 않아요.
 
 setup repair는 사용자 수정 스킬을 덮어쓰지 않아요. Helper 설치는 명시 선택/유일한 준비 기기에만 수행하며 기존 작업의 기기 락을 획득할 수 없으면 중단해요. SDK/JDK는 **검증된 APK 포함 wheel**을 이용할 때 필요 없어요. APK 없는 기본 소스/wheel은 fallback을 표시해요. 저장소 `helper/`의 기존 APK는 기본 번들 위치가 아니며, 현재 manifest 해시와도 불일치하므로 복사해서 설치하면 안 돼요. CI의 같은 빌드에서 생성한 APK·manifest·wheel을 함께 사용하세요.
 
