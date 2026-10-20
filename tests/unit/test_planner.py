@@ -74,7 +74,7 @@ def test_planner_validation_node_defaults_to_lightweight_judge():
     assert node.provider == safety_net.provider
     assert node.temperature == 0.0
     assert node.provider == "cli"
-    assert node.model
+    assert node.model == ""  # CLI selects its own model; legacy routing field stays blank.
 
 
 if __name__ == "__main__":
