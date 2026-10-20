@@ -9,17 +9,16 @@
 
 | 기능 | Codex | Claude Code | Gemini CLI |
 |---|---|---|---|
-| 공식 비대화형 전송 | 구현, 실제 PC 검증 필요 | 실험 구현, 실제 PC 검증 필요 | 미구현 |
-| 텍스트 / 역할 / 전체 이력 | 오프라인 통과 | 파서 구현, 미검증 | 미구현 |
-| 이미지 | inline base64 → 임시 이미지 → `--image`, 오프라인 통과 | 명시적 미지원 오류 | 미구현 |
-| JSON schema | envelope 및 도구 인자 로컬 검증, 오프라인 통과 | 동일 로컬 검증, 미검증 | 미구현 |
-| ARTEMIS 도구 호출 | 실행하지 않고 name/ID/args 반환, 오프라인 통과 | 구조 구현, 미검증 | 미구현 |
-| tool 결과 왕복 / 대화 이력 | 오프라인 통과 | 구조 구현, 미검증 | 미구현 |
-| 부분 출력 / 프로세스 실패 | 완료 이벤트/종료 코드 확인, 오프라인 통과 | success subtype/종료 코드 확인 | 미구현 |
-| 타임아웃 / 비동기 취소 | Linux fake 자식 그룹 정리 테스트 통과 | 공통 프로세스 전송 사용 | 미구현 |
-| Windows 자식 트리 정리 | fake 트리 회귀 추가, CI 결과는 migration-status 참조. 실제 공급자는 미검증 | 공통 fake 트리 회귀 추가, CI 결과는 migration-status 참조. 실제 공급자는 미검증 | 미구현 |
-| 실제 계정 인증 / 추론 | 사용자 PC에서 수행 예정 | 사용자 PC에서 수행 예정 | 미구현 |
-| Android E2E | 사용자 PC에서 수행 예정 | 이미지 전송이 없어 대상 아님 | 미구현 |
+| 비대화형 전송 | JSONL | JSON + 구조화 출력 | stream-json |
+| 텍스트·이력·도구 응답 데이터 | 오프라인 계약 검사 | 오프라인 계약 검사 | 오프라인 계약 검사 |
+| 스크린샷 | `--image` | multimodal stream-json base64 | `@절대경로` 이미지 첨부 |
+| 결과 검증 | 완료 이벤트 + Schema | `--json-schema` + 로컬 Schema | 완료 이벤트 + 로컬 Schema |
+| 내부 도구 제한 | read-only, shell/MCP 비활성화 | `--tools ""`, MCP 차단 | plan mode, 임시 deny 정책, 도구 이벤트 검사 |
+| 사용자 모델 선택 | 공식 Codex 설정을 읽음 | 공식 Claude 설정을 읽음 | 공식 Gemini 설정을 읽음 |
+| 스킬 설치 | `~/.agents/skills` | `~/.claude/skills` | `~/.gemini/skills` |
+| 인증·Android E2E | 사용자 PC 검증 필요 | 사용자 PC 검증 필요 | 사용자 PC 검증 필요 |
+
+**중요:** 이 표는 구현된 CLI 변환 경로만 의미합니다. 실제 구독 로그인, CLI 버전·옵션 호환성, 이미지 인식 정확도와 Android 실기기 실행 성공을 주장하지 않습니다. 현재 대화에서 일시적으로 선택한 모델까지 독립 CLI 자식 프로세스가 자동 상속한다고 주장하지 않습니다.
 
 ## 구조화 도구 호출 방식
 
@@ -40,7 +39,7 @@ CLI 자체가 Android 액션을 수행하지 않아요. CLI 출력은 `{content,
 
 ## 실제 PC의 수용 검증
 
-`python tools/verify_local_cli.py --allow-live-cli`는 텍스트, schema, 도구 인자,
+`python tools/verify_local_cli.py --allow-live-cli --ai-cli codex`는 텍스트, schema, 도구 인자,
 도구 결과 왕복, 대화 이력, 이미지 색상 인지를 실제 CLI로 확인해요.
 결과는 `traces/local-cli-acceptance.json`으로 저장해요. 이후 Android 기기 테스트,
 실제 공급자 실패·취소·긴 입력 및 Windows 프로세스 정리 검증도 필요해요.

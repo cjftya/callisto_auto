@@ -6,7 +6,7 @@ v4.1에서 **인증 환경변수 격리, 검증 결과와 종료 코드 일치, 
 
 ## 로컬 PC 설치
 
-Python 3.12 이상, Android Platform Tools(ADB), 인증된 Codex CLI가 필요해요.
+Python 3.12 이상, Android Platform Tools(ADB), 사용할 공식 AI CLI(Codex·Claude Code·Gemini CLI)의 설치와 로그인이 필요해요.
 
 Linux:
 
@@ -33,9 +33,9 @@ AI CLI 로그인은 해당 CLI의 공식 절차로 사용자 PC에서 수행하�
 
 ```sh
 # 실제 모델을 호출하는 명시적 수용 검증
-python tools/verify_local_cli.py --allow-live-cli
+python tools/verify_local_cli.py --allow-live-cli --ai-cli codex
 adb devices
-callisto run "설정 앱에서 배터리 화면을 열고 배터리 항목이 표시되는지 확인" --device-serial SERIAL
+callisto run "설정 앱에서 배터리 화면을 열고 배터리 항목이 표시되는지 확인" --ai-cli codex --device-serial SERIAL
 callisto trace list
 ```
 
@@ -45,18 +45,18 @@ callisto trace list
 `callisto run`은 세션 ID와 결과 JSON 경로를 출력해요. 원본 Trace, 체크포인트와 `run_outcome.json`을 함께 확인하세요.
 종료 코드: **0 검증 통과 / 1 작업·검증 실패 / 2 검증 누락·미확정 / 130 취소**예요. `test_status=not_reported`도 2로 종료하고, 출력과 결과 JSON에 같은 `exit_code`를 기록해요. 잘못된 검증 요약도 성공으로 처리하지 않아요.
 
-## 모델과 기능 범위
+## AI CLI 연결과 기능 범위
 
 - Codex: 초기 구현 대상. 텍스트·이미지·JSON·도구 호출 반환·여러 턴 메시지 전달을 모의 테스트로 검증했어요. 특정 모델을 선택하지 않고 CLI의 자체 기본값을 사용해요.
-- Claude Code: 텍스트 전송 실험 구현. `CALLISTO_AI_CLI=claude`로 CLI를 선택해요. 이미지 전송은 미구현이에요.
-- Gemini CLI: 아직 미구현이에요. Google 원본의 native Files/Interactions/명시적 캐시·음성·검색 기능은 동등성이 확인되지 않았고, 호출 시 명시적으로 거부해요.
+- Claude Code: stream-json multimodal image 입력, JSON Schema 출력, 실행 도구 차단 경로를 구현했어요. 실제 설치 버전과 인증·스크린샷 정확도는 로컬 검증이 필요해요.
+- Gemini CLI: @이미지 파일 입력, stream-json 완료 이벤트 파싱, 읽기 전용 모드와 도구 차단 정책을 구현했어요. 실제 CLI가 이 입력/정책을 올바르게 지원하는지는 로컬에서 확인해야 해요. Google 원본의 native Files/Interactions/명시적 캐시·음성·검색 기능은 별도이며 지원을 보장하지 않아요.
 - 기존 Universal 영상 분석의 프레임/이미지 경로는 유지했어요. 실제 영상·음성 기능 전체가 동등하다고 주장하지 않아요.
 - 선택적 OCR은 `CALLISTO_OCR=1`로 켜면 CLI 이미지 추론을 사용해 원래 텍스트/좌표 형식을 반환해요. 기존 Vision API 키로 자동 활성화하지 않아요. 실제 좌표 정확도 검증은 별도로 필요해요.
 
-Codex 실행 파일은 `CALLISTO_CODEX_EXECUTABLE`로 지정할 수 있어요. Callisto는 모델명과 추론 수준을 강제로 지정하지 않아요. Codex 호출은 사용자 설정을 읽지 않고 저장된 공식 인증을 사용하며, 임시 디렉터리·read-only sandbox·JSON 출력으로 동작해요. 관리자가 강제한 정책은 우회하지 않아요.
+Codex 실행 파일은 `CALLISTO_CODEX_EXECUTABLE`로 지정할 수 있어요. Callisto는 모델명과 추론 수준을 강제로 지정하지 않아요. Codex 호출은 사용자 CLI 설정과 공식 인증을 사용하며, 임시 디렉터리·read-only sandbox·JSON 출력으로 동작해요. 관리자가 강제한 정책은 우회하지 않아요.
 자식 프로세스에는 주요 공급자의 API Key 및 해당 공급자의 대체 API 엔드포인트/라우팅 환경변수를 전달하지 않아요. 부모 환경과 공식 로그인 저장소는 변경하지 않아요. `HOME`/`USERPROFILE`/`CODEX_HOME`/`CLAUDE_CONFIG_DIR` 및 공식 CLI OAuth 환경은 정상 상속해요. Callisto는 인증 파일이나 토큰을 추출하지 않아요. CLI에 저장된 로그인 종류 자체는 검사하지 않으므로, 사용자 PC에서 공식 계정 로그인을 준비해야 해요.
 
-Windows에서 `.cmd`/`.bat`로 발견되는 npm launcher는 명시적으로 거부해요. `CALLISTO_CODEX_EXECUTABLE`을 공식 native `.exe` 경로로 지정하세요. 오래된 CLI가 필수 옵션을 거부하면 업데이트 안내와 함께 실패하며, 안전 옵션을 빼고 재시도하지 않아요. 실제 버전별 호환성은 미검증이에요.
+Windows에서 npm launcher를 직접 셸로 실행하지 않아요. Codex는 공식 native `.exe`를 탐색하며 Claude·Gemini는 검증된 npm JS 엔트리포인트를 설치된 Node로 실행해요. 적절한 엔트리포인트가 없으면 명시적으로 실패해요. 오래된 CLI가 필수 옵션을 거부하면 업데이트 안내와 함께 실패하며, 안전 옵션을 빼고 재시도하지 않아요. 실제 버전별 호환성은 미검증이에요.
 
 `CALLISTO_EXPLORER_ENGINE=native`로 원래 Native Explorer 루프를 CLI 호환 포트에 연결할 수 있어요. 기본은 기존 Universal 경로예요. Native 모드도 이미지·함수 호출·원래 결과 검증을 유지하지만, Files/명시적 Context Cache는 지원하지 않아요. `ARTEMIS_USE_FILE_API=true`나 명시적인 캐시 요청은 오류예요. 기본 캐시는 사용하지 않고 전체 이력을 전달해요. 원시 thought signature, 공급자 전용 thinking budget과 안전 설정의 동등성은 보장하지 않아요.
 
@@ -75,16 +75,18 @@ python -m pip wheel --no-deps --no-build-isolation -w dist .
 
 ## 스킬 설치 및 업데이트
 
-wheel은 프런트엔드 없이 설치되고, 정식 스킬 원본을 함께 배포해요. 설치한 Python 환경에서 아래 명령을 실행하면 Codex의 표준 사용자 경로 `~/.agents/skills/callisto`로 복사되어 프로젝트 밖에서도 발견할 수 있어요. pip 설치는 사용자 홈을 자동 변경하지 않아요.
+wheel은 프런트엔드 없이 설치되고, 정식 스킬 원본을 함께 배포해요. 설치한 Python 환경에서 아래 명령을 실행하면 Codex `~/.agents/skills/callisto`, Claude `~/.claude/skills/callisto`, Gemini `~/.gemini/skills/callisto` 중 지정한 호스트 경로로 스킬을 설치해요. pip 설치는 사용자 홈을 자동 변경하지 않아요.
 
 ```sh
-callisto skill install
-callisto skill status
+callisto skill install --ai-cli codex
+callisto skill install --ai-cli claude
+callisto skill install --ai-cli gemini
+callisto skill status --ai-cli codex
 # 패키지 업데이트 후
 callisto skill update
 ```
 
-`--directory <스킬 상위 폴더>`로 별도 경로도 지정할 수 있어요. 패키지 버전·내용 해시·설치 상태를 기록하고, 사용자가 수정한 파일이나 기존의 관리되지 않는 스킬은 덮어쓰지 않아요. 실행 중인 Codex에 나타나지 않으면 재시작하세요. 이 명령의 검증 범위는 경로와 파일이며, 실제 Codex의 인식 여부는 사용자 PC에서 확인해야 해요.
+`--directory <스킬 상위 폴더>`로 별도 경로도 지정할 수 있어요. 패키지 버전·내용 해시·설치 상태를 기록하고, 사용자가 수정한 파일이나 기존의 관리되지 않는 스킬은 덮어쓰지 않아요. 실행 중인 AI CLI에 스킬이 나타나지 않으면 재시작하세요. 이 명령은 파일 경로만 검증하며 실제 호스트 인식 여부는 사용자 PC에서 확인해야 해요.
 
 ## Helper 빌드와 배포
 
@@ -115,7 +117,7 @@ python -m pip wheel --no-deps --no-build-isolation -w dist .
 
 Windows는 `setup.ps1`, Linux는 `setup.sh`가 동일한 표준 라이브러리 bootstrap을 사용해요. Python 3.12+ 가상환경을 재사용하고, 소스 fingerprint가 달라지거나 설치가 없을 때만 pip 설치를 다시 해요. 매번 pip check와 CLI 도움말을 확인하고 setup을 이어서 실행해요. 실패 후 같은 명령으로 재개해요. 오래된 Python으로 만든 `.venv`는 자동 삭제하지 않고 명확히 실패해요.
 
-Windows `-Check` / Linux `--check`는 설치·설정 파일을 변경하지 않아요. Windows `-NonInteractive`, Linux `--non-interactive`는 입력을 요구하지 않고 JSON 결과를 반환해요. 여러 기기는 명시적으로 `-DeviceSerial SERIAL` / `--device-serial SERIAL`을 선택해요. 공식 로그인은 `codex login`, USB 디버깅은 사용자 승인으로 처리해요. 원클릭 설정이 실제 AI 수용 검증을 실행하지 않아요.
+Windows `-Check` / Linux `--check`는 설치·설정 파일을 변경하지 않아요. Windows `-NonInteractive`, Linux `--non-interactive`는 입력을 요구하지 않고 JSON 결과를 반환해요. 여러 기기는 명시적으로 `-DeviceSerial SERIAL` / `--device-serial SERIAL`을 선택해요. 공식 로그인은 각각의 CLI에서 진행하고, USB 디버깅은 사용자 승인으로 처리해요. 원클릭 설정이 실제 AI 수용 검증을 실행하지 않아요.
 
 ```powershell
 .\setup.ps1 -Check -NonInteractive
@@ -129,12 +131,12 @@ Windows `-Check` / Linux `--check`는 설치·설정 파일을 변경하지 않�
 |---|---|---|---|
 | 이미지 | `--image-policy` | `CALLISTO_IMAGE_POLICY` | `balanced` |
 | 기기 | `--device-serial` | `CALLISTO_DEVICE_SERIAL` | 준비된 기기 1대일 때 자동 선택 |
-| 공급자 | 사용자 설정 provider | `CALLISTO_AI_CLI` | `codex` |
-| native 실행 파일 | 사용자 설정 codex_executable | `CALLISTO_CODEX_EXECUTABLE` | PATH 및 공식 npm vendor 폴더 탐색 |
+| CLI 호스트 | `--ai-cli` | `CALLISTO_AI_CLI` | `auto` (단일 설치 시에만 자동 인식) |
+| CLI 실행 파일 | 공급자별 실행 파일 설정 | `CALLISTO_CODEX_EXECUTABLE` 등 | PATH 및 공식 실행 파일 탐색 |
 
 우선순위는 실행 옵션 > 명시 환경변수 > 사용자 설정 > 기본값이에요. 기존 `config/artemis.jsonc`의 에이전트 구성·기능 설정은 유지해요. 기존 노드별 모델·추론 값은 내부 호환용으로만 보존하며 실제 CLI 호출에는 전달하지 않아요. 이전 버전의 저장된 모델 설정도 무시하고 재저장 시 정리해요. setup은 이 파일을 수정하지 않아요. 잘못된 사용자 설정은 보존하고 실패를 알려요.
 
-`doctor`는 provider CLI를 실행하지 않는 경로·설정 검사예요. `setup check`는 공식 `codex login status`로 로그인 상태를 확인하되 출력과 인증 파일을 수집하지 않아요. `--skip-login-check` 또는 `CALLISTO_FORBID_LIVE_CLI=1`에서는 이를 생략하고 미확인 상태로 표시해요. 로그인 성공 여부만으로 특정 모델의 추론 성공이나 구독 인증 종류를 보장하지 않아요.
+`doctor`는 provider CLI를 실행하지 않는 경로·설정 검사예요. `setup check`는 Codex에 대해 공식 `codex login status`로 로그인 상태를 확인하되 출력과 인증 파일을 수집하지 않아요. `--skip-login-check` 또는 `CALLISTO_FORBID_LIVE_CLI=1`에서는 이를 생략하고 미확인 상태로 표시해요. 로그인 성공 여부만으로 특정 모델의 추론 성공이나 구독 인증 종류를 보장하지 않아요.
 
 setup repair는 사용자 수정 스킬을 덮어쓰지 않아요. Helper 설치는 명시 선택/유일한 준비 기기에만 수행하며 기존 작업의 기기 락을 획득할 수 없으면 중단해요. SDK/JDK는 **검증된 APK 포함 wheel**을 이용할 때 필요 없어요. APK 없는 기본 소스/wheel은 fallback을 표시해요. 저장소 `helper/`의 기존 APK는 기본 번들 위치가 아니며, 현재 manifest 해시와도 불일치하므로 복사해서 설치하면 안 돼요. CI의 같은 빌드에서 생성한 APK·manifest·wheel을 함께 사용하세요.
 

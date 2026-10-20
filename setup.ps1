@@ -1,4 +1,4 @@
-param([switch]$Check, [switch]$NonInteractive, [string]$DeviceSerial)
+param([switch]$Check, [switch]$NonInteractive, [string]$DeviceSerial, [ValidateSet("codex","claude","gemini")][string]$AiCli)
 $ErrorActionPreference = 'Stop'
 # No execution-policy, system PATH or provider configuration changes.
 $Candidates = @(@('py', '-3.12'), @('py', '-3'), @('python'))
@@ -25,6 +25,7 @@ $Prefix = @($PythonCommand | Select-Object -Skip 1)
 $BootstrapArgs = @((Join-Path $PSScriptRoot 'tools/bootstrap.py'))
 if ($Check) { $BootstrapArgs += '--check' }
 if ($DeviceSerial) { $BootstrapArgs += @('--device-serial', $DeviceSerial) }
+if ($AiCli) { $BootstrapArgs += @('--ai-cli', $AiCli) }
 if ($NonInteractive) { $BootstrapArgs += '--non-interactive' }
 & $Program @Prefix @BootstrapArgs
 exit $LASTEXITCODE

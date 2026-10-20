@@ -12,15 +12,15 @@ Callisto는 Google ARTEMIS의 기존 Pro 자동화 엔진을 유지하면서, **
    .\setup.ps1
    ```
 
-   Python 3.12+ 환경과 Callisto 설치, 기본 설정, Codex native 실행 파일 탐색, 로그인 상태, ADB·스킬·Helper 확인을 한 번에 진행해요. 필요한 Python 설치는 먼저 동의를 물어봐요. 선택한 CLI의 필요한 도구와 Android platform-tools가 없으면 설치할 항목을 안내해요. 시스템 PATH·CLI 인증 설정을 직접 바꾸지 않아요.
+   Python 3.12+ 환경과 Callisto 설치, 선택한 AI CLI의 실행 가능 여부, ADB·스킬·Helper를 한 번에 점검해요. 필요한 Python 설치는 먼저 동의를 물어봐요. 선택한 CLI의 필요한 도구와 Android platform-tools가 없으면 설치할 항목을 안내해요. 시스템 PATH·CLI 인증 설정을 직접 바꾸지 않아요.
 
 2. Android를 USB로 연결하고 **USB 디버깅 허용**을 승인해요. 첫 실행 결과가 `ACTION_REQUIRED`이면 안내를 처리한 뒤 같은 명령을 다시 실행해요. 여러 기기는 `.\setup.ps1 -DeviceSerial SERIAL`로 선택해요.
 
-3. AI CLI를 다시 열고 요청해요. 현재 Android 이미지 추론은 Codex CLI에서 구현됐으며, Claude Code와 Gemini CLI는 아래 지원 범위를 확인해야 해요.
+3. AI CLI를 다시 열고 요청해요. Codex·Claude·Gemini의 CLI 어댑터는 구현됐으며, 실제 기기 검증은 사용자 PC에서 진행해야 해요.
 
    > Callisto로 설정 앱의 배터리 화면이 정상적으로 열리는지 테스트해줘.
 
-설치된 스킬이 가상환경의 Python 경로를 찾아 실행하므로 매번 가상환경을 활성화할 필요는 없어요. 실제 Codex의 스킬 인식은 실행 PC에서 확인해야 해요.
+설치된 스킬이 가상환경의 Python 경로를 찾아 실행하므로 매번 가상환경을 활성화할 필요는 없어요. 실제 AI CLI의 스킬 인식은 실행 PC에서 확인해야 해요. 여러 AI CLI가 설치되어 있다면 `.\setup.ps1 -AiCli claude`처럼 실행할 CLI를 지정해요. Linux에서는 `./setup.sh --ai-cli gemini`를 사용할 수 있어요.
 
 Linux는 `./setup.sh`를 사용해요. 재실행은 준비된 의존성을 재사용해요. Python 설치·공식 CLI 로그인·USB 승인이 필요한 상태를 성공으로 처리하지 않아요.
 
@@ -28,11 +28,11 @@ Helper APK는 본체와 별도로 `python tools/build_helper.py --sdk <Android-S
 
 ## 점검과 복구
 
-설치 환경의 `callisto setup check`는 구성·공식 로그인 상태·기기·Helper를 점검해요. `callisto setup repair`는 관리 중인 설정과 스킬을 복구하고, 선택한 기기에 검증된 Helper만 설치해요. 가상환경을 활성화하지 않았다면 `.\setup.ps1 -Check` 또는 `.\.venv\Scripts\python.exe -m callisto.cli setup repair`를 사용해요.
+설치 환경의 `callisto setup check --ai-cli codex`(또는 `claude`, `gemini`)는 구성·CLI 설치 상태·기기·Helper를 점검해요. Codex는 로그인 상태도 조회하고 다른 CLI의 인증은 실행 시 확인해요. `callisto setup repair`는 관리 중인 설정과 스킬을 복구하고, 선택한 기기에 검증된 Helper만 설치해요. 가상환경을 활성화하지 않았다면 `.\setup.ps1 -Check` 또는 `.\.venv\Scripts\python.exe -m callisto.cli setup repair`를 사용해요.
 
 `READY`는 실행 준비 상태예요. 실제 추론·Android 테스트 통과를 의미하지 않아요. setup은 유료 모델 추론을 실행하지 않아요. Helper가 없는 배포는 UIAutomator2 fallback을 표시하고, APK와 manifest가 일치하지 않으면 설치를 거부해요.
 
-Callisto는 특정 모델이나 추론 수준을 지정하지 않고 선택된 AI CLI의 기본 동작을 사용해요. 이미지 정책은 `balanced`예요. 원본 캡처·Trace·UI XML·Pro의 판단/검증 흐름은 유지하고, AI 첨부만 긴 변 1920px 이하로 줄여요. 입력 토큰 절감률과 실제 기기 정확도는 로컬 비교로 확인해야 해요.
+Callisto는 특정 모델이나 추론 수준을 지정하지 않고 선택된 AI CLI의 기본 동작을 사용해요. 스킬은 실행 중인 호스트를 `--ai-cli`로 넘기며 여러 CLI가 설치된 경우 임의로 Codex를 선택하지 않아요. 이미지 정책은 `balanced`예요. 원본 캡처·Trace·UI XML·Pro의 판단/검증 흐름은 유지하고, AI 첨부만 긴 변 1920px 이하로 줄여요. 입력 토큰 절감률과 실제 기기 정확도는 로컬 비교로 확인해야 해요.
 
 - [고급 설치·설정·제한사항](docs/advanced-setup.md)
 - [v4.2 구현·검증 보고서](docs/cli-v4.2-report.md)

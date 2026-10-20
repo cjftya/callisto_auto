@@ -16,6 +16,7 @@ from PIL import Image
 from pydantic import BaseModel
 
 from callisto.llm_adapter.model import configured_model
+from callisto.settings import runtime_settings
 
 
 class Sentinel(BaseModel):
@@ -73,11 +74,14 @@ async def verify():
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--allow-live-cli", action="store_true")
+    parser.add_argument("--ai-cli", choices=("codex", "claude", "gemini"),
+                        help="Invoking AI CLI. Required when more than one CLI is installed.")
     parser.add_argument("--output", type=Path, default=Path("traces/local-cli-acceptance.json"))
     args = parser.parse_args()
     if not args.allow_live_cli:
         parser.error("Pass --allow-live-cli to authorize real AI CLI inference on this machine")
-    report = asyncio.run(verify())
+    with runtime_settings(provider=args.ai_cli):
+        report = asyncio.run(verify())
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
     args.output.chmod(0o600)
