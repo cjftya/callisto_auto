@@ -47,13 +47,13 @@ callisto trace list
 
 ## 모델과 기능 범위
 
-- Codex: 초기 구현 대상. 텍스트·이미지·JSON·도구 호출 반환·여러 턴 메시지 전달을 모의 테스트로 검증했어요. 기본 모델은 `gpt-6.1-sol`이에요.
-- Claude Code: 텍스트 전송 실험 구현. `CALLISTO_AI_CLI=claude`와 `CALLISTO_MODEL`을 함께 지정해야 해요. 이미지 전송은 미구현이에요.
+- Codex: 초기 구현 대상. 텍스트·이미지·JSON·도구 호출 반환·여러 턴 메시지 전달을 모의 테스트로 검증했어요. 특정 모델을 선택하지 않고 CLI의 자체 기본값을 사용해요.
+- Claude Code: 텍스트 전송 실험 구현. `CALLISTO_AI_CLI=claude`로 CLI를 선택해요. 이미지 전송은 미구현이에요.
 - Gemini CLI: 아직 미구현이에요. Google 원본의 native Files/Interactions/명시적 캐시·음성·검색 기능은 동등성이 확인되지 않았고, 호출 시 명시적으로 거부해요.
 - 기존 Universal 영상 분석의 프레임/이미지 경로는 유지했어요. 실제 영상·음성 기능 전체가 동등하다고 주장하지 않아요.
 - 선택적 OCR은 `CALLISTO_OCR=1`로 켜면 CLI 이미지 추론을 사용해 원래 텍스트/좌표 형식을 반환해요. 기존 Vision API 키로 자동 활성화하지 않아요. 실제 좌표 정확도 검증은 별도로 필요해요.
 
-모델은 `CALLISTO_MODEL`, 실행 파일은 `CALLISTO_CODEX_EXECUTABLE`로 지정할 수 있어요. Codex 호출은 사용자 설정을 읽지 않고 저장된 공식 인증을 사용하며, 임시 디렉터리·read-only sandbox·JSON 출력으로 동작해요. 관리자가 강제한 정책은 우회하지 않아요.
+Codex 실행 파일은 `CALLISTO_CODEX_EXECUTABLE`로 지정할 수 있어요. Callisto는 모델명과 추론 수준을 강제로 지정하지 않아요. Codex 호출은 사용자 설정을 읽지 않고 저장된 공식 인증을 사용하며, 임시 디렉터리·read-only sandbox·JSON 출력으로 동작해요. 관리자가 강제한 정책은 우회하지 않아요.
 자식 프로세스에는 주요 공급자의 API Key 및 해당 공급자의 대체 API 엔드포인트/라우팅 환경변수를 전달하지 않아요. 부모 환경과 공식 로그인 저장소는 변경하지 않아요. `HOME`/`USERPROFILE`/`CODEX_HOME`/`CLAUDE_CONFIG_DIR` 및 공식 CLI OAuth 환경은 정상 상속해요. Callisto는 인증 파일이나 토큰을 추출하지 않아요. CLI에 저장된 로그인 종류 자체는 검사하지 않으므로, 사용자 PC에서 공식 계정 로그인을 준비해야 해요.
 
 Windows에서 `.cmd`/`.bat`로 발견되는 npm launcher는 명시적으로 거부해요. `CALLISTO_CODEX_EXECUTABLE`을 공식 native `.exe` 경로로 지정하세요. 오래된 CLI가 필수 옵션을 거부하면 업데이트 안내와 함께 실패하며, 안전 옵션을 빼고 재시도하지 않아요. 실제 버전별 호환성은 미검증이에요.
@@ -123,18 +123,16 @@ Windows `-Check` / Linux `--check`는 설치·설정 파일을 변경하지 않�
 .\.venv\Scripts\python.exe -m callisto.cli setup repair --device-serial SERIAL
 ```
 
-설정 파일은 Windows `%LOCALAPPDATA%/callisto/settings.json`, Linux `$XDG_CONFIG_HOME/callisto/settings.json` (기본 `~/.config/callisto/settings.json`) 한 곳이에요. `CALLISTO_CONFIG`로 파일 위치를 바꿀 수 있어요. 파일에는 provider/model/reasoning/image_policy/device_serial과 native 실행 파일 경로만 저장해요. 비밀정보·인증은 저장하지 않아요.
+설정 파일은 Windows `%LOCALAPPDATA%/callisto/settings.json`, Linux `$XDG_CONFIG_HOME/callisto/settings.json` (기본 `~/.config/callisto/settings.json`) 한 곳이에요. `CALLISTO_CONFIG`로 파일 위치를 바꿀 수 있어요. 파일에는 provider/image_policy/device_serial과 native 실행 파일 경로만 저장해요. 비밀정보·인증은 저장하지 않아요.
 
 | 설정 | 실행 옵션 | 환경변수 | 내장 기본값 |
 |---|---|---|---|
-| 모델 | `--model` | `CALLISTO_MODEL` | `gpt-6.1-sol` |
-| 추론 수준 | `--reasoning` | `CALLISTO_REASONING_EFFORT` | `medium` |
 | 이미지 | `--image-policy` | `CALLISTO_IMAGE_POLICY` | `balanced` |
 | 기기 | `--device-serial` | `CALLISTO_DEVICE_SERIAL` | 준비된 기기 1대일 때 자동 선택 |
 | 공급자 | 사용자 설정 provider | `CALLISTO_AI_CLI` | `codex` |
 | native 실행 파일 | 사용자 설정 codex_executable | `CALLISTO_CODEX_EXECUTABLE` | PATH 및 공식 npm vendor 폴더 탐색 |
 
-우선순위는 실행 옵션 > 명시 환경변수 > 사용자 설정 > 기본값이에요. 기존 `config/artemis.jsonc`의 에이전트 구성·기능 설정은 유지해요. 사용자 모델/추론 override가 없으면 기존 노드별 모델/추론 설정을 기본값보다 우선 적용해요. setup은 이 파일을 수정하지 않아요. 잘못된 사용자 설정은 보존하고 실패를 알려요.
+우선순위는 실행 옵션 > 명시 환경변수 > 사용자 설정 > 기본값이에요. 기존 `config/artemis.jsonc`의 에이전트 구성·기능 설정은 유지해요. 기존 노드별 모델·추론 값은 내부 호환용으로만 보존하며 실제 CLI 호출에는 전달하지 않아요. 이전 버전의 저장된 모델 설정도 무시하고 재저장 시 정리해요. setup은 이 파일을 수정하지 않아요. 잘못된 사용자 설정은 보존하고 실패를 알려요.
 
 `doctor`는 provider CLI를 실행하지 않는 경로·설정 검사예요. `setup check`는 공식 `codex login status`로 로그인 상태를 확인하되 출력과 인증 파일을 수집하지 않아요. `--skip-login-check` 또는 `CALLISTO_FORBID_LIVE_CLI=1`에서는 이를 생략하고 미확인 상태로 표시해요. 로그인 성공 여부만으로 특정 모델의 추론 성공이나 구독 인증 종류를 보장하지 않아요.
 

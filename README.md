@@ -12,11 +12,11 @@ Callisto는 Google ARTEMIS의 기존 Pro 자동화 엔진을 유지하면서, **
    .\setup.ps1
    ```
 
-   Python 3.12+ 환경과 Callisto 설치, 기본 설정, Codex native 실행 파일 탐색, 로그인 상태, ADB·스킬·Helper 확인을 한 번에 진행해요. 필요한 Python 설치는 먼저 동의를 물어봐요. Codex CLI와 Android platform-tools가 없으면 설치할 항목을 안내해요. 시스템 PATH·CLI 인증 설정을 직접 바꾸지 않아요.
+   Python 3.12+ 환경과 Callisto 설치, 기본 설정, Codex native 실행 파일 탐색, 로그인 상태, ADB·스킬·Helper 확인을 한 번에 진행해요. 필요한 Python 설치는 먼저 동의를 물어봐요. 선택한 CLI의 필요한 도구와 Android platform-tools가 없으면 설치할 항목을 안내해요. 시스템 PATH·CLI 인증 설정을 직접 바꾸지 않아요.
 
 2. Android를 USB로 연결하고 **USB 디버깅 허용**을 승인해요. 첫 실행 결과가 `ACTION_REQUIRED`이면 안내를 처리한 뒤 같은 명령을 다시 실행해요. 여러 기기는 `.\setup.ps1 -DeviceSerial SERIAL`로 선택해요.
 
-3. Codex CLI를 다시 열고 요청해요.
+3. AI CLI를 다시 열고 요청해요. 현재 Android 이미지 추론은 Codex CLI에서 구현됐으며, Claude Code와 Gemini CLI는 아래 지원 범위를 확인해야 해요.
 
    > Callisto로 설정 앱의 배터리 화면이 정상적으로 열리는지 테스트해줘.
 
@@ -32,7 +32,7 @@ Helper APK는 본체와 별도로 `python tools/build_helper.py --sdk <Android-S
 
 `READY`는 실행 준비 상태예요. 실제 추론·Android 테스트 통과를 의미하지 않아요. setup은 유료 모델 추론을 실행하지 않아요. Helper가 없는 배포는 UIAutomator2 fallback을 표시하고, APK와 manifest가 일치하지 않으면 설치를 거부해요.
 
-기본 모델은 `gpt-6.1-sol`, reasoning은 `medium`, 이미지는 `balanced`예요. 원본 캡처·Trace·UI XML·Pro의 판단/검증 흐름은 유지하고, AI 첨부만 긴 변 1920px 이하로 줄여요. 입력 토큰 절감률과 실제 기기 정확도는 로컬 비교로 확인해야 해요.
+Callisto는 특정 모델이나 추론 수준을 지정하지 않고 선택된 AI CLI의 기본 동작을 사용해요. 이미지 정책은 `balanced`예요. 원본 캡처·Trace·UI XML·Pro의 판단/검증 흐름은 유지하고, AI 첨부만 긴 변 1920px 이하로 줄여요. 입력 토큰 절감률과 실제 기기 정확도는 로컬 비교로 확인해야 해요.
 
 - [고급 설치·설정·제한사항](docs/advanced-setup.md)
 - [v4.2 구현·검증 보고서](docs/cli-v4.2-report.md)

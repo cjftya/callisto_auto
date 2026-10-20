@@ -7,7 +7,7 @@
 - 기준 main: `27458eb10faa4b328dffda45972b8a87fa07c340`.
 - 구현 SHA: 이 문서를 포함한 v4.2 커밋에서 확인할 수 있어요. 이후 최종 반영 SHA는 커밋 이력으로 확인해요.
 - 검증 환경: ChatGPT Work, Linux x86_64, Python 3.12.14.
-- 제품 기본 추론 설정: 공식 Codex CLI / `gpt-6.1-sol` / reasoning `medium` / Pro / 이미지 `balanced`.
+- 최신 동작: 공식 CLI의 자체 모델·추론 설정에 위임해요. Pro / 이미지 `balanced`.
 - 실제 AI CLI 버전: 미조회. 공식 CLI·모델 추론·로그인 검사는 이 환경에서 실행하지 않았어요.
 - Android 기기 및 Windows 호스트: 미연결/미실시.
 

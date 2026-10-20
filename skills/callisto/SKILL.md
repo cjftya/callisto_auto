@@ -50,7 +50,7 @@ artifacts. No web UI, HTTP daemon or external MCP server is involved.
 ## Capability boundaries
 
 Codex is the initial implemented image transport. Claude text transport is
-experimental and requires `CALLISTO_AI_CLI=claude` plus `CALLISTO_MODEL`.
+experimental and uses `CALLISTO_AI_CLI=claude` to select the transport.
 Gemini CLI is not implemented. Google-native Files, Interactions, explicit cloud
 caches, audio and server-side search have no validated CLI equivalent and must
 not be reported as supported. See `docs/cli-capability-matrix.md`.

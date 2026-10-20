@@ -30,7 +30,7 @@ wheel 보고서: `traces/helper-fix-wheel-report.json`. 기본 wheel에는 Helpe
 - 남아 있던 ADB/XML 모듈의 외부 MCP `__main__` 진입점은 명시적 오류로 종료하게 차단했어요. 내부 도구 함수와 in-process 세션은 유지해요.
 - 직접 AI 공급자를 모두 거부하고 Google SDK import는 `google.genai.types`로 제한하는 회귀를 추가했어요.
 - OCR의 미사용 HTTP 클라이언트·Vision 파서를 제거했어요. opt-in CLI OCR의 text/polygon 형식과 실패 전파를 검사해요.
-- 기본 및 메모리 압축 설정의 낡은 Gemini 모델 라벨을 기존 CLI 기본 모델 `gpt-6.1-sol`로 통일했어요. `CALLISTO_MODEL` 우선권은 유지해요.
+- 기본 모델·추론 수준 강제 지정은 제거하고, CLI 자체의 선택에 맡기도록 정리했어요. 기존 모델 라벨은 호환성 데이터로만 취급해요.
 - 공급자 자체 shell/apps/plugins/hooks/subagent/search를 비활성화하는 명령을 구성하고, 응답에 공급자 도구 실행 이벤트가 있으면 실패로 처리해요.
 - 웹 정적 산출물 7개와 브라우저 리소스 accessor를 삭제했어요. 불필요한 직접 의존성 10개를 제거했지만 google-genai types와 내부 MCP는 유지해요.
 - 독립 설치에서 드러난 MCP 2.x 비호환을 막도록 `mcp<2`로 제한했어요. FastMCP v1 액션 계약은 바꾸지 않아요.
