@@ -25,7 +25,7 @@ Linux:
 - Python 3.12 이상 확인, 가상환경·패키지·스킬 준비, AI CLI·ADB·Helper 상태 점검을 진행함.
 - Windows에서 Python 설치가 필요하면 사용자 동의를 요청함. Linux에서 Python이 없으면 별도 설치 필요.
 - 사용할 AI CLI(Codex·Claude Code·Gemini CLI 중 하나)는 공식 설치 및 로그인이 필요함. Callisto는 CLI 인증이나 시스템 PATH를 임의로 변경하지 않음.
-- AI CLI가 여러 개 설치된 경우 호출할 CLI를 지정함. Windows 예: `.\setup.ps1 -AiCli claude` / Linux 예: `./setup.sh --ai-cli gemini`.
+- 설치된 Codex·Claude Code·Gemini CLI를 자동 탐색하고, 사용 가능한 모든 CLI에 Callisto 스킬을 각각 등록함. 설치 시 CLI를 선택할 필요 없음. 특정 CLI만 점검·복구할 때만 `--ai-cli` 옵션 사용.
 - 중단 이후 재실행 시 준비된 환경을 재사용함. 미해결 조건은 `ACTION_REQUIRED`와 후속 조치로 표시됨.
 
 ### 2. Android 연결 및 권한 승인
@@ -52,17 +52,17 @@ Android 기기를 USB로 연결하고 **개발자 옵션 → USB 디버깅**을 
 
 ### 1. 설치 상태 확인 및 복구
 
-아래 명령의 `codex`는 실제 사용하는 CLI에 따라 `claude` 또는 `gemini`로 변경함.
+아래 점검·복구 명령은 설치된 모든 AI CLI의 스킬을 대상으로 함. 특정 CLI만 확인하려면 `--ai-cli codex`(또는 `claude`, `gemini`) 지정.
 
 ```sh
-callisto setup check --ai-cli codex --json
+callisto setup check --json
 callisto helper bundle-status
 callisto helper status --json
 ```
 
 - `bundle-status`: 로컬 APK·`helper_manifest.json` 존재 여부 및 SHA-256 일치 여부 확인. APK 미포함 배포에서는 실패 코드가 나올 수 있으며, 이 결과만으로 Callisto 전체 설치 실패를 의미하지 않음.
 - `helper status`: Android 연결 상태에서 `installed`(설치), `enabled`(접근성 서비스), `reachable`(응답), `protocol_supported`(프로토콜) 확인.
-- 검증된 번들이 있는 경우 `callisto setup repair --ai-cli codex`로 설치·복구 재시도 가능함.
+- 검증된 번들이 있는 경우 `callisto setup repair`로 설치·복구 재시도 가능함.
 - 특정 기기에 명시적 재설치가 필요할 때만 `callisto helper install --serial SERIAL --force` 사용. 해당 기기의 기존 앱 상태·서명을 우선 확인해야 함.
 
 `callisto` 명령이 PATH에 없으면 Windows에서는 `.\.venv\Scripts\python.exe -m callisto.cli`, Linux에서는 `./.venv/bin/python -m callisto.cli`로 대체 가능함. 예: `.\.venv\Scripts\python.exe -m callisto.cli helper status --json`.
@@ -113,14 +113,14 @@ callisto helper status --json
 
 ```sh
 callisto doctor --json
-callisto setup check --ai-cli codex --json
-callisto setup repair --ai-cli codex
+callisto setup check --json
+callisto setup repair
 callisto trace list
 ```
 
 - `doctor`: 실행 파일·설정 중심 점검이며 AI 추론은 실행하지 않음.
-- `setup check`: 환경·스킬·ADB·Helper 점검. Codex 로그인 상태는 별도 조회하지만 Claude·Gemini 인증은 실제 실행 시 확인 필요.
-- `setup repair`: 관리 중인 설정·스킬 복구, 검증된 Helper 번들이 있을 때 선택된 기기에 설치 시도. 사용자가 수정한 스킬은 임의로 덮어쓰지 않음.
+- `setup check`: 설치된 모든 CLI의 스킬·환경·ADB·Helper 점검. Codex 로그인 상태는 별도 조회하지만 Claude·Gemini 인증은 실제 실행 시 확인 필요.
+- `setup repair`: 발견된 모든 CLI의 관리 중인 스킬 복구 및 검증된 Helper 번들 준비. 한 스킬이 수정되어 있어도 다른 CLI의 등록을 계속하며, 사용자 수정 파일은 덮어쓰지 않음.
 - `READY`: 실행 준비 상태. **모델 추론 및 Android 테스트 성공을 의미하지 않음**. `ACTION_REQUIRED`: 안내된 조치가 필요한 상태.
 - 종료 코드: **0 검증 통과 / 1 작업·검증 실패 / 2 검증 누락·미확정 / 130 취소**. 실제 성공 여부는 결과 JSON과 원본 Trace 기준으로 판단함.
 
