@@ -7,8 +7,18 @@ foreach ($Candidate in $Candidates) {
     if (-not (Get-Command $Candidate[0] -ErrorAction SilentlyContinue)) { continue }
     $Program = $Candidate[0]
     $Prefix = @($Candidate | Select-Object -Skip 1)
-    & $Program @Prefix -c 'import sys; sys.exit(0 if sys.version_info >= (3,12) else 1)' 2>$null
-    if ($LASTEXITCODE -eq 0) { $PythonCommand = $Candidate; break }
+    $ProbeErrorActionPreference = $ErrorActionPreference
+    try {
+        # Missing launcher runtimes can write stderr under Windows PowerShell 5.1.
+        # Only this probe may fail; keep bootstrap errors terminating as before.
+        $ErrorActionPreference = 'Continue'
+        & $Program @Prefix -c 'import sys; sys.exit(0 if sys.version_info >= (3,12) else 1)' 2>$null
+        if ($? -and $LASTEXITCODE -eq 0) { $PythonCommand = $Candidate; break }
+    } catch {
+        continue
+    } finally {
+        $ErrorActionPreference = $ProbeErrorActionPreference
+    }
 }
 if (-not $PythonCommand) {
     if ($Check -or $NonInteractive -or [Console]::IsInputRedirected -or -not (Get-Command winget -ErrorAction SilentlyContinue)) {
