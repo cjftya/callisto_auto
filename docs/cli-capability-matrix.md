@@ -35,7 +35,7 @@
 - setup의 `adb devices` 출력은 UTF-8 및 대체 문자로 디코딩함. ADB 미설치·실행 실패·시간 초과와 기기 미연결·unauthorized·offline 안내를 구분함. Windows Python 3.13/CP949 오프라인 회귀는 통과했으며 실제 기기 연결 검증과 구분함.
 - Windows는 native 실행 파일 또는 확인된 npm JS 엔트리포인트를 사용함. 필요한 옵션을 거부하는 구버전 CLI에 안전 옵션을 빼고 재시도하지 않음.
 - Helper는 APK·manifest 해시·버전·프로토콜을 확인하고 선택 기기 락을 사용함. canonical APK 미포함 배포는 기존 호환 Helper 또는 UIAutomator2 fallback 사용함.
-- CI의 Helper 빌드는 개발 서명 APK·대응 manifest·wheel을 생성하도록 구성됨. 성공 여부는 해당 SHA의 Actions 결과로 확인함.
+- canonical 소스와 해당 소스로 빌드한 wheel에는 CI에서 생성한 개발 서명 Helper APK·대응 manifest가 포함됨. APK/manifest 해시·버전·프로토콜 검증과 실제 기기 설치 성공은 구분함. 출처는 [Helper 번들 반영 근거](migration-status.md#helper-apk-기본-번들) 참조.
 - 내부 in-process MCP, Explorer `flash` tier, 공유 summarizer/compressor, SDK 공개 import는 보존됨. 웹 UI·HTTP Daemon·외부 MCP·독립 Flash 실행 프로필은 지원하지 않음.
 - 원격 SDK는 import 호환용이며 Callisto 원격 서버 제공을 의미하지 않음. 기존 진단 ID·경로·`artemis` 별칭 유지됨.
 

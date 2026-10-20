@@ -6,6 +6,12 @@ CLI 스킬 기반 전환이 구현되어 있음. 기존 ARTEMIS Pro 엔진이 �
 
 현재 구조는 [아키텍처](architecture.md), 구현된 기능과 한계는 [지원 범위](cli-capability-matrix.md), 설치·Helper 문제 해결은 [README](../README.md)와 [고급 가이드](advanced-setup.md)를 기준으로 함.
 
+## Helper APK 기본 번들
+
+사용자 요청에 따라 [c451c8f의 Windows Helper CI](https://github.com/cjftya/callisto_auto/actions/runs/39434029212)에서 생성한 APK와 대응 manifest를 `packages/artemis-accessibility-helper/`에 함께 포함함. 버전 1.2.1 / versionCode 7 / protocol 2, APK SHA-256은 `73590b206d576abd24beb0d35aee2657b6bd65af1e060db188e0a5de3365d6ec`임. 원본 엔진·과거 `helper/` APK·보존 manifest는 변경하지 않음.
+
+환경변수 지정 없이 `callisto helper bundle-status`에서 `apk_present: true`, `bundle_valid: true`를 확인함. 로컬 Windows 전체 오프라인 회귀는 **2281 passed / 4 skipped / 8 deselected**이며 `pip check`·프런트엔드 없는 wheel 빌드·소스/wheel APK 해시 일치 검사도 통과함. 출처 CI의 APK 포함 wheel 격리 검증도 통과했으며 실제 기기 설치·접근성 서비스 활성화는 별도 사용자 검증 대상임.
+
 ## Windows ADB 설정 진단
 
 `callisto/setup.py`의 `adb devices` 출력에 `encoding="utf-8", errors="replace"`를 적용함. 실행 파일 미발견에만 platform-tools 설치를 안내하고, 실행 실패·시간 초과·기기 미연결·unauthorized·offline은 원인별 조치를 안내함. 기존 ADB 경로·서버·Skill·인증·Helper fallback 흐름은 유지함.

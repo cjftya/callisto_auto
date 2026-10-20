@@ -48,7 +48,7 @@ Android 기기를 USB로 연결하고 **개발자 옵션 → USB 디버깅**을 
 
 **Callisto Accessibility Helper**는 Android 화면의 접근성 계층을 읽는 보조 앱임. 신뢰할 수 있는 Callisto 빌드에만 접근성 권한을 허용해야 함. 권한 설정은 기기 보안 정책과 사용자 승인이 필요할 수 있음.
 
-**Helper APK는 모든 배포에 기본 포함되지 않음.** APK가 없고 기존 설치된 Helper도 없다면 UIAutomator2 fallback을 사용함. 따라서 일반 사용자는 처음부터 JDK·Android SDK를 설치하거나 Helper APK를 직접 빌드할 필요 없음. 단, fallback의 실제 기기 호환성은 별도 검증 필요.
+**현재 소스와 이 소스에서 빌드한 wheel에는 검증된 Helper APK·manifest가 포함됨.** 일반 사용자는 Helper를 직접 빌드할 JDK·Android SDK 빌드 도구 없이 setup으로 설치할 수 있으며, 기기 연결용 ADB는 필요함. APK가 제외된 배포에서 기존 호환 Helper도 없다면 UIAutomator2 fallback을 사용함. 실제 기기 설치·fallback 호환성은 별도 검증 필요.
 
 ### 1. 설치 상태 확인 및 복구
 

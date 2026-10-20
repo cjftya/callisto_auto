@@ -90,7 +90,7 @@ callisto skill install --ai-cli claude
 
 ## Helper 빌드와 배포
 
-기본 canonical 번들과 기본 wheel에는 APK가 없어요. 저장소 루트 `helper/`의 과거 APK는 현재 번들이 아니에요. 기존 호환 Helper가 있으면 버전/프로토콜을 확인해 연결하고, 없으면 `auto` 계층 모드에서 UIAutomator2로 fallback해요. 실제 기기 호환성은 미검증이에요.
+기본 canonical 번들과 이 소스로 빌드한 wheel에는 CI에서 생성한 Helper APK와 대응 manifest가 포함돼요. `setup`은 `packages/artemis-accessibility-helper/`의 번들을 검증하고 선택 기기에 설치해요. 저장소 루트 `helper/`의 과거 APK는 현재 번들이 아니에요. APK를 제외한 배포에서는 기존 호환 Helper를 확인하고, 없으면 `auto` 계층 모드에서 UIAutomator2로 fallback해요. 실제 기기 설치·호환성은 별도 검증이 필요해요.
 
 Linux/Windows 모두 JDK 17과 Android SDK Platform 35/Build Tools 35.0.0을 준비하면 셸 스크립트 없이 빌드할 수 있어요.
 
@@ -136,7 +136,7 @@ Windows `-Check` / Linux `--check`는 설치·설정 파일을 변경하지 않�
 
 `doctor`는 provider CLI를 실행하지 않는 경로·설정 검사예요. 설정 시 `setup check --json`은 탐색된 각 CLI의 설치·스킬 상태를 `clis`·`skills`로 반환해요. `setup check`는 Codex에 대해 공식 `codex login status`로 로그인 상태를 확인하되 출력과 인증 파일을 수집하지 않아요. `--skip-login-check` 또는 `CALLISTO_FORBID_LIVE_CLI=1`에서는 이를 생략하고 미확인 상태로 표시해요. 로그인 성공 여부만으로 특정 모델의 추론 성공이나 구독 인증 종류를 보장하지 않아요.
 
-setup repair는 사용자 수정 스킬을 덮어쓰지 않아요. Helper 설치는 명시 선택/유일한 준비 기기에만 수행하며 기존 작업의 기기 락을 획득할 수 없으면 중단해요. SDK/JDK는 **검증된 APK 포함 wheel**을 이용할 때 필요 없어요. APK 없는 기본 소스/wheel은 fallback을 표시해요. 저장소 `helper/`의 기존 APK는 기본 번들 위치가 아니며, 현재 manifest 해시와도 불일치하므로 복사해서 설치하면 안 돼요. CI의 같은 빌드에서 생성한 APK·manifest·wheel을 함께 사용하세요.
+setup repair는 사용자 수정 스킬을 덮어쓰지 않아요. Helper 설치는 명시 선택/유일한 준비 기기에만 수행하며 기존 작업의 기기 락을 획득할 수 없으면 중단해요. APK를 직접 빌드하지 않는 일반 설치에는 JDK·Android SDK 빌드 도구가 필요 없고, 기기 연결용 ADB는 필요해요. APK가 제외된 배포는 fallback을 표시해요. 저장소 `helper/`의 기존 APK는 기본 번들 위치가 아니며, 현재 manifest 해시와도 불일치하므로 복사해서 설치하면 안 돼요. CI의 같은 빌드에서 생성한 APK·manifest·wheel을 함께 사용하세요.
 
 ## 이미지 안전 경계와 계측
 

@@ -28,10 +28,11 @@
   --no-build-isolation -w dist .`, then `python tools/verify_wheel.py <wheel>`.
   The latter creates a clean venv; help/import checks never execute AI CLIs.
 - The canonical Skill is `skills/callisto/SKILL.md`; the discovery pointer and
-  wheel package must use that source. The canonical source bundle has no APK by
-  default: preserve Helper source,
-  manifest and the historical `helper/` artifact. A CI-built APK-bearing wheel is
-  optional; inspect that build before claiming bundled provisioning passed.
+  wheel package must use that source. The canonical source bundle includes the
+  CI-built Helper APK and matching manifest. Preserve Helper source and the
+  historical `helper/` artifact. Validate the APK/manifest pair and APK-bearing
+  wheel before claiming bundled provisioning passed; device installation remains
+  a separate acceptance check.
 
 ## Current documentation and cleanup boundary
 
