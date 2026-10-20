@@ -150,6 +150,10 @@ def test_doctor_reports_multiple_hosts_without_a_choice(monkeypatch, tmp_path):
 @pytest.mark.parametrize("command", ["setup", "doctor"])
 @pytest.mark.parametrize("hosts,broken,explicit,status,code", [
     (["codex"], [], None, "READY", 0),
+    (["claude"], [], None, "READY", 0),
+    (["gemini"], [], None, "READY", 0),
+    (["codex", "claude"], [], None, "READY", 0),
+    (["codex", "claude"], [], "claude", "READY", 0),
     (["codex", "antigravity"], [], None, "READY", 0),
     (["codex", "claude", "gemini", "antigravity"], [], None, "READY", 0),
     (["antigravity"], [], None, "UNSUPPORTED", 2),
@@ -183,6 +187,18 @@ def test_readiness_matrix(auto_setup, monkeypatch, command, hosts, broken, expli
     assert report["status"] == status
     selected = [explicit] if explicit else hosts
     assert report["ready_providers"] == [h for h in selected if h != "antigravity" and h not in broken]
+    if command == "setup":
+        if status == "READY":
+            expected = {
+                ("codex",): "Codex",
+                ("claude",): "Claude Code",
+                ("gemini",): "Gemini CLI",
+                ("codex", "claude"): "Codex or Claude Code",
+                ("codex", "claude", "gemini"): "Codex, Claude Code or Gemini CLI",
+            }[tuple(report["ready_providers"])]
+            assert report["next_action"] == f"Ask {expected} to test Android with Callisto."
+        else:
+            assert report["next_action"] == report["issues"][0]
     if "antigravity" in selected:
         assert "UNSUPPORTED" in report["unsupported_hosts"]["antigravity"]
         if status == "READY":
@@ -209,9 +225,11 @@ def test_host_failure_only_blocks_when_no_ready_alternative(auto_setup, monkeypa
     assert report["ready_providers"] == ["claude"]
     assert report["clis"]["codex"]["issues"]
     assert report["warnings"] and not report["issues"]
+    assert report["next_action"] == "Ask Claude Code to test Android with Callisto."
     report = setup.setup_report(ai_cli="codex")
     assert report["status"] == "ACTION_REQUIRED"
     assert report["issues"]
+    assert report["next_action"] == report["issues"][0]
 
 
 @pytest.mark.parametrize("failure", ["adb", "unauthorized", "helper", "dependencies"])
@@ -232,6 +250,7 @@ def test_shared_failure_blocks_ready_host(auto_setup, monkeypatch, failure):
     assert report["ready_providers"] == ["codex"]
     assert report["status"] == "ACTION_REQUIRED"
     assert report["issues"] and report["warnings"]
+    assert report["next_action"] == report["issues"][0]
 
 
 @pytest.mark.parametrize("failure", ["adb", "configuration"])

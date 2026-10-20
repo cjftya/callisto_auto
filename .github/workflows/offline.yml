@@ -36,7 +36,7 @@ jobs:
         run: python -m pytest --junitxml=dist/tests.xml
       - name: CLI and process portability (Windows)
         if: runner.os == 'Windows'
-        run: python -m pytest tests/callisto tests/unit/mcp tests/unit/runtime/test_helper_manager.py --junitxml=dist/tests.xml
+        run: python -m pytest tests/callisto tests/unit/mcp tests/unit/runtime/test_helper_manager.py tests/unit/data_engine/test_background_threads.py --junitxml=dist/tests.xml
       - run: python -m ruff check callisto tools tests/callisto
       - run: python -m pip check
       - run: python -m pip wheel --no-deps --no-build-isolation -w dist .

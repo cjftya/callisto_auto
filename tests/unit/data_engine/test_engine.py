@@ -245,8 +245,7 @@ def test_record_step_suppresses_identical_post_screenshot(tmp_path):
         post_screenshot_bytes=same_image_bytes,
         summary="Test step with identical screenshot",
     )
-    for t in list(engine._pending_threads):
-        t.join()
+    engine._wait_for_pending_threads()
 
     step_record = engine.storage.get_steps(engine.current_session_id)[0]
     assert step_record is not None
@@ -270,8 +269,7 @@ def test_update_step_execution_result_suppresses_identical_post_screenshot(tmp_p
         pre_screenshot_bytes=image_bytes,
         summary="Initial step",
     )
-    for t in list(engine._pending_threads):
-        t.join()
+    engine._wait_for_pending_threads()
 
     step_record = engine.storage.get_steps(engine.current_session_id)[0]
     assert step_record.post_image_name is None
@@ -309,8 +307,7 @@ def test_resumed_session_monotonic_step_numbering(tmp_path):
     sid = engine1.start_session("Monotonic test")
     engine1.record_step(summary="Step 1 action")
     engine1.record_step(summary="Step 2 action")
-    for t in list(engine1._pending_threads):
-        t.join()
+    engine1._wait_for_pending_threads()
 
     # Second runner starts or resumes the same session
     engine2 = DataEngine(mock_ctx)
@@ -319,8 +316,7 @@ def test_resumed_session_monotonic_step_numbering(tmp_path):
 
     # Recording a new step must be Step 3, strictly monotonic
     engine2.record_step(summary="Step 3 action")
-    for t in list(engine2._pending_threads):
-        t.join()
+    engine2._wait_for_pending_threads()
 
     steps = engine2.storage.get_steps(sid)
     assert len(steps) == 3
@@ -361,15 +357,13 @@ def test_update_step_summary_includes_step_number_in_sse(tmp_path):
     sid = engine.start_session("SSE step_number verification")
 
     step_id = engine.record_step(summary="Initial step 1")
-    for t in list(engine._pending_threads):
-        t.join()
+    engine._wait_for_pending_threads()
 
     assert engine.get_step_number(step_id) == 1
 
     # Call update_step_summary
     engine.update_step_summary(step_id, "Updated concise summary for Step 1")
-    for t in list(engine._pending_threads):
-        t.join()
+    engine._wait_for_pending_threads()
 
     # Find the published step_updated event
     step_updated_events = [e for e in published_events if e[0] == "step_updated"]
@@ -399,8 +393,7 @@ def test_record_step_persists_explicit_foreground_app(tmp_path):
         ui_tree=[{"package": "com.other.app", "bounds": "[0,0][10,10]"}],
         summary="Explicit parameter wins",
     )
-    for t in list(engine._pending_threads):
-        t.join()
+    engine._wait_for_pending_threads()
 
     step = engine.storage.get_steps(engine.current_session_id)[0]
     assert step.extra_metadata["foreground_app"] == "com.android.settings"
@@ -420,8 +413,7 @@ def test_record_step_derives_foreground_app_from_ui_tree(tmp_path):
         ],
         summary="Derived from UI tree",
     )
-    for t in list(engine._pending_threads):
-        t.join()
+    engine._wait_for_pending_threads()
 
     step = engine.storage.get_steps(engine.current_session_id)[0]
     assert step.extra_metadata["foreground_app"] == "com.google.android.deskclock"
@@ -433,8 +425,7 @@ def test_record_step_without_app_data_stamps_nothing(tmp_path):
         ui_tree=[{"package": "com.android.systemui"}],
         summary="Only overlay packages",
     )
-    for t in list(engine._pending_threads):
-        t.join()
+    engine._wait_for_pending_threads()
 
     step = engine.storage.get_steps(engine.current_session_id)[0]
     assert "foreground_app" not in (step.extra_metadata or {})
@@ -455,8 +446,7 @@ def _replay_engine(tmp_path):
 
 
 def _join_pending(engine):
-    for t in list(engine._pending_threads):
-        t.join()
+    engine._wait_for_pending_threads()
 
 
 def test_friendly_step_range_expands_tool_traces_and_matches_full_listing(tmp_path):

@@ -187,8 +187,7 @@ def test_record_step_stamps_perceptual_hashes(tmp_path):
         post_screenshot_bytes=SCREEN_A,
         summary="screen unchanged",
     )
-    for t in list(engine._pending_threads):
-        t.join()
+    engine._wait_for_pending_threads()
 
     steps = engine.storage.get_steps(engine.current_session_id)
     meta1 = steps[0].extra_metadata

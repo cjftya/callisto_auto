@@ -204,12 +204,16 @@ def setup_report(*, repair=False, device=None, check_login=True, interactive=Fal
         # Helper/ADB diagnostics can contain screen data. Expose only failure type.
         report["helper"] = {"backend": "uiautomator2_fallback", "error_type": type(error).__name__}
         issues.append("Helper check failed; inspect callisto helper status on the execution PC.")
-    next_action = ("Ask an installed AI CLI to test Android with Callisto." if len(providers) != 1
-                   else f"Ask {providers[0]} to test Android with Callisto.")
     report.update(status="ACTION_REQUIRED" if issues else "READY", issues=issues,
-                  next_action=issues[0] if issues else next_action)
+                  next_action=issues[0] if issues else "")
     if providers == ["antigravity"]:
         report["status"] = "UNSUPPORTED"
+    if report["status"] == "READY":
+        labels = {"codex": "Codex", "claude": "Claude Code", "gemini": "Gemini CLI"}
+        ready_names = [labels[provider] for provider in report["ready_providers"]]
+        hosts = (ready_names[0] if len(ready_names) == 1 else
+                 ", ".join(ready_names[:-1]) + " or " + ready_names[-1])
+        report["next_action"] = f"Ask {hosts} to test Android with Callisto."
     return report
 
 

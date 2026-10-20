@@ -32,8 +32,7 @@ def _make_engine(tmp_path):
 
 
 def _flush(engine):
-    for t in list(engine._pending_threads):
-        t.join()
+    engine._wait_for_pending_threads()
 
 
 def _get_step(engine, step_id):

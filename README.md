@@ -190,7 +190,7 @@ callisto trace list
 - `doctor`: 실행 파일·설정 중심 점검이며 AI 추론은 실행하지 않음.
 - `setup check`: 설치된 모든 CLI의 스킬·환경·ADB·Helper 점검. Codex 로그인 상태는 별도 조회하지만 Claude·Gemini 인증은 실제 실행 시 확인 필요.
 - `setup repair`: 발견된 모든 CLI의 관리 중인 스킬 복구 및 검증된 Helper 번들 준비. 한 스킬이 수정되어 있어도 다른 CLI의 등록을 계속하며, 사용자 수정 파일은 덮어쓰지 않음.
-- `READY`: 실행 준비 상태. **모델 추론 및 Android 테스트 성공을 의미하지 않음**. `ACTION_REQUIRED`: 안내된 조치가 필요한 상태.
+- `READY`: 실행 준비 상태. Setup의 다음 실행 안내에는 준비된 CLI 이름만 표시됨. **모델 추론 및 Android 테스트 성공을 의미하지 않음**. `ACTION_REQUIRED`: 안내된 조치가 필요한 상태.
 - 종료 코드: **0 검증 통과 / 1 작업·검증 실패 / 2 검증 누락·미확정 / 130 취소**. 실제 성공 여부는 결과 JSON과 원본 Trace 기준으로 판단함.
 
 ## 구현 및 호환성

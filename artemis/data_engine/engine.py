@@ -416,6 +416,7 @@ class DataEngine:
         self._trace_counter = 0
         self._pending_tasks = set()
         self._pending_threads = []
+        self._pending_threads_lock = threading.Lock()
         self._accumulated_logs = {}
         self._bg_task_to_trace_id = {}
         self._trace_name_cache = {}
@@ -1083,10 +1084,22 @@ class DataEngine:
 
     def has_pending_operations(self) -> bool:
         """Check if there are any pending background tasks or threads."""
-        return (
-            len(self._pending_tasks) > 0
-            or len([t for t in self._pending_threads if t.is_alive()]) > 0
-        )
+        return bool(self._pending_tasks) or bool(self._pending_thread_snapshot())
+
+    def _pending_thread_snapshot(self) -> list[threading.Thread]:
+        """Return only successfully started threads, synchronized with cleanup."""
+        with self._pending_threads_lock:
+            return list(self._pending_threads)
+
+    def _wait_for_pending_threads(self) -> None:
+        """Drain submitted storage work, including work submitted by those threads.
+
+        Callers must quiesce unrelated producers before the final drain. Joining
+        outside the lock lets workers submit followup writes and unregister.
+        """
+        while threads := self._pending_thread_snapshot():
+            for thread in threads:
+                thread.join()
 
     async def shutdown(self):
         """Wait for all pending background tasks and threads to complete."""
@@ -1096,12 +1109,7 @@ class DataEngine:
             )
             await asyncio.gather(*self._pending_tasks, return_exceptions=True)
 
-        if self._pending_threads:
-            logger.info(f"Waiting for {len(self._pending_threads)} pending threads to complete...")
-            threads_to_join = list(self._pending_threads)
-            for thread in threads_to_join:
-                if thread.is_alive():
-                    await asyncio.to_thread(thread.join)
+        await asyncio.to_thread(self._wait_for_pending_threads)
 
         with self._ipc_socket_lock:
             self._ipc_shutdown = True
@@ -1222,12 +1230,19 @@ class DataEngine:
                     logger.error(f"Background storage operation failed: {exc}", exc_info=exc)
                 finally:
                     curr_thread = threading.current_thread()
-                    if curr_thread in self._pending_threads:
+                    with self._pending_threads_lock:
                         self._pending_threads.remove(curr_thread)
 
             thread = threading.Thread(target=run_and_cleanup, name="artemis-storage", daemon=True)
-            self._pending_threads.append(thread)
-            thread.start()
+            # Readers cannot see the registration until start succeeds. The
+            # same lock keeps a fast worker's cleanup behind registration.
+            with self._pending_threads_lock:
+                self._pending_threads.append(thread)
+                try:
+                    thread.start()
+                except BaseException:
+                    self._pending_threads.remove(thread)
+                    raise
         else:
             task = loop.create_task(asyncio.to_thread(fn, *args))
             self._pending_tasks.add(task)

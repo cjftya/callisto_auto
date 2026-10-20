@@ -48,8 +48,7 @@ def _engine(tmp_path):
 
 
 def _flush(engine):
-    for t in list(engine._pending_threads):
-        t.join()
+    engine._wait_for_pending_threads()
 
 
 @pytest.fixture

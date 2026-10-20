@@ -38,6 +38,8 @@ Evidence: [Antigravity integration](maintenance/antigravity-integration.md).
 
 Explorer의 `flash` 탐색 tier는 독립 Flash 프로필과 다르며 유지됨. 원본 core 32개 및 engine 23개의 SHA-256은 두 보존 manifest와 회귀에서 검증함. 보존 근거는 [원본 기준선](upstream-baseline.md) 참조.
 
+DataEngine 저장 스레드의 등록·시작·정리·스냅샷은 같은 락을 사용하며, 락 밖에서 완료를 기다리고 해당 작업이 생성한 후속 저장도 비워질 때까지 대기함. 종료 호출자는 무관한 새 생산 작업을 먼저 중단해야 함. 제한적 결함 수정 근거는 [후속 수정 기록](maintenance/data-engine-followup.md) 참조.
+
 이미지 최적화는 모델에 보내는 첨부에만 적용됨. 원본 캡처·Trace·XML과 Pro 정규화 좌표는 유지됨. CLI OCR의 전송 픽셀 좌표만 원본 크기로 역변환함. 정책 값·제약은 [고급 가이드](advanced-setup.md#이미지-안전-경계와-계측) 참조.
 
 ## 호환성 경계

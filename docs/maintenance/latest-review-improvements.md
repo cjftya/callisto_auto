@@ -80,22 +80,28 @@ therefore run on the normal host without weakening the runtime or process checks
 - Skips: POSIX process assertion (1), Linux uninstall launcher (1), absent POSIX
   setup shell (1), absent Android device (4), opt-in live SDK-role tests (2),
   unavailable DataEngine fixture (1). Eight configured deselections are retained.
-  New-commit Windows/Linux CI has not run: remote publication awaits explicit
-  approval. Baseline CI alone is not evidence for these changes.
+  At the time of local validation, new-commit Windows/Linux CI had not run.
+  The later publication and CI result are recorded below.
 
-## Local commits and publication
+## Publication history and final remote state — 2026-10-21
 
-Plan A is local commit `4524496` (readiness, installer compatibility, docs and
-regressions). Plan B is a separate local documentation commit containing the
-official-interface gate review. No remote branch was changed.
+Plan A is commit `4524496` (readiness, installer compatibility, docs and
+regressions). Plan B is documentation commit `95316612b0`, containing the
+official-interface gate review. Both are now included in remote `main`.
 
 Automatic approval review rejected the attempted push to `origin/main`, stating
 that implementation/validation were authorized but publication to the shared
 default branch lacked trusted user authorization. The command was rejected
 before execution; the report commit was then completed separately with no push.
-Explicit user approval is required to publish these local commits and obtain
-their Windows/Linux CI results. Thus local implementation/verification and the
-unsupported transport decision are complete; remote integration/CI remain pending.
+That rejection describes the earlier attempt, not the current integration state.
+On 2026-10-21 the remote head was verified as
+`95316612b04c8c5ee096c6e74e526b12739f716c`.
+[Actions run 39454988484](https://github.com/cjftya/callisto_auto/actions/runs/39454988484)
+completed successfully for that SHA: Windows/Linux CLI regression and
+Windows/Linux Helper build jobs all passed. OS-specific steps were skipped on
+the opposite OS by design; Windows runs the configured portability subset,
+while Linux runs the full offline suite. This does not establish live CLI or
+Android acceptance, or CI success for subsequent concurrency changes.
 
 ## Separate observed defect: history fixture thread race
 
@@ -112,6 +118,10 @@ transport/setup boundary. Neither engine nor fixture was changed to hide it.
 The isolated history-search rerun passed **23 tests**; the final full rerun
 without concurrent dependency installation passed **2367 tests**. The failed
 run remains recorded above, and a pass does not establish that the race is fixed.
+
+The subsequent limited fix and deterministic regression evidence are recorded in
+[DataEngine followup](data-engine-followup.md); the earlier test results above
+remain historical evidence for commits `4524496` / `95316612b0`.
 
 ## Live acceptance boundary
 
