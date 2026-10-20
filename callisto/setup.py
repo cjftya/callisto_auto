@@ -98,7 +98,7 @@ def setup_report(*, repair=False, device=None, check_login=True, interactive=Fal
     except ValueError:
         report.update(issues=["Invalid user configuration; fix the settings file before retrying."], next_action="Inspect the Callisto user settings file.")
         return report
-    report.update(provider=settings.provider, model=settings.model, reasoning=settings.reasoning, image_policy=settings.image_policy)
+    report.update(provider=settings.provider, image_policy=settings.image_policy)
     report["dependencies_ready"] = dependencies_ready()
     if not report["dependencies_ready"]:
         issues.append("Rerun setup.ps1 or setup.sh to repair the Python package environment.")

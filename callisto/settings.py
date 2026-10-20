@@ -7,22 +7,19 @@ from pathlib import Path
 import tempfile
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict
 
 
 class Settings(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
     provider: Literal["codex", "claude", "gemini"] = "codex"
-    model: str = Field(default="gpt-6.1-sol", min_length=1, max_length=256)
-    reasoning: Literal["none", "minimal", "low", "medium", "high", "xhigh", "ultra"] = "medium"
     image_policy: Literal["off", "balanced", "quality", "economy"] = "balanced"
     device_serial: str | None = None
     codex_executable: str | None = None
     claude_executable: str | None = None
 
 
-ENV = {"provider": "CALLISTO_AI_CLI", "model": "CALLISTO_MODEL",
-       "reasoning": "CALLISTO_REASONING_EFFORT", "image_policy": "CALLISTO_IMAGE_POLICY",
+ENV = {"provider": "CALLISTO_AI_CLI", "image_policy": "CALLISTO_IMAGE_POLICY",
        "device_serial": "CALLISTO_DEVICE_SERIAL", "codex_executable": "CALLISTO_CODEX_EXECUTABLE",
        "claude_executable": "CALLISTO_CLAUDE_EXECUTABLE"}
 _OVERRIDES = ContextVar("callisto_settings_overrides", default={})
@@ -40,7 +37,11 @@ def user_settings():
     if not path.exists():
         return {}
     try:
-        return Settings.model_validate(json.loads(path.read_text(encoding="utf-8"))).model_dump(exclude_unset=True)
+        values = json.loads(path.read_text(encoding="utf-8"))
+        if isinstance(values, dict):
+            # Old v4.2 config may contain hardcoded model defaults. Never apply them.
+            values = {k: v for k, v in values.items() if k not in ("model", "reasoning")}
+        return Settings.model_validate(values).model_dump(exclude_unset=True)
     except (OSError, ValueError):
         raise ValueError("Invalid Callisto settings; inspect the user settings file") from None
 

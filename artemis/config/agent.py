@@ -688,8 +688,8 @@ class MemoryChunkingConfig(BaseModel):
         ),
     )
     model: str = Field(
-        default="gpt-6.1-sol",
-        description="Model used for the chunk-level StepCapsuleLens (bands ①+②).",
+        default="",
+        description="Legacy routing field; inference uses the selected CLI defaults.",
     )
     max_chunks: int = Field(
         default=8,

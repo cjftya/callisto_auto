@@ -2,7 +2,6 @@
 
 import asyncio
 import json
-import os
 from pathlib import Path
 import tempfile
 import weakref
@@ -19,7 +18,7 @@ from callisto.llm_adapter.codec import encode_messages, encode_prompt
 from callisto.llm_adapter.errors import CLIProtocolError, UnsupportedCapability
 from callisto.llm_adapter.process import run_process
 from callisto.llm_adapter.providers import command_for, decode_result
-from callisto.settings import effective_settings, user_settings, _OVERRIDES
+from callisto.settings import effective_settings
 from callisto.usage import agent_label, stage_label, record_call
 
 _LOOP_LOCKS = weakref.WeakKeyDictionary()
@@ -164,17 +163,8 @@ class CLIChatModel(BaseChatModel):
 
 
 def configured_model(*, model=None, timeout=180, reasoning_effort=None):
+    """Ignore legacy routing hints; inference uses the provider CLI defaults."""
     settings = effective_settings()
-    provider = settings.provider
-    if provider != "codex" and not (os.environ.get("CALLISTO_MODEL") or "model" in user_settings() or _OVERRIDES.get().get("model")):
-        raise UnsupportedCapability("Set CALLISTO_MODEL explicitly when selecting a non-Codex CLI")
-    # Legacy per-node config stays a fallback; CLI/env/user overrides take priority.
-    selected_model = settings.model if (os.environ.get("CALLISTO_MODEL") or "model" in user_settings() or _OVERRIDES.get().get("model")) else model or settings.model
-    selected_reasoning = settings.reasoning if (os.environ.get("CALLISTO_REASONING_EFFORT") or "reasoning" in user_settings() or _OVERRIDES.get().get("reasoning")) else reasoning_effort or settings.reasoning
-    return CLIChatModel(
-        provider=provider,
-        model_name=selected_model,
-        timeout_seconds=timeout,
-        reasoning_effort=selected_reasoning,
-        image_policy=settings.image_policy,
-    )
+    return CLIChatModel(provider=settings.provider, model_name=None,
+                        timeout_seconds=timeout, reasoning_effort=None,
+                        image_policy=settings.image_policy)

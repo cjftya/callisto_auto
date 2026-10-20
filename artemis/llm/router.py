@@ -90,7 +90,7 @@ class ModelEndpoint(BaseModel):
     """Configuration definition for an LLM/VLM model endpoint."""
 
     provider: ModelProvider = Field(default=ModelProvider.CLI, description="Model provider")
-    model_name: str = Field(default="gpt-6.1-sol", description="Model name identifier")
+    model_name: str | None = Field(default=None, description="Legacy node metadata; not sent to the CLI")
     api_key: str | None = Field(default=None, description="API Key or secret")
     api_base: str | None = Field(default=None, description="Custom API endpoint base URL")
     temperature: float = Field(default=0.0, description="Sampling temperature")
@@ -158,5 +158,4 @@ class ModelFactory:
             from callisto.llm_adapter.errors import UnsupportedCapability
             raise UnsupportedCapability("Google Search grounding has no validated CLI equivalent")
         from callisto.llm_adapter.model import configured_model
-        return configured_model(model=endpoint.model_name, timeout=endpoint.timeout_seconds,
-                                reasoning_effort=endpoint.reasoning_effort)
+        return configured_model(timeout=endpoint.timeout_seconds)

@@ -21,15 +21,15 @@ def isolated_settings(monkeypatch, tmp_path):
 
 
 def test_precedence_idempotence_and_no_environment_mutation(isolated_settings, monkeypatch):
-    assert save_settings(model="saved", image_policy="quality")
+    assert save_settings(image_policy="quality")
     before = isolated_settings.stat().st_mtime_ns
     assert not save_settings()
     assert isolated_settings.stat().st_mtime_ns == before
-    monkeypatch.setenv("CALLISTO_MODEL", "environment")
-    with runtime_settings(model="option"):
-        assert effective_settings().model == "option"
-    assert effective_settings().model == "environment"
-    assert effective_settings(model="explicit").model == "explicit"
+    monkeypatch.setenv("CALLISTO_IMAGE_POLICY", "economy")
+    with runtime_settings(image_policy="balanced"):
+        assert effective_settings().image_policy == "balanced"
+    assert effective_settings().image_policy == "economy"
+    assert effective_settings(image_policy="off").image_policy == "off"
     with pytest.raises(ValueError):
         save_settings(api_key="do not store this")
     assert "api_key" not in isolated_settings.read_text()
@@ -99,15 +99,31 @@ def test_provider_support_and_no_live_probe_offline(isolated_settings, monkeypat
     assert setup.setup_report()["status"] == "UNSUPPORTED"
 
 
-def test_model_factory_obeys_user_env_and_runtime_settings(isolated_settings, monkeypatch):
+def test_cli_owns_model_selection_even_with_legacy_hints(isolated_settings, monkeypatch):
     from callisto.llm_adapter.model import configured_model
-    save_settings(model="user-model",reasoning="high",image_policy="economy")
-    assert configured_model(model="legacy").model_name == "user-model"
-    monkeypatch.setenv("CALLISTO_MODEL","env-model")
-    with runtime_settings(model="run-model",image_policy="quality"):
-        model = configured_model(model="legacy")
-        assert model.model_name == "run-model" and model.image_policy == "quality"
-    assert configured_model().model_name == "env-model"
+    save_settings(image_policy="economy")
+    monkeypatch.setenv("CALLISTO_MODEL", "old-fixed-model")
+    monkeypatch.setenv("CALLISTO_REASONING_EFFORT", "high")
+    with runtime_settings(image_policy="quality"):
+        model = configured_model(model="legacy", reasoning_effort="high")
+        assert model.model_name is None and model.reasoning_effort is None
+        assert model.image_policy == "quality"
+    assert configured_model().model_name is None
+
+
+def test_old_settings_strip_model_fields(isolated_settings):
+    isolated_settings.write_text(json.dumps({"provider": "codex", "model": "old",
+        "reasoning": "medium", "image_policy": "balanced"}), encoding="utf-8")
+    assert effective_settings().image_policy == "balanced"
+    assert save_settings()
+    persisted = json.loads(isolated_settings.read_text(encoding="utf-8"))
+    assert "model" not in persisted and "reasoning" not in persisted
+
+
+def test_run_help_has_no_model_overrides():
+    result = CliRunner().invoke(app, ["run", "--help"])
+    assert result.exit_code == 0
+    assert "--model" not in result.output and "--reasoning" not in result.output
 
 
 def test_native_npm_discovery_matches_architecture_and_respects_explicit_path(isolated_settings, tmp_path, monkeypatch):

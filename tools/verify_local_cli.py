@@ -28,7 +28,7 @@ class Colors(BaseModel):
 
 
 async def verify():
-    model = configured_model(model="gpt-6.1-sol", timeout=180)
+    model = configured_model(timeout=180)
     results = {"text": False, "json_schema": False, "tool_calls": False,
                "tool_result_roundtrip": False, "multi_turn": False, "image": False}
     try:
@@ -64,7 +64,7 @@ async def verify():
         results["image"] = response.left == "red" and response.right == "blue"
     except Exception as error:
         results["error_type"] = type(error).__name__
-    return {"provider": model.provider, "model": model.model_name, "checks": results,
+    return {"provider": model.provider, "checks": results,
             "inference_contract_passed": all(results.get(k) is True for k in (
                 "text", "json_schema", "tool_calls", "tool_result_roundtrip", "multi_turn", "image")),
             "android_e2e": "not_checked", "windows_process_cleanup": "not_checked"}

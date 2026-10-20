@@ -80,7 +80,7 @@ def test_codex_command_is_built_without_executing_provider(monkeypatch, tmp_path
     assert args[args.index('--sandbox') + 1] == 'read-only'
     assert args[args.index('--image') + 1] == 'first.png'
     assert 'web_search="disabled"' in args
-    assert 'model_reasoning_effort="high"' in args
+    assert "--model" not in args and not any("model_reasoning_effort" in item for item in args)
     disabled = [args[i+1] for i, v in enumerate(args) if v == '--disable']
     assert {'shell_tool', 'apps', 'plugins', 'hooks', 'multi_agent'} <= set(disabled)
 

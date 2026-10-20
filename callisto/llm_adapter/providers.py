@@ -32,10 +32,6 @@ def command_for(provider, model, directory, images, schema_path, reasoning_effor
                    "--disable", "shell_tool", "--disable", "apps", "--disable", "plugins",
                    "--disable", "hooks", "--disable", "multi_agent", "-c", 'web_search="disabled"',
                    "--json", "--output-schema", str(schema_path), "-C", str(directory)]
-        if model:
-            command += ["--model", model]
-        if reasoning_effort:
-            command += ["-c", f'model_reasoning_effort="{reasoning_effort}"']
         for path in images:
             command += ["--image", path]
         return [*command, "-"]
@@ -43,8 +39,6 @@ def command_for(provider, model, directory, images, schema_path, reasoning_effor
         raise UnsupportedCapability("Claude CLI image attachment transport is not implemented; use Codex")
     command = [path, "-p", "--output-format", "json", "--tools", "", "--strict-mcp-config",
                "--mcp-config", '{"mcpServers":{}}', "--no-session-persistence"]
-    if model:
-        command += ["--model", model]
     return command
 
 

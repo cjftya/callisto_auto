@@ -872,7 +872,7 @@ invoke_llm_with_timeout_message = LLMWaitNotice(
 
 # Backward compatible factory functions delegating to ModelFactory
 def get_google_llm(
-    model_name: str = "gemini-3.8-flash",
+    model_name: str | None = None,
     temperature: float | None = None,
     timeout: float | None = None,
     thinking_budget: int | None = None,
@@ -882,7 +882,7 @@ def get_google_llm(
 ) -> BaseChatModel:
     ep = ModelEndpoint(
         provider=ModelProvider.CLI,
-        model_name=__import__("os").environ.get("CALLISTO_MODEL", "gpt-6.1-sol"),
+        model_name=None,
         temperature=temperature or 0.0,
         timeout_seconds=timeout or 60.0,
         thinking_budget=thinking_budget,
@@ -924,11 +924,11 @@ def _resolve_endpoint(
         return val if isinstance(val, expected_type) else None
 
     provider_val = getattr(cfg, "provider", "google")
-    model_val = getattr(cfg, "model", "gemini-2.5-flash")
+    model_val = getattr(cfg, "model", None)
 
     return ModelEndpoint(
         provider=ModelProvider.from_string(provider_val),
-        model_name=str(model_val),
+        model_name=model_val if isinstance(model_val, str) and model_val else None,
         temperature=_get_val(cfg, "temperature", (int, float)) or 0.0,
         timeout_seconds=_get_val(cfg, "timeout", (int, float)) or 60.0,
         thinking_budget=_get_val(cfg, "thinking_budget", int),

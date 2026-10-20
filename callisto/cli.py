@@ -64,8 +64,6 @@ def run(
     output_description: Annotated[str | None, typer.Option("--expected-output")] = None,
     verification_level: Annotated[str, typer.Option("--verification-level")] = "final",
     profile: Annotated[str, typer.Option("--profile")] = "pro",
-    model: Annotated[str | None, typer.Option("--model")] = None,
-    reasoning: Annotated[str | None, typer.Option("--reasoning")] = None,
     image_policy: Annotated[str | None, typer.Option("--image-policy", help="off, balanced, quality or economy; diagnostics compare actual CLI usage")] = None,
 ):
     """Run an Android test with Callisto's preserved Pro engine, local ADB and traces."""
@@ -79,7 +77,7 @@ def run(
     from callisto.settings import effective_settings, runtime_settings
     from callisto.usage import collect_usage, write_usage, usage_summary
     try:
-        configuration = effective_settings(model=model, reasoning=reasoning, image_policy=image_policy,
+        configuration = effective_settings(image_policy=image_policy,
                                            device_serial=device_serial)
     except ValueError:
         raise typer.BadParameter("Invalid Callisto run settings") from None
@@ -96,7 +94,7 @@ def run(
     try:
         if hasattr(signal, "SIGTERM"):
             previous = signal.signal(signal.SIGTERM, lambda *_: (_ for _ in ()).throw(KeyboardInterrupt()))
-        with runtime_settings(model=model, reasoning=reasoning, image_policy=image_policy), collect_usage() as records:
+        with runtime_settings(image_policy=image_policy), collect_usage() as records:
             asyncio.run(execute_task(goal=goal, device_serial=device_serial, profile="pro",
                 session_id=session_id, test_name=session_id, traces_output_path_str=str(traces_path),
                 output_description=output_description, verification_level=verification_level,

@@ -60,9 +60,8 @@ __all__ = [
 def lightweight_judge_default() -> "LLMWithFallback":
     """Factory default for the lightweight judge nodes (pixel safety net and
     planner validation): a flash-lite model at temperature 0."""
-    import os
-    return LLMWithFallback(provider="cli", temperature=0.0, model=os.environ.get("CALLISTO_MODEL", "gpt-6.1-sol"),
-        fallback=LLM(provider="cli", temperature=0.0, model=os.environ.get("CALLISTO_MODEL", "gpt-6.1-sol")))
+    return LLMWithFallback(provider="cli", temperature=0.0, model="",
+        fallback=LLM(provider="cli", temperature=0.0, model=""))
 
 
 class LLMConfig(LLMConfigBase):
@@ -128,17 +127,14 @@ def _expand_default_into_nodes(config_dict: dict) -> dict:
     if "planner" in config_dict and "utils" in config_dict:
         return config_dict
 
-    default_model_cfg = config_dict.get(
-        "default",
-        {
-            "provider": "cli",
-            "model": "gpt-6.1-sol",
-            "fallback": {
-                "provider": "cli",
-                "model": "gpt-6.1-sol",
-            },
-        },
-    )
+    default_model_cfg = dict(config_dict.get("default", {"provider": "cli", "fallback": {"provider": "cli"}}))
+    default_model_cfg.setdefault("provider", "cli")
+    # The legacy schema requires a model field; never pass it to a CLI.
+    default_model_cfg["model"] = ""
+    fallback = dict(default_model_cfg.get("fallback") or {})
+    fallback.setdefault("provider", "cli")
+    fallback["model"] = ""
+    default_model_cfg["fallback"] = fallback
 
     nodes_override = config_dict.get("nodes", {})
 
