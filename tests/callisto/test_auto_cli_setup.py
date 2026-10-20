@@ -93,7 +93,7 @@ def test_setup_reports_when_no_usable_cli(auto_setup, monkeypatch):
     result = setup.setup_report()
     assert result["status"] == "ACTION_REQUIRED"
     assert result["providers"] == []
-    assert any("No usable AI CLI" in issue for issue in result["issues"])
+    assert any("No supported AI CLI installation" in issue for issue in result["issues"])
 
 
 def test_skill_commands_register_every_host_and_preserve_modified_one(monkeypatch, tmp_path):
@@ -125,3 +125,22 @@ def test_skill_auto_custom_directory_requires_host_for_multiple_clis(monkeypatch
     result = CliRunner().invoke(app, ["skill", "install", "--directory", str(tmp_path)])
     assert result.exit_code != 0
     assert not (tmp_path / "callisto").exists()
+
+
+def test_doctor_reports_multiple_hosts_without_a_choice(monkeypatch, tmp_path):
+    from types import SimpleNamespace
+    monkeypatch.setenv("CALLISTO_CONFIG", str(tmp_path / "settings.json"))
+    monkeypatch.delenv("CALLISTO_AI_CLI", raising=False)
+    monkeypatch.setattr("callisto.llm_adapter.discovery.available_providers",
+                        lambda: ["codex", "claude"])
+    monkeypatch.setattr("callisto.llm_adapter.discovery.executable_command",
+                        lambda provider: [f"/fake/{provider}"])
+    monkeypatch.setattr("callisto.cli.shutil.which", lambda name: "/fake/adb")
+    monkeypatch.setattr("artemis.config.llm.get_default_llm_config",
+                        lambda: SimpleNamespace(validate_providers=lambda: None))
+    result = CliRunner().invoke(app, ["doctor", "--json"])
+    assert result.exit_code == 0, result.output
+    report = json.loads(result.stdout)
+    assert report["provider"] == "auto"
+    assert report["providers"] == ["codex", "claude"]
+    assert report["clis"] == {"codex": True, "claude": True}
