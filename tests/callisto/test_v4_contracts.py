@@ -75,11 +75,12 @@ def test_codex_command_is_built_without_executing_provider(monkeypatch, tmp_path
     monkeypatch.setattr('callisto.llm_adapter.providers.shutil.which', lambda _: 'fake-codex.exe')
     args = command_for('codex', 'gpt-6.1-sol', tmp_path, ['first.png', 'second.png'], tmp_path / 'schema.json', 'high')
     assert args[:2] == ['fake-codex.exe', 'exec'] and args[-1] == '-'
-    for option in ('--ignore-user-config', '--ephemeral', '--json', '--output-schema'):
+    for option in ('--ignore-rules', '--ephemeral', '--json', '--output-schema'):
         assert option in args
     assert args[args.index('--sandbox') + 1] == 'read-only'
     assert args[args.index('--image') + 1] == 'first.png'
     assert 'web_search="disabled"' in args
+    assert '--ignore-user-config' not in args
     assert "--model" not in args and not any("model_reasoning_effort" in item for item in args)
     disabled = [args[i+1] for i, v in enumerate(args) if v == '--disable']
     assert {'shell_tool', 'apps', 'plugins', 'hooks', 'multi_agent'} <= set(disabled)
@@ -95,7 +96,7 @@ def test_provider_side_effect_events_fail_even_after_valid_answer(item_type):
 
 
 def test_unknown_and_incomplete_claude_results_cannot_succeed():
-    with pytest.raises(UnsupportedCapability):
+    with pytest.raises(CLIProtocolError):
         decode_result('gemini', ProcessResult(0, '{}', ''))
     with pytest.raises(CLIError):
         decode_result('claude', ProcessResult(0, '{"type":"result","subtype":"error","is_error":true}', ''))

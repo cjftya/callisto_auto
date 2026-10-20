@@ -70,6 +70,7 @@ def test_missing_or_invalid_verdict_never_passes(summary):
 @pytest.mark.parametrize("cancel", [False, True])
 def test_failed_or_cancelled_task_cannot_exit_success(monkeypatch, tmp_path, cancel):
     monkeypatch.delenv("CALLISTO_FORBID_LIVE_CLI")
+    monkeypatch.setenv("CALLISTO_AI_CLI", "codex")
     async def fake_task(**kwargs):
         kwargs["result_report"].update(status="completed", result={"content": {"test_summary": {"passed": 1}}})
         if cancel:
@@ -119,8 +120,10 @@ def test_windows_cmd_is_rejected_without_running_shell(monkeypatch, tmp_path):
     from callisto.llm_adapter import providers
     monkeypatch.delenv("CALLISTO_FORBID_LIVE_CLI")
     monkeypatch.setattr(providers, "os", SimpleNamespace(name="nt", environ=os.environ))
-    monkeypatch.setattr(providers.shutil, "which", lambda _: r"C:\Program Files\Codex\codex.cmd")
-    with pytest.raises(UnsupportedCapability, match="official native .exe"):
+    from callisto.llm_adapter import discovery
+    monkeypatch.setattr(discovery.os, "name", "nt", raising=False)
+    monkeypatch.setattr(discovery.shutil, "which", lambda _: r"C:\Program Files\Codex\codex.cmd")
+    with pytest.raises(UnsupportedCapability, match="verified npm"):
         command_for("codex", None, tmp_path, [], tmp_path / "schema.json")
 
 

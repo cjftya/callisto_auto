@@ -8,6 +8,7 @@ Offline contract tests cover transport shapes, not paid inference behavior.
 import base64
 import json
 import os
+import shutil
 from pathlib import Path
 
 from callisto.llm_adapter.errors import CLIAuthenticationError, CLIError, CLIProtocolError, UnsupportedCapability

@@ -97,7 +97,7 @@ def setup_report(*, repair=False, device=None, check_login=True, interactive=Fal
         settings = effective_settings(provider=ai_cli)
         selected_provider = resolve_provider(settings.provider)
     except ValueError:
-        report.update(issues=["Invalid user configuration; fix the settings file before retrying."], next_action="Inspect the Callisto user settings file.")
+        report.update(issues=["Specify the invoking AI CLI with --ai-cli (codex, claude or gemini) or repair invalid settings."], next_action="Run setup with --ai-cli matching the hosting AI CLI.")
         return report
     report.update(provider=selected_provider, image_policy=settings.image_policy)
     report["dependencies_ready"] = dependencies_ready()

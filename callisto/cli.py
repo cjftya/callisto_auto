@@ -34,15 +34,14 @@ def doctor(json_output: Annotated[bool, typer.Option("--json")] = False,
         configuration = effective_settings(provider=ai_cli)
         provider = resolve_provider(configuration.provider)
     except ValueError:
-        typer.echo(json.dumps({"config_error": "Invalid Callisto user settings", "authentication": "not_checked"}))
+        typer.echo(json.dumps({"config_error": "Specify --ai-cli codex, claude or gemini when several CLIs are installed", "authentication": "not_checked"}))
         raise typer.Exit(1) from None
     resolved = executable_command(provider)
     from artemis.config.llm import get_default_llm_config
     config_error = None
     try:
         get_default_llm_config().validate_providers()
-        from callisto.llm_adapter.model import configured_model
-        configured_model()
+        # Validation must not infer a different CLI from the current host.
     except Exception:
         config_error = "Invalid CLI transport configuration"
     implemented = provider in ("codex", "claude", "gemini")

@@ -26,6 +26,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--check", action="store_true")
     parser.add_argument("--device-serial")
+    parser.add_argument("--ai-cli", choices=("codex","claude","gemini"))
     parser.add_argument("--non-interactive", action="store_true")
     args = parser.parse_args()
     if sys.version_info < (3, 12):
@@ -66,6 +67,8 @@ def main():
         command.append("check")
     if args.device_serial:
         command.extend(["--device-serial", args.device_serial])
+    if args.ai_cli:
+        command.extend(["--ai-cli", args.ai_cli])
     if args.non_interactive:
         command.append("--json")
     run(command)

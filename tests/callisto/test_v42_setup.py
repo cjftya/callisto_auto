@@ -45,10 +45,11 @@ def test_malformed_settings_are_preserved(isolated_settings):
 
 @pytest.fixture
 def prepared(isolated_settings, monkeypatch):
-    monkeypatch.setattr(setup,"discover_executable",lambda _: "/native/codex.exe")
+    monkeypatch.setattr(setup,"resolve_provider",lambda *_:"codex")
+    monkeypatch.setattr(setup,"executable_command",lambda _: ["/native/codex.exe"])
     monkeypatch.setattr(setup,"login_state",lambda *_:"authenticated")
     monkeypatch.setattr(setup,"dependencies_ready",lambda:True)
-    monkeypatch.setattr(setup,"skill_status",lambda:{"installed":True,"managed":True,"current":True})
+    monkeypatch.setattr(setup,"skill_status",lambda **kwargs:{"installed":True,"managed":True,"current":True})
     monkeypatch.setattr(setup,"helper_state",lambda *args,**kwargs:{"bundle":"absent","backend":"uiautomator2_fallback","protocol":"not_checked","provision":"not_attempted"})
     monkeypatch.setattr(setup,"adb_devices",lambda:([{"serial":"one","state":"device"}],None))
     return isolated_settings
@@ -70,7 +71,7 @@ def test_repair_is_idempotent_and_preserves_modified_skill(prepared, monkeypatch
     assert not setup.setup_report(repair=True)["changes"]
     installer = Mock()
     monkeypatch.setattr(setup,"install_skill",installer)
-    monkeypatch.setattr(setup,"skill_status",lambda:{"installed":True,"managed":False,"current":False})
+    monkeypatch.setattr(setup,"skill_status",lambda **kwargs:{"installed":True,"managed":False,"current":False})
     assert setup.setup_report(repair=True)["status"] == "ACTION_REQUIRED"
     installer.assert_not_called()
 
@@ -96,12 +97,15 @@ def test_provider_support_and_no_live_probe_offline(isolated_settings, monkeypat
     launch.assert_not_called()
     monkeypatch.setattr(setup,"dependencies_ready",lambda:True)
     monkeypatch.setenv("CALLISTO_AI_CLI","gemini")
-    assert setup.setup_report()["status"] == "UNSUPPORTED"
+    report = setup.setup_report(ai_cli="gemini")
+    assert report["status"] == "ACTION_REQUIRED"
+    assert report["provider"] == "gemini"
 
 
 def test_cli_owns_model_selection_even_with_legacy_hints(isolated_settings, monkeypatch):
     from callisto.llm_adapter.model import configured_model
     save_settings(image_policy="economy")
+    monkeypatch.setenv("CALLISTO_AI_CLI", "codex")
     monkeypatch.setenv("CALLISTO_MODEL", "old-fixed-model")
     monkeypatch.setenv("CALLISTO_REASONING_EFFORT", "high")
     with runtime_settings(image_policy="quality"):
