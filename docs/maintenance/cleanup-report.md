@@ -80,6 +80,7 @@
 | `helper/ArtemisAccessibilityHelper.apk` | canonical bundle 경로가 아니고 SHA가 manifest와 다름. 런타임이 자동 사용하지 않으며 wheel에도 없음. 외부 사용 가능성 및 APK 보존 제약으로 삭제하지 않음 |
 | Helper 소스·manifest·debug.keystore·build_apk.sh | 빌드·서명·기존 명령 호환 자산임. 빌드 정책·manifest 해시·서비스 ID 변경 없음 |
 | `scripts/setup.ps1` | 루트 bootstrap 이전 개발용 설치 경로임. 외부 호출 여부를 증명할 수 없어 유지함. 기본 사용자 안내는 루트 setup 스크립트 사용 |
+| `retry`와 `retry2` | `adbutils.screenrecord`가 `from retry import retry`로 간접 사용함. 두 배포가 같은 `retry/` 모듈 경로를 제공함. 한 배포의 uninstall로 다른 배포가 사용하는 파일도 사라지는 것을 확인했으므로 직접 의존성 삭제를 채택하지 않음. 공유 namespace·동작 동등성은 별도 호환성 검토 대상임 |
 | `mcp`, `google-genai`, `httpx` 및 나머지 의존성 | 내부 FastMCP, Google 데이터형, 기존 perception/OCR 계약 등 사용 근거가 있음. 요구 패키지·제약·선택 의존성 변경 없음 |
 | 영상 native/Files/agentic/audio 모듈 | 현재 CLI가 모든 기능을 지원하지 않아도 원본 엔진 및 보존 manifest·회귀 대상임. 미지원 경로를 가짜 구현으로 바꾸거나 삭제하지 않음 |
 
@@ -123,15 +124,28 @@
 | `pyproject.toml` 파싱 결과 | 기준 | **전체 설정 동일** |
 | 문서 상대 파일 링크·`git diff --check` | 잘못된 고급 가이드 링크 있음 | 통과 |
 
-29개 skip 및 8개 deselect 수는 유지됨. Work PID/procfs 불일치 17개와 Windows 전용 프로세스 테스트 등 기존 환경 조건을 변경하지 않음. 상세 skip 사유는 JUnit 증거에 보존됨. 테스트를 삭제·비활성화해 통과시킨 항목은 없음.
+`retry` 간접 사용 조사 후 원래 의존성을 복구한 환경에서도 **2230 passed / 29 skipped / 8 deselected**로 재확인함. 29개 skip 및 8개 deselect 수는 유지됨. Work PID/procfs 불일치 17개와 Windows 전용 프로세스 테스트 등 기존 환경 조건을 변경하지 않음. 상세 skip 사유는 JUnit 증거에 보존됨. 테스트를 삭제·비활성화해 통과시킨 항목은 없음.
 
 로컬 증거 요약은 [검증 JSON](cleanup-validation.json), wheel 검증 상세는 [wheel 보고서](wheel-report-linux.json) 참조. 실행 시점 JUnit은 CI artifact 및 작업 로그에 보관됨.
 
 ### Windows/Linux CI와 반영
 
-정리 브랜치 PR의 Windows/Linux 회귀·일반 wheel·Helper 포함 wheel 결과를 확인한 후 main으로 반영함. 최종 CI·커밋은 이 절에 기록함.
+정리 브랜치 PR의 Windows/Linux 회귀·일반 wheel·Helper 포함 wheel을 검증한 뒤 main으로 병합했으며, main에서도 같은 네 작업이 모두 통과함.
 
-현재 상태: 로컬 검증 통과. 원격 CI 및 main 반영 확인 대기 중임.
+PR: [#1](https://github.com/cjftya/callisto_auto/pull/1). 정리 브랜치 검증 SHA: `b8936fc3ea61d25f696a053ceea7832ea694e024`.
+PR CI: [run 39390309801](https://github.com/cjftya/callisto_auto/actions/runs/39390309801), **4개 작업 모두 통과**.
+
+| CI 작업 | PR 결과 | main 결과 |
+| --- | --- | --- |
+| Linux 전체 Pro 회귀·일반 wheel | **2247 passed / 12 skipped / 8 deselected**, Ruff·pip check·격리 wheel 통과 | 통과 |
+| Windows CLI·MCP·Helper 회귀·일반 wheel | **355 passed / 1 skipped**, PowerShell parser·Ruff·pip check·격리 wheel 통과 | 통과 |
+| Linux Helper 빌드·APK 포함 wheel | APK 생성·번들 검증·wheel 생성·격리 설치 통과 | 통과 |
+| Windows Helper 빌드·APK 포함 wheel | APK 생성·번들 검증·wheel 생성·격리 설치 통과 | 통과 |
+
+main 병합 SHA: `14a9c5c7ab2698e00a93f4046684035ee3a914ca`.
+main CI: [run 39390842657](https://github.com/cjftya/callisto_auto/actions/runs/39390842657), **완료·성공**. Linux 2247 passed / 12 skipped / 8 deselected, Windows 355 passed / 1 skipped로 재확인됨.
+
+논리적 커밋: `29e8fe5` 테스트/격리 wheel 계약 수정, `b8936fc` 문서·조사·주석 정리, 이후 CI 증거만 문서 커밋으로 기록함. 마지막 결과 기록은 `docs/maintenance/`의 JSON·보고서만 변경하며 `[skip ci]`로 동일 코드의 재실행을 생략함. 검증된 실행·패키징 기준 SHA는 위 main 병합 SHA임. 최종 문서 커밋 SHA는 Git 이력에서 확인 가능함.
 
 ### 실행하지 않은 검증
 

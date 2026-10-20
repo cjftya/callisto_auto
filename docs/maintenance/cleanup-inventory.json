@@ -13820,5 +13820,9 @@
       "message": "shutil appears unused to F401",
       "decision": "keep: tests/callisto/test_v4_contracts.py patches providers.shutil.which; existing patch/import surface retained"
     }
-  ]
+  ],
+  "dependency_review": {
+    "decision": "All direct and optional requirements retained unchanged.",
+    "retry": "No direct imports in Callisto sources, but adbutils.screenrecord imports retry indirectly. retry and retry2 distributions both own retry/ files. Removing one distribution during investigation deleted files used by the other; restored original dependency and reran full regression successfully. Namespace conflict and behavioral equivalence require separate compatibility work."
+  }
 }

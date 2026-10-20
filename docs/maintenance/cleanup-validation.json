@@ -60,5 +60,36 @@
   "ruff": "passed",
   "actual_ai_cli": "not_run",
   "android": "not_run",
-  "windows_linux_ci": "pending"
+  "windows_linux_ci": "passed",
+  "dependency_review": {
+    "retry": "retained after discovering indirect adbutils import and retry/retry2 overlapping package files",
+    "restored_environment_regression": "2230 passed / 29 skipped / 8 deselected",
+    "all_requirements_unchanged": true
+  },
+  "ci": {
+    "pull_request": {
+      "number": 1,
+      "run_id": 39390309801,
+      "head_sha": "b8936fc3ea61d25f696a053ceea7832ea694e024",
+      "jobs": {
+        "linux_regression": "passed: 2247 passed / 12 skipped / 8 deselected",
+        "windows_regression": "passed: 355 passed / 1 skipped",
+        "linux_helper_wheel": "passed",
+        "windows_helper_wheel": "passed"
+      }
+    },
+    "main": {
+      "sha": "14a9c5c7ab2698e00a93f4046684035ee3a914ca",
+      "run_id": 39390842657,
+      "status": "completed",
+      "conclusion": "success",
+      "jobs": {
+        "linux_regression": "passed: 2247 passed / 12 skipped / 8 deselected",
+        "windows_regression": "passed: 355 passed / 1 skipped",
+        "linux_helper_wheel": "passed",
+        "windows_helper_wheel": "passed"
+      }
+    }
+  },
+  "final_evidence_update": "Documentation-only files under docs/maintenance; implementation remains the validated main merge SHA. CI skipped for final evidence-only commit."
 }
