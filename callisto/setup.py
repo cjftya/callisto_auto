@@ -8,7 +8,7 @@ from typing import Annotated
 
 import typer
 
-from callisto.llm_adapter.discovery import executable_command, resolve_provider
+from callisto.llm_adapter.discovery import available_providers, executable_command, resolve_provider
 from callisto.llm_adapter.environment import cli_environment
 from callisto.settings import effective_settings, save_settings, settings_path
 from callisto.skill_install import install_skill, skill_status
@@ -95,32 +95,49 @@ def setup_report(*, repair=False, device=None, check_login=True, interactive=Fal
               "config_file": str(settings_path()), "changes": []}
     try:
         settings = effective_settings(provider=ai_cli)
-        selected_provider = resolve_provider(settings.provider)
+        # A normal setup has no hosting assistant: register every usable CLI.
+        # An explicit --ai-cli scopes checks/repair to that host only.
+        providers = (available_providers() if settings.provider == "auto"
+                     else [resolve_provider(settings.provider)])
     except ValueError:
-        report.update(issues=["Specify the invoking AI CLI with --ai-cli (codex, claude or gemini) or repair invalid settings."], next_action="Run setup with --ai-cli matching the hosting AI CLI.")
+        report.update(issues=["Invalid AI CLI setting; use auto, codex, claude or gemini."],
+                      next_action="Correct the CLI selection or repair invalid Callisto settings.")
         return report
-    report.update(provider=selected_provider, image_policy=settings.image_policy)
+    report.update(provider=providers[0] if len(providers) == 1 else "auto",
+                  providers=providers, image_policy=settings.image_policy)
     report["dependencies_ready"] = dependencies_ready()
     if not report["dependencies_ready"]:
         issues.append("Rerun setup.ps1 or setup.sh to repair the Python package environment.")
-    launcher = executable_command(selected_provider)
-    supported = bool(launcher)
-    report["cli"] = {"installed": bool(launcher), "native_launcher": supported}
-    if not supported:
-        issues.append(f"Install the official {selected_provider} CLI and use its normal login on this PC.")
-    report["authentication"] = login_state(selected_provider, launcher[0]) if supported and check_login else "not_checked"
-    if report["authentication"] in ("login_required", "probe_failed"):
-        issues.append(f"Check the official {selected_provider} CLI login on this PC.")
-    try:
-        skill = skill_status(provider=selected_provider)
-        if repair and (not skill["installed"] or skill["managed"]) and not skill["current"]:
-            skill = install_skill(provider=selected_provider)
-            report["changes"].append("skill")
-        report["skill"] = {k: skill[k] for k in ("installed", "managed", "current")}
-        if not skill["current"]:
-            issues.append("Run callisto setup repair; move a modified/unmanaged Skill yourself if it blocks installation.")
-    except (OSError, ValueError, RuntimeError):
-        issues.append("Skill preparation failed; existing user files were preserved.")
+    if not providers:
+        issues.append("No usable AI CLI found. Install and log in to Codex, Claude Code or Gemini CLI, then rerun setup.")
+    report["clis"], report["authentications"], report["skills"] = {}, {}, {}
+    for provider in providers:
+        launcher = executable_command(provider)
+        supported = bool(launcher)
+        cli = {"installed": supported, "native_launcher": supported}
+        report["clis"][provider] = cli
+        if not supported:
+            issues.append(f"Install the official {provider} CLI and use its normal login on this PC.")
+        authentication = login_state(provider, launcher[0]) if supported and check_login else "not_checked"
+        report["authentications"][provider] = authentication
+        if authentication in ("login_required", "probe_failed"):
+            issues.append(f"Check the official {provider} CLI login on this PC.")
+        try:
+            skill = skill_status(provider=provider)
+            if repair and (not skill["installed"] or skill["managed"]) and not skill["current"]:
+                skill = install_skill(provider=provider)
+                report["changes"].append("skill" if len(providers) == 1 else f"skill:{provider}")
+            report["skills"][provider] = {k: skill[k] for k in ("installed", "managed", "current")}
+            if not skill["current"]:
+                issues.append(f"{provider} Skill needs repair; move any modified/unmanaged Skill yourself before retrying.")
+        except (OSError, ValueError, RuntimeError):
+            report["skills"][provider] = {"installed": False, "managed": False, "current": False}
+            issues.append(f"{provider} Skill preparation failed; existing user files were preserved.")
+    # Retain single-host report fields for callers using an explicit --ai-cli.
+    if len(providers) == 1:
+        single = providers[0]
+        report.update(cli=report["clis"][single], authentication=report["authentications"][single],
+                      skill=report["skills"].get(single))
     devices, error = adb_devices()
     report["devices"] = devices
     ready = [d["serial"] for d in devices if d["state"] == "device"]
@@ -140,7 +157,7 @@ def setup_report(*, repair=False, device=None, check_login=True, interactive=Fal
     report["device_serial"] = selected if selected in ready else None
     if repair:
         updates = {"device_serial": selected} if selected in ready and explicitly_selected else {}
-        # Do not persist the selected CLI executable or provider from a one-off Skill invocation.
+        # Never persist the detected hosts as a default for subsequent Skill invocations.
         if save_settings(**updates):
             report["changes"].append("settings")
     try:
@@ -154,8 +171,10 @@ def setup_report(*, repair=False, device=None, check_login=True, interactive=Fal
         # Helper/ADB diagnostics can contain screen data. Expose only failure type.
         report["helper"] = {"backend": "uiautomator2_fallback", "error_type": type(error).__name__}
         issues.append("Helper check failed; inspect callisto helper status on the execution PC.")
+    next_action = ("Ask an installed AI CLI to test Android with Callisto." if len(providers) != 1
+                   else f"Ask {providers[0]} to test Android with Callisto.")
     report.update(status="ACTION_REQUIRED" if issues else "READY", issues=issues,
-                  next_action=issues[0] if issues else f"Ask {selected_provider} to test Android with Callisto.")
+                  next_action=issues[0] if issues else next_action)
     return report
 
 
