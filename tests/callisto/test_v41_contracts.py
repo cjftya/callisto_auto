@@ -173,6 +173,7 @@ async def test_original_native_loop_reaches_cli_json_and_validates_submit(monkey
     from callisto.llm_adapter import model
     from callisto.llm_adapter.native import Client
     monkeypatch.setenv("CALLISTO_EXPLORER_ENGINE", "native")
+    monkeypatch.setenv("CALLISTO_AI_CLI", "codex")
     monkeypatch.setenv("ARTEMIS_USE_FILE_API", "false")
     ctx = SimpleNamespace(llm_config=SimpleNamespace(explorer=SimpleNamespace(model="gpt-6.1-sol")), agent_config=None, data_engine=None)
     explorer = Explorer(ctx)

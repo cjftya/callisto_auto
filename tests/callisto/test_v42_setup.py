@@ -96,6 +96,7 @@ def test_provider_support_and_no_live_probe_offline(isolated_settings, monkeypat
     assert setup.login_state("codex","/native/codex.exe") == "not_checked_offline"
     launch.assert_not_called()
     monkeypatch.setattr(setup,"dependencies_ready",lambda:True)
+    monkeypatch.setattr(setup,"adb_devices",lambda:([],None))
     monkeypatch.setenv("CALLISTO_AI_CLI","gemini")
     report = setup.setup_report(ai_cli="gemini")
     assert report["status"] == "ACTION_REQUIRED"

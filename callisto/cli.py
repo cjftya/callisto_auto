@@ -34,7 +34,10 @@ def doctor(json_output: Annotated[bool, typer.Option("--json")] = False,
         configuration = effective_settings(provider=ai_cli)
         provider = resolve_provider(configuration.provider)
     except ValueError:
-        typer.echo(json.dumps({"config_error": "Specify --ai-cli codex, claude or gemini when several CLIs are installed", "authentication": "not_checked"}))
+        typer.echo(json.dumps({"config_error": "Select an AI CLI with --ai-cli codex, claude or gemini",
+            "provider": "auto", "provider_implemented": False, "cli_installed": False,
+            "adb_installed": bool(shutil.which("adb")), "authentication": "not_checked",
+            "live_inference": "not_checked", "profile": "pro", "servers_required": False}))
         raise typer.Exit(1) from None
     resolved = executable_command(provider)
     from artemis.config.llm import get_default_llm_config

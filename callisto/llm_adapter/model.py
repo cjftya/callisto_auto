@@ -90,6 +90,9 @@ class CLIChatModel(BaseChatModel):
     async def _infer(self, messages, stop=None, metrics=None, **kwargs):
         if stop:
             raise UnsupportedCapability("CLI stop sequences are not supported; response truncation is forbidden")
+        provider = resolve_provider(self.provider)
+        if metrics is not None:
+            metrics["provider"] = provider
         tools = kwargs.get("tools", [])
         tool_choice = kwargs.get("tool_choice")
         if kwargs.get("google_search") or kwargs.get("tool_config"):
@@ -98,25 +101,25 @@ class CLIChatModel(BaseChatModel):
             raise ValueError("Invalid CLI reasoning effort")
         schema = response_schema(tools)
         async with asyncio.timeout(self.timeout_seconds):
-            async with _lock(self.provider):
+            async with _lock(provider):
                 with tempfile.TemporaryDirectory(prefix="callisto-inference-") as temp:
                     directory = Path(temp)
                     schema_path = directory / "response-schema.json"
                     schema_path.write_text(json.dumps(schema), encoding="utf-8")
                     history, images = encode_messages(messages, directory, policy=self.image_policy, metrics=metrics)
                     prompt = encode_prompt(history, tools, tool_choice, schema)
-                    command = command_for(self.provider, self.model_name, directory, images,
+                    command = command_for(provider, self.model_name, directory, images,
                                           schema_path, self.reasoning_effort)
-                    result = await run_process(command, stdin=build_stdin(self.provider, prompt, images), cwd=str(directory),
-                                               timeout=self.timeout_seconds, provider=self.provider)
-                    text, usage = decode_result(self.provider, result)
+                    result = await run_process(command, stdin=build_stdin(provider, prompt, images), cwd=str(directory),
+                                               timeout=self.timeout_seconds, provider=provider)
+                    text, usage = decode_result(provider, result)
                     usage = {key: value for key, value in usage.items()
                              if key in ("input_tokens", "output_tokens", "cached_input_tokens",
                                         "cache_read_input_tokens", "cache_creation_input_tokens")
                              and isinstance(value, int) and not isinstance(value, bool) and value >= 0} if isinstance(usage, dict) else {}
                     metrics["cli_usage"] = usage
                     message = self._message(text, tools, tool_choice, kwargs.get("parallel_tool_calls", True))
-                    message.response_metadata = {"provider": self.provider, "model_name": self.model_name,
+                    message.response_metadata = {"provider": provider, "model_name": self.model_name,
                         "transport": "authenticated-cli", "cli_usage": usage}
                     # Never invent usage. Cache reads in Codex are a subset of input tokens.
                     if isinstance(usage, dict):
@@ -166,6 +169,6 @@ class CLIChatModel(BaseChatModel):
 def configured_model(*, model=None, timeout=180, reasoning_effort=None):
     """Ignore legacy routing hints; inference uses the provider CLI defaults."""
     settings = effective_settings()
-    return CLIChatModel(provider=resolve_provider(settings.provider), model_name=None,
+    return CLIChatModel(provider=settings.provider, model_name=None,
                         timeout_seconds=timeout, reasoning_effort=None,
                         image_policy=settings.image_policy)

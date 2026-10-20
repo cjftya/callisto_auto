@@ -116,7 +116,7 @@ def test_cli_preserves_task_and_test_verdict_axes(monkeypatch, tmp_path, status,
         assert kwargs["profile"] == "pro"
         kwargs["result_report"].update(status=status, result={"content": {"test_summary": summary}})
     monkeypatch.setattr("artemis.interfaces.cli.commands.run.execute_task", fake_task)
-    result = CliRunner().invoke(app, ["run", "mock test only", "--traces-path", str(tmp_path)])
+    result = CliRunner().invoke(app, ["run", "mock test only", "--ai-cli", "codex", "--traces-path", str(tmp_path)])
     assert result.exit_code == exit_code
     metadata = json.loads(result.stdout)
     assert metadata["status"] == status and metadata["test_status"] == test_status
