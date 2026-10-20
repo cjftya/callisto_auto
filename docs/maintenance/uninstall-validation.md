@@ -24,7 +24,8 @@
 - 프로세스 수정 후 최종 `python -m pytest -q --junitxml=dist/uninstall-final-tests.xml`은 **2300 passed / 10 skipped / 8 deselected**로 통과함. POSIX 전용 3개, Android 진단 4개, Gemini live SDK 2개, DataEngine fixture 1개가 skip됨. 추가한 PowerShell 7 매개변수 검사는 별도 2개 런처 검사에 포함됨. `git diff --check`와 staged diff 검사 통과함.
 - [첫 원격 CI](https://github.com/cjftya/callisto_auto/actions/runs/39443357380)에서 양쪽 Helper APK-bearing wheel 검증을 수행함. Linux 회귀는 동일 사용자 서비스의 `/proc/<pid>/exe` ptrace 제한 때문에 제거 검사 4개가 안전 중단되어 **4 failed / 2296 passed / 11 skipped / 8 deselected**임. `cmdline`/`stat`을 읽을 수 있으면 실행 파일 링크는 보조 정보로만 사용하도록 수정함. 동일 사용자 `cmdline` 자체를 읽지 못하면 여전히 중단함. 두 조건을 재현한 회귀를 추가했고 Windows 제거 회귀는 **22 passed / 1 skipped**로 통과함.
 - 2026-10-21 로컬 최종 회귀(`dist/uninstall-procfs-tests.xml`)는 **2303 passed / 10 skipped / 8 deselected**, lint·`pip check`·프런트엔드 없는 wheel 재빌드도 통과함. 첫 원격 CI의 Windows 회귀는 **406 passed / 2 skipped**이며 양쪽 Helper 빌드·APK-bearing wheel 격리 검증이 통과함. 플랫폼 보완은 제거 도구와 그 회귀에만 적용되어 wheel의 엔진·패키지 코드는 변경되지 않음.
+- 코드 SHA `c5f4d01e57a8119986b8957e4ed50cb00e2987a9`의 [최종 CI](https://github.com/cjftya/callisto_auto/actions/runs/39444621451)는 **전체 성공**임. Linux 전체 **2302 passed / 11 skipped / 8 deselected**, Windows 범위 회귀 **408 passed / 2 skipped**. 양쪽 lint·`pip check`·프런트엔드 없는 wheel·격리 Pro/import/help/Skill·Helper APK 검증과 양쪽 Helper 빌드/격리 wheel 작업 모두 통과함. Linux의 시스템/venv/셸 자기 삭제와 procfs 보완을 실제 Ubuntu 24.04 / Python 3.12.15 CI에서 확인함.
 
 ## 한계
 
-Linux 직접 실행은 이 Windows 호스트에서 수행하지 않음. 기존 Windows/Linux Actions 회귀에 제거 테스트를 포함하고 Windows 스크립트 구문 검사도 확장함. CI 결과가 나오기 전 Linux 통과로 간주하지 않음. 실모델·Android·기기 Helper 제거/재설치와 AI 호스트의 Skill 인식은 이번 범위에서 실행하지 않음. 동시 프로세스/파일 변경이 시작되는 모든 경쟁 상황이나 OS 파일 잠금의 부재를 보장하지 않으며, 삭제 실패는 결과 경로를 보고 수동 정리함.
+Linux는 위 원격 CI에서 검증했으며 이 Windows 호스트에서 직접 실행하지 않음. 실모델·Android·기기 Helper 제거/재설치와 AI 호스트의 Skill 인식은 이번 범위에서 실행하지 않음. 동시 프로세스/파일 변경이 시작되는 모든 경쟁 상황이나 OS 파일 잠금의 부재를 보장하지 않으며, 삭제 실패는 결과 경로를 보고 수동 정리함.
