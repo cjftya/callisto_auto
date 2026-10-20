@@ -1,3 +1,5 @@
+> **과거 기록 — 현재 구현 지침이 아님.** 작성 당시의 모델·설치·지원 상태이며, 현재 기준은 [아키텍처](../architecture.md), [지원 범위](../cli-capability-matrix.md), [전환 현황](../migration-status.md)임.
+
 # Callisto v4.1 — 기능 보존·호환성·개선 결과
 
 기준: `main`/`master` = `458fd123`, 원본 ARTEMIS = `351ca8422f7b5b54e80a9c1ce03a222e02415b6b`.

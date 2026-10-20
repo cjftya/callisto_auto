@@ -1,3 +1,5 @@
+> **과거 기록 — 현재 구현 지침이 아님.** 작성 당시의 모델·설치·지원 상태이며, 현재 기준은 [아키텍처](../architecture.md), [지원 범위](../cli-capability-matrix.md), [전환 현황](../migration-status.md)임.
+
 # Callisto v4 CLI boundary audit
 
 Date: 2026-10-19. Start: master `c56d3c7fef578d9e8e2339a410b43ee82cad05d2`,

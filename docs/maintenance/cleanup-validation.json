@@ -1,0 +1,64 @@
+{
+  "baseline_sha": "e2b2b36fd79c002a3758ad7e7eb672b688ae31c4",
+  "platform": "Linux x86_64",
+  "python": "3.12.14",
+  "offline_only": true,
+  "test_command": "CALLISTO_FORBID_LIVE_CLI=1 python -m pytest",
+  "tests": {
+    "baseline": {
+      "passed": 2229,
+      "failed": 1,
+      "errors": 0,
+      "skipped": 29,
+      "deselected": 8,
+      "failure_cases": [
+        "tests.callisto.test_user_facing_brand.test_skill_transition_and_android_app_user_facing_labels"
+      ],
+      "skip_reasons": {
+        "Windows child-tree contract runs in Windows CI": 2,
+        "ADB Client connection failed: connect to adb server failed: [Errno 111] Connection refused. Skipping tests.": 4,
+        "Host /proc does not match this executor's PID namespace; run on target host/CI": 17,
+        "bundled helper APK is not present in this checkout": 3,
+        "Exploratory live API verification test for Gemini SDK role support": 2,
+        "DataEngine fixture not initialized": 1
+      },
+      "junit_sha256": "c3f26794f323a41cefc636e637b2c5a20a5cf5ab86a899c64f698ec98f0c8121"
+    },
+    "cleanup": {
+      "passed": 2230,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 29,
+      "deselected": 8,
+      "failure_cases": [],
+      "skip_reasons": {
+        "Windows child-tree contract runs in Windows CI": 2,
+        "ADB Client connection failed: connect to adb server failed: [Errno 111] Connection refused. Skipping tests.": 4,
+        "Host /proc does not match this executor's PID namespace; run on target host/CI": 17,
+        "bundled helper APK is not present in this checkout": 3,
+        "Exploratory live API verification test for Gemini SDK role support": 2,
+        "DataEngine fixture not initialized": 1
+      },
+      "junit_sha256": "57f97dfdfdba1f7bfb59a41407a31ade7db39b86240191e4d71e77a25297f014"
+    }
+  },
+  "preservation": {
+    "core": 32,
+    "engine": 23,
+    "matching": true,
+    "expected_hashes_changed": false,
+    "runtime_config_helper_skill_files_unchanged": 351
+  },
+  "packaging": {
+    "wheel_entries": 329,
+    "entry_paths_and_contents_equal_to_baseline": true,
+    "sdk_copies_identical": true,
+    "pyproject_effective_configuration_unchanged": true,
+    "isolated_wheel": "passed",
+    "pip_check": "passed"
+  },
+  "ruff": "passed",
+  "actual_ai_cli": "not_run",
+  "android": "not_run",
+  "windows_linux_ci": "pending"
+}

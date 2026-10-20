@@ -44,4 +44,4 @@ Work에서는 `/proc/self`가 노출하는 host PID와 `os.getpid()`가 다른 �
 
 ## v4.1 추가 보존 검사
 
-원본 Explorer·영상 엔진·액션 server/session 23개 Python 파일을 `upstream-engine-manifest.json`으로 추가 고정했어요. 기존 32개 해시는 바꾸지 않아요. `CALLISTO_EXPLORER_ENGINE=native`로 원본 Native 루프를 CLI 호환 포트에 연결할 수 있고 기본 Universal 경로는 유지해요. 자세한 미지원 및 실사용 검증 구분은 [v4.1 보고서](cli-v4.1-report.md)를 참고하세요.
+원본 Explorer·영상 엔진·액션 server/session 23개 Python 파일을 `upstream-engine-manifest.json`으로 추가 고정했어요. 기존 32개 해시는 바꾸지 않아요. `CALLISTO_EXPLORER_ENGINE=native`로 원본 Native 루프를 CLI 호환 포트에 연결할 수 있고 기본 Universal 경로는 유지해요. 자세한 미지원 및 실사용 검증 구분은 [지원 범위](cli-capability-matrix.md)를 참고하세요.

@@ -1,3 +1,5 @@
+> **과거 기록 — 현재 구현 지침이 아님.** 작성 당시의 모델·설치·지원 상태이며, 현재 기준은 [아키텍처](../architecture.md), [지원 범위](../cli-capability-matrix.md), [전환 현황](../migration-status.md)임.
+
 # Callisto v4.0 — CLI 전용 최종 정리 및 `main` 통합 계획서
 
 - **작성일:** 2026-10-19

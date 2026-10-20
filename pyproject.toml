@@ -24,7 +24,6 @@ authors = [
 requires-python = ">=3.12"
 
 dependencies = [
-    # Remote Python SDK (kept as a zero-dependency workspace package)
     # Orchestration & Framework
     "langgraph>=1.0.2,<2.0.0",
     "langchain-core>=1.0.0",
@@ -78,8 +77,6 @@ artemis = "callisto.cli:cli"
 
 
 [build-system]
-# requires = ["uv_build>=0.7.20,<0.8.0"]
-# build-backend = "uv_build"
 requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
@@ -162,7 +159,7 @@ skip-magic-trailing-comma = false
 line-ending = "auto"
 
 [tool.pytest.ini_options]
-# Add project root and apps to Python path for clean absolute imports
+# Add project root for clean absolute imports
 pythonpath = [
     ".",
 ]
@@ -236,6 +233,8 @@ dev = [
 ]
 
 
+# Keep the public remote SDK import for compatibility. The wheel uses this
+# canonical src tree; the root copy supports existing checkout imports.
 [tool.setuptools.package-dir]
 artemis_client = "packages/artemis-client/src/artemis_client"
 
