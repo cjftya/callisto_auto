@@ -45,6 +45,7 @@ def test_malformed_settings_are_preserved(isolated_settings):
 
 @pytest.fixture
 def prepared(isolated_settings, monkeypatch):
+    monkeypatch.setattr(setup,"available_providers",lambda: ["codex"])
     monkeypatch.setattr(setup,"resolve_provider",lambda *_:"codex")
     monkeypatch.setattr(setup,"executable_command",lambda _: ["/native/codex.exe"])
     monkeypatch.setattr(setup,"login_state",lambda *_:"authenticated")
