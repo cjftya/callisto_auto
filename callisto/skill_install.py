@@ -4,6 +4,7 @@ import hashlib
 from importlib.metadata import distribution
 import json
 from pathlib import Path
+from callisto.llm_adapter.discovery import available_providers
 import tempfile
 import sys
 
@@ -77,27 +78,55 @@ def install_skill(directory: Path | None = None, *, provider="codex") -> dict:
     return skill_status(directory, provider=provider)
 
 
+def _skill_hosts(directory: Path | None, provider: str) -> list[str]:
+    """Automatically register each usable host in its own native Skill directory."""
+    if provider not in ("auto", "codex", "claude", "gemini"):
+        raise ValueError("Use --ai-cli auto, codex, claude or gemini")
+    if provider != "auto":
+        return [provider]
+    hosts = available_providers()
+    if not hosts:
+        raise ValueError("No supported AI CLI found; install Codex, Claude Code or Gemini CLI first")
+    if directory is not None and len(hosts) > 1:
+        raise ValueError("With --directory and multiple AI CLIs, select one with --ai-cli")
+    return hosts
+
+
 @skill_app.command("install")
 def install(directory: Path | None = typer.Option(None, "--directory", help="Skills parent directory"),
-            provider: str = typer.Option("codex", "--ai-cli")):
-    """Install or update a previously managed Skill; preserve user modifications."""
+            provider: str = typer.Option("auto", "--ai-cli")):
+    """Install Skills for all detected AI CLIs; preserve unmanaged modifications."""
     try:
-        typer.echo(json.dumps(install_skill(directory, provider=provider), indent=2))
-    except (OSError, ValueError, RuntimeError) as error:
+        hosts = _skill_hosts(directory, provider)
+    except ValueError as error:
         raise typer.BadParameter(str(error)) from None
+    reports = {}
+    for host in hosts:
+        try:
+            reports[host] = install_skill(directory, provider=host)
+        except (OSError, ValueError, RuntimeError) as error:
+            reports[host] = {"current": False, "error": str(error)}
+    typer.echo(json.dumps({"hosts": reports, "current": all(v["current"] for v in reports.values())}, indent=2))
+    if any(not status["current"] for status in reports.values()):
+        raise typer.Exit(1)
 
 
 @skill_app.command("update")
 def update(directory: Path | None = typer.Option(None, "--directory"),
-           provider: str = typer.Option("codex", "--ai-cli")):
-    """Update the managed Skill to this installed package version."""
+           provider: str = typer.Option("auto", "--ai-cli")):
+    """Update all detected managed Skills, or one host with --ai-cli."""
     install(directory, provider)
 
 
 @skill_app.command("status")
 def status(directory: Path | None = typer.Option(None, "--directory"),
-           provider: str = typer.Option("codex", "--ai-cli")):
-    """Inspect version/hash and discovery path; never start the host AI CLI."""
-    report = skill_status(directory, provider=provider)
-    typer.echo(json.dumps(report, indent=2))
-    raise typer.Exit(0 if report["current"] else 1)
+           provider: str = typer.Option("auto", "--ai-cli")):
+    """Inspect Skills in detected hosts; never start an AI CLI."""
+    try:
+        hosts = _skill_hosts(directory, provider)
+        reports = {host: skill_status(directory, provider=host) for host in hosts}
+    except (OSError, ValueError, RuntimeError) as error:
+        raise typer.BadParameter(str(error)) from None
+    typer.echo(json.dumps({"hosts": reports, "current": all(v["current"] for v in reports.values())}, indent=2))
+    if any(not report["current"] for report in reports.values()):
+        raise typer.Exit(1)
