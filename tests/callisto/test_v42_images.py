@@ -133,3 +133,23 @@ async def test_ocr_rescales_pixels_and_rejects_out_of_frame(monkeypatch):
     inference.return_value = OCRResult(regions=[{"text":"bad", "position":[{"x":865,"y":1920},{"x":0,"y":0}]}])
     with pytest.raises(CLIProtocolError,match="outside"):
         await perform_ocr(screenshot)
+
+def test_prompt_reuses_static_protocol_prefix_across_changing_turns():
+    """Tool declarations/response schema precede the volatile transcript."""
+    from callisto.llm_adapter.codec import encode_prompt
+
+    tools = [{"type": "function", "function": {
+        "name": "click", "description": "Tap target", "parameters": {"type": "object"}}}]
+    schema = {"type": "object", "properties": {"content": {"type": "string"}}}
+    first_history = [{"role": "human", "content": [{"type": "text", "text": "step A"}]}]
+    second_history = [{"role": "human", "content": [{"type": "text", "text": "step B"}]}]
+    first = encode_prompt(first_history, tools, "auto", schema)
+    second = encode_prompt(second_history, tools, "auto", schema)
+    marker = '"messages":'
+    assert first != second
+    assert first[:first.index(marker)] == second[:second.index(marker)]
+    body = json.loads(first[first.index("{"):])
+    assert list(body) == ["tools", "tool_choice", "response_schema", "messages"]
+    assert body["messages"] == first_history
+    assert body["tools"] == tools
+    assert body["response_schema"] == schema

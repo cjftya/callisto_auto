@@ -35,7 +35,7 @@ def test_memory_defaults():
     # Ready chunks replace their turns only once the
     # operator's measured context reaches budget*start_ratio.
     assert cfg.memory.chunking.min_steps == 3
-    assert cfg.memory.transcript.image_scrub_depth_relaxed == 6
+    assert cfg.memory.transcript.image_scrub_depth_relaxed == 3
     assert cfg.memory.transcript.start_ratio == 0.35
     assert cfg.memory.transcript.soft_ratio == 0.7
     assert cfg.memory.transcript.hard_ratio == 0.9

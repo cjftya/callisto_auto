@@ -466,12 +466,12 @@ class MemoryTranscriptConfig(BaseModel):
         ),
     )
     image_scrub_depth_relaxed: int = Field(
-        default=6,
+        default=3,
         ge=1,
         description=(
             "Screenshot scrub depth while the operator's measured context is"
-            " below budget*start_ratio (nothing is being replaced yet, so"
-            " more raw screenshots stay in view). Must be >= image_scrub_depth;"
+            " below budget*start_ratio (increase only when additional recent"
+            " raw screenshots are needed). Must be >= image_scrub_depth;"
             " set equal to it to disable the occupancy-driven depth. A change"
             " of depth never rewrites an already-scrubbed message."
         ),

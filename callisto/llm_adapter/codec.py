@@ -91,6 +91,8 @@ def encode_messages(messages, directory: Path, *, policy="balanced", metrics=Non
 
 
 def encode_prompt(history, tools, tool_choice, schema):
+    # Put the stable tool/response contract before volatile conversation history.
+    # New isolated CLI calls can then reuse a longer identical prompt prefix.
     prompt = (
         "You are the model inference port for ARTEMIS. Complete the supplied conversation. "
         "Do not execute tools, commands, browse, or control Android yourself. Return requested "
@@ -99,8 +101,9 @@ def encode_prompt(history, tools, tool_choice, schema):
         "Repeated image indices refer to the same attachment at each original message position. "
         "Use the coordinate frame requested by the agent; size is the attachment frame and original_size is the device frame. "
         "Return ONLY JSON matching response_schema. Do not add Markdown fences.\n"
-        + json.dumps({"messages": history, "tools": tools, "tool_choice": tool_choice,
-                      "response_schema": schema}, ensure_ascii=False)
+        + json.dumps({"tools": tools, "tool_choice": tool_choice,
+                      "response_schema": schema, "messages": history},
+                     ensure_ascii=False, separators=(",", ":"))
     )
     if len(prompt.encode("utf-8")) > MAX_PROMPT_BYTES:
         raise CLIProtocolError("Conversation exceeded the CLI input size limit; no history was truncated")
