@@ -17,8 +17,8 @@
   after relevant implementation changes. Report skipped host/device checks.
   Tests requiring a matching real PID/procfs view run on normal hosts/CI, not
   against a mismatched Work PID namespace.
-- Keep original licenses and source SHA. Update the capability matrix and
-  migration status with evidence; never equate mock success with live parity.
+- Keep original licenses and source SHA. Update the architecture and capability matrix
+  with current evidence; never equate mock success with live parity.
 
 - Preserve LF checkouts (`.gitattributes`) so the upstream manifest also checks
   exact bytes on Windows. Do not regenerate the preservation hashes to hide drift.
@@ -37,9 +37,9 @@
 ## Current documentation and cleanup boundary
 
 - Read `docs/architecture.md` for the current structure, `docs/cli-capability-matrix.md`
-  for support limits, and `docs/migration-status.md` for current evidence. README
+  for support limits, and `docs/advanced-setup.md` for current operation. README
   owns user setup; the canonical Skill owns host routing and execution steps.
-- `docs/archive/`, the remote SDK DESIGN/example, and `tests/upstream_removed/`
+- The remote SDK DESIGN/example and `tests/upstream_removed/`
   are historical evidence, not current execution or model configuration guidance.
   Do not restore obsolete model pins, daemon commands or branch instructions.
 - Cleanup must preserve observable behavior, defaults, public imports/paths,
@@ -50,5 +50,5 @@
   public compatibility code, not proof that Callisto serves a remote daemon.
 - Do not remove apparently unused re-exports, import aliases or prompt resources
   merely from lint results. Preservation manifests are immutable evidence.
-- Record cleanup evidence in `docs/maintenance/`; do not append old release
+- Record cleanup evidence in Git commits; do not append old release
   histories to active architecture/support guides.

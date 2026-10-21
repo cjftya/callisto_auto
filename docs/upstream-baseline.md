@@ -25,7 +25,7 @@
 - `artemis/interfaces/cli/commands/run.py`: Daemon dispatch 제거, standalone 실행 유지.
 - `artemis/runtime/`: web daemon client/lifecycle 제거. 로컬 device pool, locks, awake, cancellation, supervisor 유지.
 - `artemis/utils/ocr_api.py`: 선택적 OCR 모델 통신을 CLI 포트로 교체; 출력 text/position 계약 유지.
-- `artemis/data_engine/engine.py`: lazy CLI import에서 드러난 순환 참조를 피하도록 CURRENT_TRACE_ID를 원래 정의 모듈에서 직접 import. 추가로 2026-10-21 시작 전 `join()` 경쟁과 후속 저장 누락을 막기 위해 스레드 등록·시작·정리를 같은 락으로 동기화하고 저장 대기를 통일함. 이 파일은 두 보존 manifest에 포함되지 않으며 해시는 변경하지 않음. 저장 포맷·Trace·async task 경로·Pro 그래프는 유지함. 제한적 변경 근거와 회귀는 [후속 수정 기록](maintenance/data-engine-followup.md) 참조.
+- `artemis/data_engine/engine.py`: lazy CLI import에서 드러난 순환 참조를 피하도록 CURRENT_TRACE_ID를 원래 정의 모듈에서 직접 import. 추가로 2026-10-21 시작 전 `join()` 경쟁과 후속 저장 누락을 막기 위해 스레드 등록·시작·정리를 같은 락으로 동기화하고 저장 대기를 통일함. 이 파일은 두 보존 manifest에 포함되지 않으며 해시는 변경하지 않음. 저장 포맷·Trace·async task 경로·Pro 그래프는 유지함. 동시성 재현·회귀는 `tests/unit/data_engine/test_background_threads.py`에서 검증함.
 - `artemis/core/diagnostics/probes/credentials_probe.py`: 키 원문 수집·노출을 없애고 CLI 설치 여부만 확인. 로그인/추론 검증으로 표시하지 않음.
 - 설정 provider 검증: API key 대신 CLI provider 검증. 기본 CLI 모델로 통일하며 공급자 전용 정확도 동등성은 미확인.
 - `pyproject.toml`: frontend/Cython 빌드 전제·웹/직접 모델 SDK 의존성 제거. Google SDK types는 native 데이터 계약에 필요해 유지.
@@ -34,7 +34,7 @@
 
 `apps/showcase_ui/`, `apps/admin_console/`, `mcp_server/`와 웹 CLI 명령은 이관하지 않았어요.
 Flash 실행 runner는 제거했으나 Pro가 사용하는 Flash 폴더의 summarizer/context_compressor와 Explorer flash tier는 보존했어요.
-제거한 구성요소의 테스트는 `tests/upstream_removed/`에 보관해요. 목록·사유는 `docs/archived-tests.json`에 있어요.
+제거한 웹 UI·HTTP daemon·외부 MCP·독립 Flash 실행·직접 모델 API의 원본 테스트는 `tests/upstream_removed/`에 보관하며, 파일별 변경 이력은 Git에서 확인 가능해요.
 API factory/웹 빌드 테스트는 Callisto의 no-API 경계와 wheel 설치 테스트로 대체해요.
 
 원본 native 테스트가 실제 API 키 없이도 mock native 경로를 선택하도록 명시적 fake native client/엔진 fixture를 사용해요. API 키로 엔진을 선택하지 않아요.

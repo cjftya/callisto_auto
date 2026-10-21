@@ -4,7 +4,7 @@ Antigravity CLI (`agy`) supports host registration, explicit selection and manag
 Global directory: `~/.gemini/antigravity-cli/skills/callisto/` (separate from IDE/app).
 Pro inference with `--ai-cli antigravity` is UNSUPPORTED pending validated non-tool image
 input, complete tool blocking, structured output/usage and Android E2E. No provider fallback.
-Evidence: [Antigravity integration](maintenance/antigravity-integration.md).
+구체적인 지원 조건은 [CLI 지원 범위](cli-capability-matrix.md)를 기준으로 함.
 
 Google ARTEMIS의 **기존 Pro 그래프·에이전트는 유지**하고, 모델 통신을 인증된 로컬 AI CLI로 연결하는 Android 자동 테스트 도구예요.
 
@@ -112,10 +112,9 @@ python -m pip wheel --no-deps --no-build-isolation -w dist .
 별도 APK를 사용할 때는 **APK와 일치하는 `helper_manifest.json`을 같은 폴더에** 두고 `CALLISTO_HELPER_DIR`로 지정하세요. `callisto helper bundle-status`는 기기 접근 없이 경로/버전/SHA-256을 검사해요. 패키지·버전·해시가 맞지 않는 번들은 설치하지 않아요. `callisto helper status --serial SERIAL --json`은 사용자 PC에서 설치 버전과 응답 프로토콜을 확인해요. 이미 설치된 앱을 강제로 다운그레이드하지 않아요.
 
 - [현재 아키텍처](architecture.md) · [CLI 지원 현황](cli-capability-matrix.md)
-- [전환 진행 상황](migration-status.md) · [원본 보존 기준](upstream-baseline.md)
+- [원본 보존 기준](upstream-baseline.md)
 - [CLI Skill](../skills/callisto/SKILL.md)
 - [라이선스](../LICENSE), [제3자 고지](../third_party/mobile_use/NOTICE)
-- [과거 검증 기록](archive/README.md)
 
 ## 원클릭 설정과 우선순위
 
@@ -159,7 +158,7 @@ setup repair는 사용자 수정 스킬을 덮어쓰지 않아요. Helper 설치
 
 각 실행의 `*-usage.json`에는 에이전트/primary·fallback 단계별 실제 CLI usage, 이미지 치수·바이트·참조·첨부 수, 소요 시간을 기록해요. 대화 본문·화면·이미지 ID/내용 해시를 이 파일에 복제하지 않아요. 문맥이 제공되지 않는 native/독립 호출은 agent/stage를 unknown으로 표시해요. cached input을 input에 다시 더하지 않아요. usage 미반환/실패 호출이 있으면 전체 토큰 합계는 null(unknown)이고 알려진 부분합은 `known_*`로 구분해요. 가격이나 이미지 토큰을 추정하지 않아요.
 
-로컬 Windows 실기기 수용은 [시나리오](v4.2-acceptance-scenarios.json)를 같은 시작 상태로 off/balanced 각각 10~20회 실행해서 비교해요. 가로·세로·접힘 상태와 팝업은 사용자가 먼저 준비하고, 실행 PC의 OS/기기/CLI 버전을 별도로 기록해요. 작은 글씨/팝업 여부는 기기별 실제 화면을 수동 검토해요.
+로컬 Windows 실기기 수용은 [시나리오](../tests/fixtures/android-acceptance-scenarios.json)를 같은 시작 상태로 off/balanced 각각 10~20회 실행해서 비교해요. 가로·세로·접힘 상태와 팝업은 사용자가 먼저 준비하고, 실행 PC의 OS/기기/CLI 버전을 별도로 기록해요. 작은 글씨/팝업 여부는 기기별 실제 화면을 수동 검토해요.
 
 ```powershell
 # 실제 모델 추론을 사용해요. 각 샘플은 별도 하위 폴더에 결과 하나만 저장해요.

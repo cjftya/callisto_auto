@@ -4,9 +4,9 @@ Antigravity CLI (`agy`) supports host registration, explicit selection and manag
 Global directory: `~/.gemini/antigravity-cli/skills/callisto/` (separate from IDE/app).
 Pro inference with `--ai-cli antigravity` is UNSUPPORTED pending validated non-tool image
 input, complete tool blocking, structured output/usage and Android E2E. No provider fallback.
-Evidence: [Antigravity integration](maintenance/antigravity-integration.md).
+Antigravity 수용 조건은 공식 비도구 이미지 입력·도구 차단 및 Android 실기기 검증임.
 
-기준: 2026-10-20 `main`. 구조는 [아키텍처](architecture.md), 실제 설치·설정은 [고급 가이드](advanced-setup.md) 참조. 아래 구현·오프라인 계약 검사와 실제 공식 CLI·Android 수용 결과는 구분됨.
+현재 `main` 기준. 구조는 [아키텍처](architecture.md), 실제 설치·설정은 [고급 가이드](advanced-setup.md) 참조. 아래 구현·오프라인 계약 검사와 실제 공식 CLI·Android 수용 결과는 구분됨.
 
 | 기능 | Codex | Claude Code | Gemini CLI |
 | --- | --- | --- | --- |
@@ -41,12 +41,12 @@ Evidence: [Antigravity integration](maintenance/antigravity-integration.md).
 
 - Windows PowerShell·Linux bootstrap과 setup/check/repair, 자동 다중 호스트 스킬 등록 구현됨. 스킬 실행은 현재 호출 호스트를 명시함.
 - Setup `READY`의 다음 실행 안내는 실제 `ready_providers`의 CLI 이름만 표시함. 미지원·준비 미완료 호스트는 제외하며 오류 상태에서는 기존 원인별 조치 안내와 종료 코드 유지됨.
-- ZIP 설치는 스크립트 위치의 `.venv`와 두 파일의 글로벌 Skill 등록을 사용함. 설치 후 폴더 이동·이름 변경은 지원하지 않으며 새 위치에서 `.venv` 재생성·Setup 재실행이 필요함. 경로·재등록 오프라인 검증과 실제 기기 설치의 구분은 [ZIP 설치 점검](maintenance/zip-setup-validation.md) 참조.
-- 소스 설치의 `uninstall.ps1` / `uninstall.sh`는 미리보기·명시적 승인 후 해당 설치 전체와 연결된 관리 Skill을 제거함. 외부 시스템 Python 작업자가 런처 종료를 기다리고 결과 JSON을 기록함. 공유 설정은 기본 보존하며 별도 옵션·검증이 필요함. 커스텀 설정·사용자 수정 Skill·다른 설치·기기의 Helper는 보존함. 검증 범위와 한계는 [제거 검증](maintenance/uninstall-validation.md) 참조.
+- ZIP 설치는 스크립트 위치의 `.venv`와 두 파일의 글로벌 Skill 등록을 사용함. 설치 후 폴더 이동·이름 변경은 지원하지 않으며 새 위치에서 `.venv` 재생성·Setup 재실행이 필요함. 경로·재등록 오프라인 검증은 실제 기기 설치 성공과 구분함.
+- 소스 설치의 `uninstall.ps1` / `uninstall.sh`는 미리보기·명시적 승인 후 해당 설치 전체와 연결된 관리 Skill을 제거함. 외부 시스템 Python 작업자가 런처 종료를 기다리고 결과 JSON을 기록함. 공유 설정은 기본 보존하며 별도 옵션·검증이 필요함. 커스텀 설정·사용자 수정 Skill·다른 설치·기기의 Helper는 보존함. 실제 사용자 PC에서의 제거 동작은 별도 검증 대상임.
 - setup의 `adb devices` 출력은 UTF-8 및 대체 문자로 디코딩함. ADB 미설치·실행 실패·시간 초과와 기기 미연결·unauthorized·offline 안내를 구분함. Windows Python 3.13/CP949 오프라인 회귀는 통과했으며 실제 기기 연결 검증과 구분함.
 - Windows는 native 실행 파일 또는 확인된 npm JS 엔트리포인트를 사용함. 필요한 옵션을 거부하는 구버전 CLI에 안전 옵션을 빼고 재시도하지 않음.
 - Helper는 APK·manifest 해시·버전·프로토콜을 확인하고 선택 기기 락을 사용함. canonical APK 미포함 배포는 기존 호환 Helper 또는 UIAutomator2 fallback 사용함.
-- canonical 소스와 해당 소스로 빌드한 wheel에는 CI에서 생성한 개발 서명 Helper APK·대응 manifest가 포함됨. APK/manifest 해시·버전·프로토콜 검증과 실제 기기 설치 성공은 구분함. 출처는 [Helper 번들 반영 근거](migration-status.md#helper-apk-기본-번들) 참조.
+- canonical 소스와 해당 소스로 빌드한 wheel에는 CI에서 생성한 개발 서명 Helper APK·대응 manifest가 포함됨. APK/manifest 해시·버전·프로토콜 검증과 실제 기기 설치 성공은 구분함. [GitHub Actions](https://github.com/cjftya/callisto_auto/actions/workflows/offline.yml)에서 커밋별 빌드 결과 확인 가능함.
 - 내부 in-process MCP, Explorer `flash` tier, 공유 summarizer/compressor, SDK 공개 import는 보존됨. 웹 UI·HTTP Daemon·외부 MCP·독립 Flash 실행 프로필은 지원하지 않음.
 - 원격 SDK는 import 호환용이며 Callisto 원격 서버 제공을 의미하지 않음. 기존 진단 ID·경로·`artemis` 별칭 유지됨.
 
@@ -60,4 +60,4 @@ callisto run "설정 앱의 배터리 화면 확인" --ai-cli codex --device-ser
 callisto trace list
 ```
 
-공급자별 로그인·긴 입력·이미지·다중 턴·timeout·취소, Windows 프로세스 종료, Android 조작·검증·복구를 확인해야 함. 과거 기록과 최신 정리 검증은 [전환 현황](migration-status.md)에서 구분함.
+공급자별 로그인·긴 입력·이미지·다중 턴·timeout·취소, Windows 프로세스 종료, Android 조작·검증·복구를 확인해야 함. 오프라인 회귀 결과와 실제 기기·모델 수용 검증은 별도로 구분함.

@@ -4,9 +4,9 @@ Antigravity CLI (`agy`) supports host registration, explicit selection and manag
 Global directory: `~/.gemini/antigravity-cli/skills/callisto/` (separate from IDE/app).
 Pro inference with `--ai-cli antigravity` is UNSUPPORTED pending validated non-tool image
 input, complete tool blocking, structured output/usage and Android E2E. No provider fallback.
-Evidence: [Antigravity integration](maintenance/antigravity-integration.md).
+Details: [CLI capability matrix](cli-capability-matrix.md).
 
-기준: `main`, 2026-10-20. 현재 구조의 기준 문서임. 실행 계약은 `skills/callisto/SKILL.md`, 변경 금지 사항은 `AGENTS.md`에서 관리함. 과거 계획보다 현재 코드·활성 문서가 우선함.
+현재 `main` 기준. 현재 구조의 기준 문서임. 실행 계약은 `skills/callisto/SKILL.md`, 변경 금지 사항은 `AGENTS.md`에서 관리함. 과거 계획보다 현재 코드·활성 문서가 우선함.
 
 ## 실행 경로
 
@@ -38,7 +38,7 @@ Evidence: [Antigravity integration](maintenance/antigravity-integration.md).
 
 Explorer의 `flash` 탐색 tier는 독립 Flash 프로필과 다르며 유지됨. 원본 core 32개 및 engine 23개의 SHA-256은 두 보존 manifest와 회귀에서 검증함. 보존 근거는 [원본 기준선](upstream-baseline.md) 참조.
 
-DataEngine 저장 스레드의 등록·시작·정리·스냅샷은 같은 락을 사용하며, 락 밖에서 완료를 기다리고 해당 작업이 생성한 후속 저장도 비워질 때까지 대기함. 종료 호출자는 무관한 새 생산 작업을 먼저 중단해야 함. 제한적 결함 수정 근거는 [후속 수정 기록](maintenance/data-engine-followup.md) 참조.
+DataEngine 저장 스레드의 등록·시작·정리·스냅샷은 같은 락을 사용하며, 락 밖에서 완료를 기다리고 해당 작업이 생성한 후속 저장도 비워질 때까지 대기함. 종료 호출자는 무관한 새 생산 작업을 먼저 중단해야 함. 동시성 회귀 테스트는 `tests/unit/data_engine/test_background_threads.py`에서 유지함.
 
 이미지 최적화는 모델에 보내는 첨부에만 적용됨. 원본 캡처·Trace·XML과 Pro 정규화 좌표는 유지됨. CLI OCR의 전송 픽셀 좌표만 원본 크기로 역변환함. 정책 값·제약은 [고급 가이드](advanced-setup.md#이미지-안전-경계와-계측) 참조.
 
@@ -64,9 +64,6 @@ DataEngine 저장 스레드의 등록·시작·정리·스냅샷은 같은 락�
 | `docs/architecture.md` | 현재 구조와 보존·호환성 경계의 기준 |
 | `docs/advanced-setup.md` | 수동 설치·설정 우선순위·운영·이미지 상세 |
 | `docs/cli-capability-matrix.md` | 구현된 지원 범위와 검증 한계 |
-| `docs/migration-status.md` | 현재 전환 상태와 최신 검증 증거 링크 |
 | `docs/upstream-baseline.md`, `docs/upstream-*-manifest.json` | 원본 출처·보존 범위·고정 해시 |
-| `docs/maintenance/` | 정리 조사·파일별 판정·검증 증거. 실행 지침이 아님 |
-| `docs/archive/` | 과거 계획·보고서. 현재 사용법이나 모델 선택 지침이 아님 |
 
-실행·기능 관련 변경 시 해당 활성 문서를 갱신함. 과거 기록을 최신 문서에 이어 붙여 현재 상태와 혼합하지 않음.
+실행·기능 관련 변경 시 해당 활성 문서를 갱신함. 과거 계획과 검증 보고서는 Git 이력에서 확인하며 활성 문서에 혼합하지 않음.

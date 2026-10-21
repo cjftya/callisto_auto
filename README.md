@@ -52,7 +52,7 @@ Antigravity CLI가 설치되어 있으면 Setup이 해당 호스트의 Skill도 
 IDE/앱의 `~/.gemini/config/skills/`는 설치·제거 대상이 아님.
 탐색에는 PATH, `CALLISTO_ANTIGRAVITY_EXECUTABLE` 또는 공식 기본 경로인
 Windows `%LOCALAPPDATA%/agy/bin/agy.exe`, Linux `~/.local/bin/agy`를 사용함.
-설치·로그인은 공식 CLI에서 수행함. [통합 검증 기록](docs/maintenance/antigravity-integration.md) 참조.
+설치·로그인은 공식 CLI에서 수행함. [CLI 지원 범위](docs/cli-capability-matrix.md) 참조.
 
 - `SKILL.md`: canonical `skills/callisto/SKILL.md`에서 등록한 실행 지침.
 - `callisto-install.json`: 해당 `.venv` Python의 절대 경로(`python_executable`), 패키지 버전 및 Skill 관리 해시. Skill은 이 Python으로 실행할 수 있으므로 가상환경 활성화나 시스템 PATH 변경이 필요하지 않음.
@@ -205,7 +205,7 @@ callisto trace list
 
 - [고급 설치·설정·제한사항](docs/advanced-setup.md)
 - [현재 아키텍처와 문서 역할](docs/architecture.md)
-- [지원 범위](docs/cli-capability-matrix.md) · [전환 현황](docs/migration-status.md)
+- [지원 범위](docs/cli-capability-matrix.md)
 - [원본 보존 기준](docs/upstream-baseline.md) · [라이선스](LICENSE)
 
-과거 계획·검증 보고서는 [아카이브](docs/archive/README.md)에 보관됨. 현재 사용법과 구현 판단에는 위 활성 문서를 우선함.
+이전 계획과 검증 보고서는 Git 이력에서 확인할 수 있으며, 현재 기준은 위 문서 및 코드임.

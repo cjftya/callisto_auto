@@ -11,6 +11,6 @@ Android 자연어 테스트를 실행하지 않음. 현재 실행은 [Callisto �
 - `artemis.interfaces.sdk`와 `artemis`의 지연 공개 export가 이 패키지를 참조함.
 - `tests/`는 mock HTTP 계약 회귀이며 Callisto 원격 서버 지원을 의미하지 않음.
 - `examples/basic.py`와 [원본 설계](DESIGN.md)는 과거 원격 SDK 참고용임.
-  [과거 README](../../docs/archive/upstream-client-readme.md)는 별도 보관됨.
+  원본 README는 Git 이력에서 확인할 수 있음.
 
 의존성·공개 함수·기존 설치 경로와 패키지 버전은 변경하지 않음.
