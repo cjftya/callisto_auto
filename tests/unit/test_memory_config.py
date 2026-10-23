@@ -75,6 +75,7 @@ def test_memory_explicit_values():
                 "runtime": {"max_concurrency": 4, "retry_limit": 5, "flush_timeout_s": 10},
                 "transcript": {
                     "image_scrub_depth": 5,
+                    "image_scrub_depth_relaxed": 6,
                     "pending_grace_steps": 1,
                     "xml_scrub_depth": 2,
                 },
@@ -85,6 +86,7 @@ def test_memory_explicit_values():
     assert cfg.memory.runtime.retry_limit == 5
     assert cfg.memory.runtime.flush_timeout_s == 10.0
     assert cfg.memory.transcript.image_scrub_depth == 5
+    assert cfg.memory.transcript.image_scrub_depth_relaxed == 6
     assert cfg.memory.transcript.pending_grace_steps == 1
     # Legacy key: still accepted (back-compat), value retained as given.
     assert cfg.memory.transcript.xml_scrub_depth == 2
