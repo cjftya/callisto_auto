@@ -61,3 +61,17 @@ callisto trace list
 ```
 
 공급자별 로그인·긴 입력·이미지·다중 턴·timeout·취소, Windows 프로세스 종료, Android 조작·검증·복구를 확인해야 함. 오프라인 회귀 결과와 실제 기기·모델 수용 검증은 별도로 구분함.
+
+## Operator A/B 최적화의 검증 경계
+
+| 기능 | 세 공급자 공통 구현 | 운영 조건 |
+| --- | --- | --- |
+| usage 정규화 | raw + normalized + scope; unknown은 null, 누계는 합계 제외 | 설치된 CLI 버전의 실제 fixture 확인 필요 |
+| Context IR / Shadow | 메시지 순서·tool pair·status·영역 계측, 실제 입력 유지 | 기본 off |
+| Ready-only view | 기존 ready capsule의 연속 prefix, 최근 raw floor 유지 | `ready_only` 명시 선택, 실제 정확도 미검증 |
+| Evidence / pin | 현재·조회·비교 증거와 geometry 보존, 명시적 해제 | 자동 incident/판단 완료 해제는 미연결; 한도 초과 시 오류 |
+| ToolMessage status | IR에는 항상 기록, opt-in 송신에 success/error 추가 | off/shadow 송신 형식 유지 |
+| 세션 재사용 | 미구현 | 이번 범위 제외 |
+
+합성 replay의 바이트 감소와 가짜 CLI 성공은 실제 토큰/과금/행동 정확도의 증거가 아니다.
+Windows 경로·launcher 계약 회귀와 실제 Windows 호스트 실행 결과도 별도로 구분한다.

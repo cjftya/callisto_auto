@@ -59,6 +59,7 @@
       "transcript": {
         "enabled": true,
         "context_budget_tokens": 80000,
+        "context_policy": "off",
         "start_ratio": 0.35,
         "soft_ratio": 0.7,
         "hard_ratio": 0.9,

@@ -50,6 +50,7 @@ step) build their prompts from the same ledger.
 
 import json
 import time
+from uuid import uuid4
 from typing import Any, Callable
 
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
@@ -300,6 +301,12 @@ class TranscriptLedger:
         self._active_start = 0
         self._frozen_blocks: list[BaseMessage] = []
         self._chunker: Any | None = None
+        self.last_context_policy_metrics: dict = {}
+        self.evidence_registry = None
+        self._policy_hold_history = False
+        self._policy_resource_error = None
+        self._step_memory = step_memory
+        self._observation_id = None
 
         # The owning operator's last measured prompt size (tokens). This is
         # the live context base the chunker's start/soft/hard thresholds read;
@@ -361,9 +368,10 @@ class TranscriptLedger:
             image_scrub_depth=image_scrub_depth,
             pending_grace_steps=pending_grace_steps,
             xml_scrub_depth=xml_scrub_depth,
-            summary_key_getter=lambda msg: self._step_keys.get(id(msg)),
+            summary_key_getter=self._summary_key_for_message,
             strip_markers=(PRO_UI_LIST_MARKER, PLAN_RECITATION_MARKER),
             tail_offset=1,
+            image_protection=self.image_is_protected,
         )
 
     # ------------------------------------------------------------------
@@ -616,6 +624,14 @@ class TranscriptLedger:
             )
             self.commit_staged()
         self._staged = [m for m in messages if isinstance(m, BaseMessage)]
+        if self.evidence_registry is not None:
+            from callisto.llm_adapter.errors import CLIProtocolError
+            for message in self._staged:
+                try:
+                    self.evidence_registry.register(message, observation_id=self._observation_id or "unknown")
+                except CLIProtocolError:
+                    if getattr(self._chunker, "context_policy", "off") == "ready_only":
+                        raise
 
     def commit_staged(
         self,
@@ -648,7 +664,12 @@ class TranscriptLedger:
             observation = self._first_image_message(staged)
             if observation is not None:
                 self._step_keys[id(observation)] = str(step_key)
+                if observation.additional_kwargs.get("callisto_image_role") in (None, "current"):
+                    observation.additional_kwargs["callisto_image_role"] = "historical"
 
+        if self.evidence_registry is not None:
+            for message in staged:
+                self.evidence_registry.mark_historical(message, step_key)
         span_start = len(self._active)
         self._active.extend(staged)
 
@@ -732,6 +753,9 @@ class TranscriptLedger:
         """Committed turns not yet consumed by a compression event (copies)."""
         return [dict(t) for t in self._turns[self._chunked_turn_count :]]
 
+    def messages_for_turn(self, turn: dict) -> tuple[BaseMessage, ...]:
+        return tuple(self._active[turn["start"]:turn["end"]])
+
     def turn_text_chars(self, turns: list[dict]) -> int:
         """Total characters of the given turns' rendered transcripts (size
         trigger). Measured on the very text the chunk capsule receives, so
@@ -769,6 +793,70 @@ class TranscriptLedger:
     # Rendering
     # ------------------------------------------------------------------
 
+    def release_evidence(self, event: str) -> None:
+        """Host lifecycle hook; caller must establish decision/incident completion."""
+        if self.evidence_registry is not None:
+            self.evidence_registry.release(event)
+
+    def _summary_key_for_message(self, message):
+        key = self._step_keys.get(id(message))
+        if key is None and getattr(self._chunker, "context_policy", "off") == "ready_only" and self.evidence_registry:
+            items = [self.evidence_registry.entries[k] for k in message.additional_kwargs.get("callisto_evidence_ids", ())
+                     if k in self.evidence_registry.entries]
+            steps = {item.source_step_id for item in items}
+            if len(steps) == 1:
+                key = next(iter(steps))
+        return key
+
+    def image_is_protected(self, message: BaseMessage) -> bool:
+        if getattr(self._chunker, "context_policy", "off") != "ready_only":
+            return False
+        if self._policy_hold_history:
+            return True
+        return self.evidence_registry is None or self.evidence_registry.protect(message, self._step_memory)
+
+    def _prepare_evidence(self, tail):
+        from callisto.evidence import EvidenceRegistry
+        from callisto.llm_adapter.errors import CLIProtocolError
+        mode = getattr(self._chunker, "context_policy", "off")
+        self._policy_hold_history = mode == "ready_only" and any(
+            m.additional_kwargs.get(EPHEMERAL_BLOCKS_KEY) for m in tail)
+        self._policy_resource_error = None
+        if mode == "off":
+            return
+        if self.evidence_registry is None:
+            self.evidence_registry = EvidenceRegistry()
+        self._observation_id = str(uuid4())
+        try:
+            for turn in self.unchunked_turns():
+                for message in self.messages_for_turn(turn):
+                    step = self._step_keys.get(id(message))
+                    role = message.additional_kwargs.get("callisto_image_role")
+                    if role is None and step:
+                        role = "historical"
+                    self.evidence_registry.register(message, observation_id=str(turn.get("step_key") or "unknown"),
+                                                    role=role, step_id=step)
+            for message in tail:
+                message.additional_kwargs["callisto_observation_id"] = self._observation_id
+                self.evidence_registry.register(message, observation_id=self._observation_id, role="current")
+            # Explicit recall step numbers resolve through existing DataEngine records.
+            if self._chunker is not None:
+                step_ids = self._chunker.evidence_step_ids()
+                for message in self._active[self._active_start:]:
+                    number = message.additional_kwargs.get("callisto_source_step_number")
+                    if number in step_ids:
+                        step_id = step_ids[number]
+                        for key in message.additional_kwargs.get("callisto_evidence_ids", ()):
+                            self.evidence_registry.entries[key].source_step_id = step_id
+            for message in [*self._active[self._active_start:], *tail]:
+                if self._first_image_message([message]) is not None:
+                    self.evidence_registry.protect(message, self._step_memory)
+            self.evidence_registry.check_limits()
+        except CLIProtocolError:
+            if mode == "ready_only":
+                raise
+            self._policy_resource_error = "shadow_evidence_capacity"
+
     def render(self, tail: list[BaseMessage]) -> list[BaseMessage]:
         """Advance compression and return ``S + F + A + tail``.
 
@@ -783,16 +871,38 @@ class TranscriptLedger:
         appending to it (the operator's in-turn tool loop) never mutates the
         ledger regions.
         """
+        self._prepare_evidence(tail)
         self._compressor.compress(self._active, image_scrub_depth=self.effective_image_scrub_depth)
         if self._chunker is not None:
             try:
                 self._chunker.on_render(self)
             except Exception as e:
                 logger.error(f"History chunker render hook failed: {e}")
-        return [
-            *self._static,
-            *self._restored,
-            *self._frozen_blocks,
-            *self._active[self._active_start :],
-            *tail,
-        ]
+        # Sidecar provenance is excluded by the transport codec.
+        for region, messages in (("S", self._static), ("H", self._restored),
+                                 ("H", self._frozen_blocks),
+                                 ("H", self._active[self._active_start:]), ("O", tail)):
+            for message in messages:
+                message.additional_kwargs["callisto_region"] = region
+                if region == "O" and self._first_image_message([message]) is not None:
+                    message.additional_kwargs["callisto_image_role"] = "current"
+        baseline = [*self._static, *self._restored, *self._frozen_blocks,
+                    *self._active[self._active_start:], *tail]
+        mode = getattr(self._chunker, "context_policy", "off")
+        self.last_context_policy_metrics = {"mode": mode}
+        if mode in ("shadow", "ready_only"):
+            from callisto.context_policy import ready_prefix_view
+            decision = ready_prefix_view(self, self._chunker, baseline, tail)
+            self.last_context_policy_metrics.update(decision.metrics())
+            if self.evidence_registry is not None:
+                self.last_context_policy_metrics["evidence"] = self.evidence_registry.metrics()
+            if self._policy_resource_error:
+                self.last_context_policy_metrics["resource_error"] = self._policy_resource_error
+                if mode == "ready_only":
+                    from callisto.llm_adapter.errors import CLIProtocolError
+                    raise CLIProtocolError(self._policy_resource_error)
+            elif mode == "ready_only":
+                baseline = list(decision.messages)
+        for message in tail:
+            message.additional_kwargs["callisto_context_policy"] = dict(self.last_context_policy_metrics)
+        return baseline

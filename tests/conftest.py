@@ -59,6 +59,8 @@ def pytest_collection_modifyitems(items: list[pytest.Item]) -> None:
     except (OSError, ValueError):
         mismatched_procfs = False
     process_view_tests = {
+        "test_external_worker_deletes_only_temporary_install",
+        "test_shell_launcher_dry_run",
         "test_overlapping_clients_share_one_android_reference",
         "test_migration_cleanup_never_drains_a_live_legacy_owner",
         "test_device_lock_blocks_a_second_process_owner",
@@ -79,5 +81,5 @@ def pytest_collection_modifyitems(items: list[pytest.Item]) -> None:
     }
     if mismatched_procfs:
         for item in items:
-            if item.name in process_view_tests:
+            if getattr(item, "originalname", None) in process_view_tests or item.name in process_view_tests:
                 item.add_marker(pytest.mark.skip(reason="Host /proc does not match this executor's PID namespace; run on target host/CI"))

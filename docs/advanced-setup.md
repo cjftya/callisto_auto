@@ -169,3 +169,44 @@ python tools/compare_usage.py traces/off traces/balanced
 ```
 
 비교기는 상대 시나리오/반복 폴더를 맞추고 실제 입력 토큰 감소율 중앙값·통과율·실패 호출·첨부 수·전체 실행 시간을 보여줘요. 누락/미확인 usage는 절감률로 만들지 않아요. 목표는 입력 토큰 중앙값 25% 이상 절감이며, 좌표/검증 정확도가 나빠지면 `off`로 돌아가고 실패 원인을 먼저 확인해요.
+
+## Operator 문맥 정책 실험
+
+기존 에이전트 설정의 `memory.transcript.context_policy`만 선택해요.
+소스 기본값(`config/artemis.jsonc`)과 설치 패키지 기본값은 모두 `off`예요.
+`shadow`는 기존 입력을 보내고 후보 바이트 이득·차단 사유를 계측해요.
+`ready_only`는 검증된 연속 ready prefix의 송신 view와 이미지 pin 보호를 적용해요.
+실기기 수용 전에는 `off`를 운영 기본값으로 유지하세요. 공급자·모델·추론 설정은 바꾸지 않아요.
+
+- 현재 화면, 최근 raw 5 turns, 현재 loop의 tool/error/미실행 이력은 유지해요.
+- pending/failed/unknown 요약, 남아 있는 픽셀 증거, pin, coverage 불일치,
+  미완료 tool pair, 감소하지 않는 capsule은 조기 비용 교체를 막아요.
+- 현재 ephemeral 안내가 있으면 상태를 추측하지 않고 전체 조기 압축을 보류해요.
+- 조회/비교/unknown 이미지의 pin은 시간이나 연령으로 풀지 않아요.
+  통합 호스트가 완료를 확인한 뒤 `ledger.release_evidence("decision:<observation_id>")` 같은
+  정확한 이벤트를 전달해야 해요. 별도로 지정한 incident pin은 해당 해제 이벤트가 필요해요.
+  기존 Pro에 이 완료 판정 자동 연결은 추가하지 않았으므로 장기 opt-in 실행에서는 pin이 누적될 수 있어요.
+- pin은 최대 32개/원본 32 MB, registry는 4,096개예요. 초과하면 opt-in은 증거를 지우지 않고 오류를 내요.
+  Shadow는 한도 문제를 기록하고 기존 경로를 유지해요. 기존 codec의 요청 상한도 계속 적용돼요.
+- 정책을 `off`로 돌리면 새 비용 view를 해제해요. 이미 기존 scrub/hard 압축이 적용된
+  문맥의 역복원은 보장하지 않으며 기존 DataEngine/checkpoint로 새 실행 문맥을 시작해야 해요.
+
+새 usage의 `normalized_*` 합계와 `known_normalized_*` 부분합을 사용하세요.
+기존 `input_tokens`/`cli_usage` 필드는 호환용 raw 의미를 유지하므로 공급자 간 직접 비교하지 마세요.
+Claude 전체 입력은 세 입력 counter가 모두 있을 때만 계산해요. 단일 요청임을 확인하지 못한
+CLI invocation 합계는 ledger의 context pressure 값으로 전달하지 않아요.
+Gemini는 확인된 `models.*.tokens` 형태만 매핑하고 알 수 없는 형태는 raw로 보존해요.
+캐시 읽기를 Codex 입력에 다시 더하지 않으며 누락 필드를 0으로 채우지 않아요.
+계측 파일에 prompt 본문·이미지·내용 hash를 복제하지 않아요. run 내 digest 재노출은 횟수만 기록해요.
+
+기기와 공식 CLI 추론 없이 비교하는 명령이에요. 실제 토큰은 항상 null로 남겨요.
+
+```sh
+CALLISTO_FORBID_LIVE_CLI=1 python tools/compare_operator_context.py --include-b --output comparison.json
+# 가짜 Python 자식 실행도 생략하고 동일 codec/ledger만 비교
+CALLISTO_FORBID_LIVE_CLI=1 python tools/compare_operator_context.py --include-b --no-child --output comparison.json
+```
+
+Windows에서는 먼저 `$env:CALLISTO_FORBID_LIVE_CLI="1"`을 설정한 뒤 같은 Python 명령을 사용해요.
+실제 수용에서는 동일 시나리오와 시작 상태로 task/검증/복구 성공, 잘못된 PASS,
+원본 재조회, 전체 에이전트의 입력·출력·캐시 usage와 지연을 함께 비교해야 해요.

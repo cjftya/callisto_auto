@@ -503,7 +503,9 @@ class StepCapsuleLens(StepLens):
         return parsed
 
     async def _invoke(self, llm: Any, messages: list[BaseMessage], model_label: str):
-        response = await asyncio.wait_for(llm.ainvoke(messages), timeout=90.0)
+        from callisto.usage import provenance
+        with provenance(callisto_agent="step_capsule"):
+            response = await asyncio.wait_for(llm.ainvoke(messages), timeout=90.0)
         # Raw-model bypass metering (gateway-wrapped models meter themselves);
         # capsule prompts are small and are kept out of the session meter's
         # last_prompt_tokens (the compaction base itself is operator-owned on
@@ -622,6 +624,7 @@ class ChunkState:
     # Measure source at close and summary at swap; tokens are derived through
     # the ledger's calibrated chars-per-token ratio (chars // 4 by default).
     # Forced swaps without a capsule leave summary_chars unset.
+    ready_at: float | None = None
     source_chars: int = 0
     summary_chars: int | None = None
 
@@ -896,6 +899,7 @@ class HistoryChunkManager:
         # None uses max_chunks as the era cap.
         self._max_eras = int(getattr(cc, "max_eras", None) or self._max_chunks)
 
+        self.context_policy = getattr(transcript_config, "context_policy", "off")
         tc = transcript_config
         self._budget = int(getattr(tc, "context_budget_tokens", 80000) or 80000)
         start_ratio = getattr(tc, "start_ratio", None)
@@ -925,6 +929,25 @@ class HistoryChunkManager:
         self._awaiting: list[dict[str, Any]] = []
         self._chunk_counter = 0
         self._era_counter = 0
+
+    @property
+    def min_active_turns(self):
+        return self._min_active_steps
+
+    def evidence_step_ids(self):
+        return {step.get("step_number"): key for key, step in self._load_steps_by_id().items()}
+
+    def ready_policy_entries(self):
+        """Read-only container snapshot; chunk mirrors remain manager-owned."""
+        entries = []
+        for entry in self._awaiting:
+            chunk = entry["chunk"]
+            state = "unknown"
+            if chunk is not None:
+                state = "ready" if chunk.status == "ready" else (
+                    "failed" if self._capsule_service.has_failed(chunk.capsule_key) else "pending")
+            entries.append({"chunk": chunk, "turns": [dict(t) for t in entry["turns"]], "summary_state": state})
+        return tuple(entries)
 
     def _build_capsule_service(self, ctx: Any) -> StepMemoryService:
         kwargs: dict[str, Any] = {}
@@ -1231,6 +1254,19 @@ class HistoryChunkManager:
         the remaining context on the last swapped chunk's trace.
         """
         hard_line = self._budget * self._hard_ratio
+        protected_prefix_limit = None
+        if self.context_policy == "ready_only":
+            from callisto.context_policy import has_images
+            for index, entry in enumerate(self._awaiting):
+                messages = [m for t in entry["turns"] for m in ledger.messages_for_turn(t)]
+                if ledger._policy_hold_history or any(has_images([m]) and ledger.image_is_protected(m) for m in messages):
+                    protected_prefix_limit = index
+                    break
+            if ledger._policy_hold_history:
+                protected_prefix_limit = 0
+            if hard and protected_prefix_limit is not None:
+                ledger._policy_resource_error = "Protected evidence blocks legacy hard compression; no evidence was removed"
+                return
         if not self._awaiting:
             if hard and self._collapse_frozen_region():
                 ledger.freeze_turns(0, self._render_frozen_blocks())
@@ -1246,6 +1282,8 @@ class HistoryChunkManager:
         # straight to the fold.
         ready_prefix: list[dict[str, Any]] = []
         for entry in self._awaiting:
+            if protected_prefix_limit is not None and len(ready_prefix) >= protected_prefix_limit:
+                break
             chunk = entry["chunk"]
             if chunk is not None and chunk.status != "ready":
                 break
@@ -1749,6 +1787,7 @@ class HistoryChunkManager:
             chunk.band1 = band1
             chunk.band2 = render_band2(band1)
             chunk.status = "ready"
+            chunk.ready_at = time.monotonic()
             chunk.version += 1
             self._persist(chunk)
 

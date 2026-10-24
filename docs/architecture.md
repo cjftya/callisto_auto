@@ -67,3 +67,29 @@ DataEngine 저장 스레드의 등록·시작·정리·스냅샷은 같은 락�
 | `docs/upstream-baseline.md`, `docs/upstream-*-manifest.json` | 원본 출처·보존 범위·고정 해시 |
 
 실행·기능 관련 변경 시 해당 활성 문서를 갱신함. 과거 계획과 검증 보고서는 Git 이력에서 확인하며 활성 문서에 혼합하지 않음.
+
+## Operator 문맥 계측과 선택적 비용 정책
+
+`CLIChatModel`은 공급자 원본 usage와 정규화된 logical/uncached/cache-read/cache-write/output,
+usage scope를 분리한다. CLI 실행 전체 합계를 마지막 모델 요청의 문맥 크기로 가정하지 않는다.
+요청/단일 요청임이 확인된 usage만 기존 context gate에 전달하고, 나머지는 기존 추정 경로를 사용한다.
+본문·stdin·이미지 바이트와 영역별 S/D/H/O/R/unknown 계측은 토큰 수가 아니다.
+run/agent invocation/observation/logical loop/attempt 식별과 provider lock 대기 시간을 기록하며,
+반복 원인은 구조적 tool result/error만 확정하고 다른 원인은 unknown으로 남긴다.
+
+`memory.transcript.context_policy`는 `off`(기본), `shadow`, `ready_only`를 지원한다.
+기존 TranscriptLedger가 유일한 기준이며 Context IR은 변경 불가능한 출처/transaction 스냅샷이다.
+Shadow는 기존 송신을 유지한다. Ready-only는 오래된 완료 turn의 연속 ready prefix에서
+coverage·도구 pair·최근 floor·원본 이미지·오류·바이트 이득을 확인한 뒤 송신 view만 교체한다.
+원문 active span을 freeze하지 않으므로 비용 view 자체는 즉시 해제할 수 있다.
+기존 start/soft/hard, 요약 생성 cadence, 이미지 depth와 CLI 모델 선택은 유지한다.
+
+EvidenceRegistry는 원본 asset과 관측별 evidence를 구분하고 current/comparison/recalled/
+historical/overlay/unknown, summary 상태, 원본/전송 geometry와 명시적 pin을 관리한다.
+조회 이미지와 알 수 없는 증거는 자동으로 수명을 끝내지 않는다. 명시적 완료 이벤트를 통한
+pin 해제 hook은 있지만, 기존 Pro에 자동 완료 추정은 삽입하지 않았다. 현재 ephemeral 안내가
+있으면 조기 압축을 보류하며 opt-in에서 보호 증거가 hard fold를 막으면 명시적 자원 오류를 낸다.
+이는 기존 비상 압축을 비용 최적화로 재해석하는 것이 아니라 증거 유실을 막는 opt-in 제한이다.
+DataEngine 원본과 기존 search/replay/screenshot 조회는 변경하지 않는다.
+
+실제 공급자/Android 수용 전에는 기본 활성화하지 않는다. C의 CLI 세션 재사용은 구현하지 않았다.

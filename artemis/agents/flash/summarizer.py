@@ -458,7 +458,9 @@ class VisualStepSummarizer(StepMemoryService):
                 HumanMessage(content=content_blocks),
             ]
 
-            response = await asyncio.wait_for(self._llm.ainvoke(messages), timeout=25.0)
+            from callisto.usage import provenance
+            with provenance(callisto_agent="visual_summary"):
+                response = await asyncio.wait_for(self._llm.ainvoke(messages), timeout=25.0)
             self._meter_lens_call(response)
             summary_raw = response.content if isinstance(response.content, str) else ""
             if isinstance(response.content, list):

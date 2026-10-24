@@ -250,12 +250,18 @@ def tool_result_messages(
             content = text
         return [ToolMessage(tool_call_id=tool_call_id, content=content, status=status, **extra)]
 
+    # Structured provenance is sidecar-only; never changes baseline content.
+    match = _STEP_RE.search(text)
+    image_meta = {"callisto_image_role": "recalled" if name == "get_step_screenshot" else "unknown",
+                  "callisto_source_tool_call_id": tool_call_id}
+    if match:
+        image_meta["callisto_source_step_number"] = int(match.group(1))
     carrier = image_carrier or resolve_image_carrier(llm)
     if carrier == "tool":
         blocks: list[dict[str, Any]] = [{"type": "text", "text": text}] if text else []
         return [
             ToolMessage(
-                tool_call_id=tool_call_id, content=[*blocks, *images], status=status, **extra
+                tool_call_id=tool_call_id, content=[*blocks, *images], status=status, additional_kwargs=image_meta, **extra
             )
         ]
 
@@ -266,5 +272,5 @@ def tool_result_messages(
     caption += "]"
     return [
         ToolMessage(tool_call_id=tool_call_id, content=text, status=status, **extra),
-        HumanMessage(content=[{"type": "text", "text": caption}, *images]),
+        HumanMessage(content=[{"type": "text", "text": caption}, *images], additional_kwargs=image_meta),
     ]

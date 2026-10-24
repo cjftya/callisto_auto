@@ -14,10 +14,14 @@ MAX_IMAGES = 64
 MAX_TOTAL_IMAGE_BYTES = 64_000_000
 
 
-def encode_messages(messages, directory: Path, *, policy="balanced", metrics=None):
+def encode_messages(messages, directory: Path, *, policy="balanced", metrics=None, include_tool_status=False):
     history, images = [], []
     attachments = {}
     image_metrics = []
+    role_counts = {}
+    role_assets = {}
+    exposures = []
+    seen_assets = set()
     references = 0
     total_image_bytes = 0
     transmitted_bytes = 0
@@ -25,6 +29,7 @@ def encode_messages(messages, directory: Path, *, policy="balanced", metrics=Non
         content = message.content
         blocks = [{"type": "text", "text": content}] if isinstance(content, str) else content
         encoded = []
+        geometries = []
         for block in blocks:
             if isinstance(block, str):
                 encoded.append({"type": "text", "text": block})
@@ -54,7 +59,19 @@ def encode_messages(messages, directory: Path, *, policy="balanced", metrics=Non
                 references += 1
                 if len(raw) > MAX_IMAGE_BYTES or references > MAX_IMAGES or total_image_bytes > MAX_TOTAL_IMAGE_BYTES:
                     raise CLIProtocolError("Image attachments exceeded the request size/count limit; no images were dropped")
+                asset_digest = hashlib.sha256(raw).digest()
+                role = message.additional_kwargs.get("callisto_image_role", "unknown")
+                if role not in ("current", "comparison", "recalled", "historical", "overlay", "unknown"):
+                    role = "unknown"
+                role_counts[role] = role_counts.get(role, 0) + 1
+                role_assets.setdefault(role, set()).add(asset_digest)
+                if asset_digest not in seen_assets:
+                    from callisto.usage import image_exposure
+                    exposures.append(image_exposure(asset_digest))
+                    seen_assets.add(asset_digest)
                 prepared = prepare_image(raw, policy)
+                geometries.append({"original_size": list(prepared.geometry.original),
+                                   "size": list(prepared.geometry.transmitted), "policy": policy})
                 digest = (hashlib.sha256(raw).digest(), references if policy == "off" else 0)
                 if digest not in attachments:
                     transmitted_bytes += len(prepared.data)
@@ -74,6 +91,8 @@ def encode_messages(messages, directory: Path, *, policy="balanced", metrics=Non
                                 "coordinate_frame": "stored_pixels; normalized 0..1000 unchanged"})
             else:
                 raise UnsupportedCapability(f"CLI input block {kind!r} has no validated conversion")
+        if geometries:
+            message.additional_kwargs["callisto_image_geometry"] = geometries
         record = {"role": message.type, "content": encoded}
         if getattr(message, "name", None):
             record["name"] = message.name
@@ -81,12 +100,16 @@ def encode_messages(messages, directory: Path, *, policy="balanced", metrics=Non
             record["tool_call_id"] = message.tool_call_id
         if getattr(message, "tool_calls", None):
             record["tool_calls"] = message.tool_calls
+        if include_tool_status and message.type == "tool":
+            record["status"] = message.status
         history.append(record)
     if metrics is not None:
         metrics.update(image_policy=policy, image_references=references, image_attachments=len(images),
                        image_original_bytes=total_image_bytes, image_bytes=transmitted_bytes,
                        image_pixels=sum(m["size"][0] * m["size"][1] for m in image_metrics),
-                       images=image_metrics)
+                       images=image_metrics, image_role_references=role_counts,
+                       image_role_unique_assets={role: len(assets) for role, assets in role_assets.items()},
+                       unique_images_in_request=len(seen_assets), image_run_exposure_counts=exposures)
     return history, images
 
 

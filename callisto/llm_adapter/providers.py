@@ -132,7 +132,7 @@ def _gemini_usage(stats):
     return usage
 
 
-def decode_result(provider, result):
+def decode_result(provider, result, *, telemetry=None):
     require_inference_support(provider)
     if provider not in ("codex", "claude", "gemini"):
         raise UnsupportedCapability(f"CLI provider {provider!r} is not implemented")
@@ -176,6 +176,8 @@ def decode_result(provider, result):
                 raise ValueError
             usage = next((e.get("usage", {}) for e in reversed(events)
                           if e.get("type") == "turn.completed"), {})
+            if telemetry is not None:
+                telemetry.update(raw_usage=usage, usage_scope="request", context_is_single_request=True)
             return answers[-1], usage
         if provider == "claude":
             data = json.loads(result.stdout)
@@ -188,6 +190,9 @@ def decode_result(provider, result):
             answer = json.dumps(structured, ensure_ascii=False) if isinstance(structured, dict) else data["result"]
             if not isinstance(answer, str):
                 raise ValueError
+            if telemetry is not None:
+                telemetry.update(raw_usage=data.get("usage", {}), usage_scope="invocation",
+                                 context_is_single_request=data.get("num_turns") == 1)
             return answer, data.get("usage", {})
         events = [json.loads(line) for line in result.stdout.splitlines() if line.strip()]
         if not events or any(not isinstance(e, dict) for e in events):
@@ -208,6 +213,8 @@ def decode_result(provider, result):
         response = final.get("response")
         if not isinstance(response, str):
             raise ValueError
+        if telemetry is not None:
+            telemetry.update(raw_usage=statistics, usage_scope="invocation", context_is_single_request=False)
         return response, _gemini_usage(statistics)
     except (ValueError, TypeError, KeyError):
         raise CLIProtocolError(f"Malformed {provider} CLI output") from None

@@ -533,6 +533,7 @@ class RobustChatModelWrapper:
         self.base_model = base_model
         self.ctx = ctx
         self.endpoint = endpoint
+        self._callisto_loop_index = 0
 
     def __getattr__(self, item: str):
         return getattr(self.base_model, item)
@@ -624,6 +625,19 @@ class RobustChatModelWrapper:
         return type(self.base_model).__name__
 
     def _traced_call(self, args: tuple, kwargs: dict) -> tuple[tuple, dict, Any]:
+        # Per-wrapper sequence: retries retain this logical-call index.
+        self._callisto_loop_index += 1
+        kwargs = dict(kwargs)
+        config = dict(kwargs.get("config") or {})
+        metadata = dict(config.get("metadata") or {})
+        metadata["callisto_loop_index"] = self._callisto_loop_index
+        metadata["callisto_repeat_reason"] = "unknown"
+        messages = args[0] if args and isinstance(args[0], list) else []
+        if messages and getattr(messages[-1], "type", None) == "tool":
+            metadata["callisto_repeat_reason"] = (
+                "tool_error" if getattr(messages[-1], "status", None) == "error" else "tool_result")
+        config["metadata"] = metadata
+        kwargs["config"] = config
         trace_id = None
         if self.ctx and self.ctx.data_engine:
             trace_id = CURRENT_TRACE_ID.get()
@@ -952,8 +966,13 @@ def _get_llm(
         endpoint = endpoint.model_copy(update={"temperature": temperature})
     raw_model = ModelFactory.get_model(endpoint)
 
+    from callisto.usage import current_run_id
+    engine = getattr(ctx, "data_engine", None)
     handler = DataEngineCallbackHandler(ctx)
     bound_model = raw_model.with_config(callbacks=[handler], metadata={
+        "callisto_run_id": current_run_id() or str(getattr(engine, "current_session_id", None) or "unknown"),
+        "callisto_agent_invocation_id": str(uuid4()),
+        "callisto_observation_id": str(getattr(engine, "current_step_id", None) or "unknown"),
         "callisto_agent": name, "callisto_stage": "fallback" if use_fallback else "primary"})
 
     return RobustChatModelWrapper(bound_model, ctx, endpoint=endpoint)  # type: ignore

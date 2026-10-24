@@ -117,8 +117,10 @@ class ScrubEdgeCompressor:
         summary_key_getter: Callable[[BaseMessage], str | None] | None = None,
         strip_markers: tuple[str, ...] = (_UI_LIST_MARKER,),
         tail_offset: int = 0,
+        image_protection: Callable[[BaseMessage], bool] | None = None,
     ):
         self._summarizer = summarizer
+        self._image_protection = image_protection
         self._prune_history_xml = prune_history_xml
         self._image_scrub_depth = max(1, image_scrub_depth)
         self._pending_grace_steps = max(0, pending_grace_steps)
@@ -241,7 +243,17 @@ class ScrubEdgeCompressor:
                     )
                 continue
 
-            summary, pending, failed, step_no = self._lookup(rec)
+            if self._image_protection is not None and self._image_protection(messages[rec["idx"]]):
+                if past_text_edge and rec["idx"] not in self._text_scrubbed:
+                    self._rewrite(messages[rec["idx"]], rec["idx"], replacement=_KEEP_IMAGE,
+                                  is_tool=rec["is_tool"])
+                continue
+            lookup_rec = rec
+            if self._image_protection is not None and self._summary_key_getter is not None:
+                key = self._summary_key_getter(messages[rec["idx"]])
+                if key is not None:
+                    lookup_rec = {**rec, "key": str(key)}
+            summary, pending, failed, step_no = self._lookup(lookup_rec)
             replacement: Any
             if summary is not None:
                 replacement = {
