@@ -297,3 +297,44 @@ def test_unknown_role_stays_protected_even_after_explicit_pin_release():
     memory._summaries["s1"] = "ready"
     registry.release("decision:o")
     assert registry.protect(message, memory)
+
+
+def test_failed_recovery_is_excluded_from_cost_success_pairs():
+    from tools.compare_operator_acceptance import compare
+    meta = dict(provider="codex", cli_version="fixture", model_settings_label="same", scenario_revision="v1", device_configuration_label="synthetic")
+    sample = {"result": {}, "calls": [dict(provider="codex", status="completed", agent="operator",
+              normalized_usage={"usage_scope": "request", "uncached_input_tokens": 100})],
+              "review": dict(task_success=True, false_pass=False, evidence_missing=False, unsafe_release=False, recovery_success=False)}
+    result = compare((meta, {"one": sample}), (meta, {"one": sample}))
+    assert result["measured_successful_pairs"] == 0 and result["stop_and_rollback_samples"] == ["one"]
+
+
+@pytest.mark.asyncio
+async def test_environment_switches_reach_actual_adapter(monkeypatch):
+    from tests.callisto.test_adapter import fake_inference, cli_result, envelope
+    from callisto.llm_adapter.model import CLIChatModel
+    run = fake_inference(monkeypatch, cli_result(envelope()))
+    ledger = TranscriptLedger()
+    current = image_message("current")
+    messages = ledger.render([current])
+    messages.append(ToolMessage(content="result text", tool_call_id="c", status="error"))
+    await CLIChatModel().ainvoke(messages)
+    original = run.call_args.kwargs["stdin"]
+    monkeypatch.setenv("CALLISTO_OPERATOR_IMAGE_POLICY", "shadow")
+    messages = ledger.render([current])
+    messages.append(ToolMessage(content="result text", tool_call_id="c", status="error"))
+    with collect_usage() as calls:
+        await CLIChatModel().ainvoke(messages)
+    assert run.call_args.kwargs["stdin"] == original
+    assert calls[0]["context_policy"]["image_view"]["mode"] == "shadow"
+    monkeypatch.setenv("CALLISTO_COMPACT_TEXT", "1")
+    await CLIChatModel().ainvoke(messages)
+    wire = json.loads(run.call_args.kwargs["stdin"].split("\n", 1)[1])
+    assert wire["messages"][-1]["content"] == "result text"
+    assert wire["messages"][-1]["status"] == "error"
+    monkeypatch.setenv("CALLISTO_COMPACT_TEXT", "0")
+    monkeypatch.setenv("CALLISTO_OPERATOR_IMAGE_POLICY", "off")
+    messages = ledger.render([current])
+    messages.append(ToolMessage(content="result text", tool_call_id="c", status="error"))
+    await CLIChatModel().ainvoke(messages)
+    assert run.call_args.kwargs["stdin"] == original

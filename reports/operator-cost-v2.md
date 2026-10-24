@@ -33,7 +33,7 @@ compact text는 기존 ready_only 대비 75,400 B, summary 포함 입력의 약 
 
 ## 검증과 한계
 
-- 전체 회귀: **2,427 passed, 35 skipped, 8 deselected**. 이후 evidence identity 보호 보강의 영향 경로: **66 passed**. 최종 커밋의 CI 결과는 PR에서 확인한다.
+- 전체 회귀: **2,429 passed, 35 skipped, 8 deselected**. 이후 수용 비교의 복구 실패 제외와 실제 어댑터 환경변수 연결 회귀를 추가 검증했다. 최종 커밋의 CI 결과는 PR에서 확인한다.
 - ruff, pip check, git diff --check 통과.
 - 보호 manifest 두 개 그대로, 보호 소스 **55/55 SHA-256 일치**.
 - frontend-free wheel build 및 clean venv 설치/Pro import/CLI help/Skill install·update·status 통과. canonical Helper APK 포함 확인. Linux/Windows Helper 재빌드·APK-bearing wheel 검증은 PR CI에 포함한다.

@@ -62,7 +62,8 @@ def compare(a, b):
         old = before["all_agents"]["normalized_uncached_input_tokens"]
         new = after["all_agents"]["normalized_uncached_input_tokens"]
         quality = all(row["task_success"] is True and row["false_pass"] is False
-                      and row["evidence_missing"] is False and row["unsafe_release"] is False for row in (before, after))
+                      and row["evidence_missing"] is False and row["unsafe_release"] is False
+                      and row["recovery_success"] is not False for row in (before, after))
         reduction = None
         if compatible and same_provider and quality and old is not None and old > 0 and new is not None:
             reduction = 100 * (1 - new / old)
