@@ -1,0 +1,10 @@
+{
+  "task_success": null,
+  "false_pass": null,
+  "recovery_success": null,
+  "evidence_missing": null,
+  "unsafe_release": null,
+  "action_count": null,
+  "recall_calls": null,
+  "retry_calls": null
+}

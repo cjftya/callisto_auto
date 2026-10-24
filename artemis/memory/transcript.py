@@ -668,6 +668,7 @@ class TranscriptLedger:
                     observation.additional_kwargs["callisto_image_role"] = "historical"
 
         if self.evidence_registry is not None:
+            self.evidence_registry.finish_turn(staged, step_id=step_key, result=validator_result)
             for message in staged:
                 self.evidence_registry.mark_historical(message, step_key)
         span_start = len(self._active)
@@ -822,11 +823,14 @@ class TranscriptLedger:
         self._policy_hold_history = mode == "ready_only" and any(
             m.additional_kwargs.get(EPHEMERAL_BLOCKS_KEY) for m in tail)
         self._policy_resource_error = None
-        if mode == "off":
+        self._observation_id = str(uuid4())
+        for message in tail:
+            message.additional_kwargs["callisto_observation_id"] = self._observation_id
+        from callisto.image_view import image_view_mode
+        if mode == "off" and image_view_mode() == "off":
             return
         if self.evidence_registry is None:
             self.evidence_registry = EvidenceRegistry()
-        self._observation_id = str(uuid4())
         try:
             for turn in self.unchunked_turns():
                 for message in self.messages_for_turn(turn):
@@ -886,6 +890,10 @@ class TranscriptLedger:
                 message.additional_kwargs["callisto_region"] = region
                 if region == "O" and self._first_image_message([message]) is not None:
                     message.additional_kwargs["callisto_image_role"] = "current"
+        for kind, group in (("restored", self._restored), ("frozen", self._frozen_blocks),
+                            ("ledger", self._active[self._active_start:])):
+            for message in group:
+                message.additional_kwargs["callisto_history_kind"] = kind
         baseline = [*self._static, *self._restored, *self._frozen_blocks,
                     *self._active[self._active_start:], *tail]
         mode = getattr(self._chunker, "context_policy", "off")
@@ -903,6 +911,11 @@ class TranscriptLedger:
                     raise CLIProtocolError(self._policy_resource_error)
             elif mode == "ready_only":
                 baseline = list(decision.messages)
+        from callisto.image_view import image_view, image_view_mode
+        image_mode = image_view_mode()
+        if image_mode != "off":
+            baseline, image_metrics = image_view(self, baseline, mode=image_mode)
+            self.last_context_policy_metrics["image_view"] = image_metrics
         for message in tail:
             message.additional_kwargs["callisto_context_policy"] = dict(self.last_context_policy_metrics)
         return baseline

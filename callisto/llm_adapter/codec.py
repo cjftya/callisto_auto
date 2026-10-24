@@ -14,7 +14,7 @@ MAX_IMAGES = 64
 MAX_TOTAL_IMAGE_BYTES = 64_000_000
 
 
-def encode_messages(messages, directory: Path, *, policy="balanced", metrics=None, include_tool_status=False):
+def encode_messages(messages, directory: Path, *, policy="balanced", metrics=None, include_tool_status=False, compact_text=False):
     history, images = [], []
     attachments = {}
     image_metrics = []
@@ -22,6 +22,15 @@ def encode_messages(messages, directory: Path, *, policy="balanced", metrics=Non
     role_assets = {}
     exposures = []
     seen_assets = set()
+    role_transfers = {}
+    role_bytes = {}
+    shared_references = {}
+    evidence_assets = {}
+    compact_saved = 0
+    loop_exposures = []
+    known_evidence_references = 0
+    observation = next((m.additional_kwargs.get("callisto_observation_id") for m in messages
+                        if m.additional_kwargs.get("callisto_region") == "O"), None)
     references = 0
     total_image_bytes = 0
     transmitted_bytes = 0
@@ -30,6 +39,7 @@ def encode_messages(messages, directory: Path, *, policy="balanced", metrics=Non
         blocks = [{"type": "text", "text": content}] if isinstance(content, str) else content
         encoded = []
         geometries = []
+        image_ordinal = 0
         for block in blocks:
             if isinstance(block, str):
                 encoded.append({"type": "text", "text": block})
@@ -69,6 +79,12 @@ def encode_messages(messages, directory: Path, *, policy="balanced", metrics=Non
                     from callisto.usage import image_exposure
                     exposures.append(image_exposure(asset_digest))
                     seen_assets.add(asset_digest)
+                evidence_ids = message.additional_kwargs.get("callisto_evidence_ids", ())
+                evidence_id = evidence_ids[image_ordinal] if image_ordinal < len(evidence_ids) else None
+                image_ordinal += 1
+                if evidence_id:
+                    known_evidence_references += 1
+                    evidence_assets.setdefault(asset_digest, set()).add(evidence_id)
                 prepared = prepare_image(raw, policy)
                 geometries.append({"original_size": list(prepared.geometry.original),
                                    "size": list(prepared.geometry.transmitted), "policy": policy})
@@ -84,6 +100,12 @@ def encode_messages(messages, directory: Path, *, policy="balanced", metrics=Non
                     images.append(str(path))
                     attachments[digest] = len(images)
                     image_metrics.append(prepared.metrics())
+                    role_transfers[role] = role_transfers.get(role, 0) + 1
+                    role_bytes[role] = role_bytes.get(role, 0) + len(prepared.data)
+                    from callisto.usage import request_exposure
+                    loop_exposures.append(request_exposure(("image", observation, asset_digest)) if observation else None)
+                else:
+                    shared_references[role] = shared_references.get(role, 0) + 1
                 encoded.append({"type": "image_attachment", "index": attachments[digest],
                                 "mime_type": prepared.mime,
                                 "original_size": list(prepared.geometry.original),
@@ -93,7 +115,13 @@ def encode_messages(messages, directory: Path, *, policy="balanced", metrics=Non
                 raise UnsupportedCapability(f"CLI input block {kind!r} has no validated conversion")
         if geometries:
             message.additional_kwargs["callisto_image_geometry"] = geometries
-        record = {"role": message.type, "content": encoded}
+        wire_content = encoded
+        if (compact_text and len(encoded) == 1 and isinstance(encoded[0], dict)
+                and set(encoded[0]) == {"type", "text"} and encoded[0]["type"] == "text"
+                and isinstance(encoded[0]["text"], str)):
+            wire_content = encoded[0]["text"]
+            compact_saved += len(json.dumps(encoded, ensure_ascii=False, separators=(",", ":")).encode("utf-8")) - len(json.dumps(wire_content, ensure_ascii=False).encode("utf-8"))
+        record = {"role": message.type, "content": wire_content}
         if getattr(message, "name", None):
             record["name"] = message.name
         if getattr(message, "tool_call_id", None):
@@ -109,6 +137,14 @@ def encode_messages(messages, directory: Path, *, policy="balanced", metrics=Non
                        image_pixels=sum(m["size"][0] * m["size"][1] for m in image_metrics),
                        images=image_metrics, image_role_references=role_counts,
                        image_role_unique_assets={role: len(assets) for role, assets in role_assets.items()},
+                       image_required_current_assets=len(role_assets.get("current", set())),
+                       image_additional_attachments=len(images) - len(role_assets.get("current", set())),
+                       image_role_attachments=role_transfers, image_role_attachment_bytes=role_bytes,
+                       image_role_shared_references=shared_references,
+                       image_unclassified_evidence_references=references - known_evidence_references,
+                       image_same_asset_distinct_evidence=sum(max(0, len(ids)-1) for ids in evidence_assets.values()),
+                       image_observation_exposure_counts=loop_exposures,
+                       compact_text_saved_bytes=compact_saved,
                        unique_images_in_request=len(seen_assets), image_run_exposure_counts=exposures)
     return history, images
 

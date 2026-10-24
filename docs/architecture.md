@@ -86,10 +86,27 @@ coverage·도구 pair·최근 floor·원본 이미지·오류·바이트 이득�
 
 EvidenceRegistry는 원본 asset과 관측별 evidence를 구분하고 current/comparison/recalled/
 historical/overlay/unknown, summary 상태, 원본/전송 geometry와 명시적 pin을 관리한다.
-조회 이미지와 알 수 없는 증거는 자동으로 수명을 끝내지 않는다. 명시적 완료 이벤트를 통한
-pin 해제 hook은 있지만, 기존 Pro에 자동 완료 추정은 삽입하지 않았다. 현재 ephemeral 안내가
+조회 증거는 공유 ledger의 commit hook에서 정상 dispatch·닫힌 tool transaction·성공한 조회 결과·
+그 이후 AI 판단을 모두 확인한 경우에만 해당 decision pin을 해제한다. 오류·중단·미완료·
+unknown/comparison/overlay 소유권은 추정하지 않는다. 실패 실행은 step별 incident pin을 추가하며,
+후속 dispatch만으로 원래 의도 달성을 단정하지 않아 명시적 incident 해제 이벤트를 기다린다. 현재 ephemeral 안내가
 있으면 조기 압축을 보류하며 opt-in에서 보호 증거가 hard fold를 막으면 명시적 자원 오류를 낸다.
 이는 기존 비상 압축을 비용 최적화로 재해석하는 것이 아니라 증거 유실을 막는 opt-in 제한이다.
 DataEngine 원본과 기존 search/replay/screenshot 조회는 변경하지 않는다.
 
 실제 공급자/Android 수용 전에는 기본 활성화하지 않는다. C의 CLI 세션 재사용은 구현하지 않았다.
+
+
+2차 비용 후보는 `CALLISTO_OPERATOR_IMAGE_POLICY=off|shadow|ready_only`와
+`CALLISTO_COMPACT_TEXT=1`로 각각 선택한다(둘 다 기본 off).
+이미지 view는 최근 최소 5 turns·현재 loop·열린 transaction·오류·ephemeral 안내·pin·
+비-historical 역할·미완성 summary를 보존한다. 안전한 오래된 historical 이미지에 한해
+기존 ready visual summary로 **송신 사본**을 대체하며 원본 ledger/DataEngine은 그대로다.
+단일 순수 text block만 문자열로 표현하는 codec은 명시적 opt-in이고 tool ID/status/name과
+추가 block metadata를 유지한다. 정책 조합의 실제 행동 동등성은 PC 수용 대상이다.
+
+역할별 첨부 바이트는 실제 첫 첨부 역할에 한 번만 귀속하며 공유 참조는 별도 집계한다.
+필수 current 고유 자산과 추가 첨부, 같은 자산/다른 evidence, observation별 재노출,
+S/D/H/O/R 재전송 바이트·history 종류를 구분한다. 해시·픽셀·본문은 계측에 저장하지 않는다.
+반복 바이트는 캐시 적중이나 토큰 수를 의미하지 않는다. 여러 공급자가 섞인 정규화 합계는
+null이고 `by_provider`에서만 합산한다.

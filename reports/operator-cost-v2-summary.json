@@ -1,0 +1,370 @@
+{
+  "baseline_commit": "d9de35c1892bbf2d06e20ea89947e68c3283a622",
+  "matrix_rows": 256,
+  "actual_tokens": null,
+  "live_cli": false,
+  "android_acceptance": false,
+  "protected_sources": 55,
+  "representative_rows": [
+    {
+      "start_ratio": 0.35,
+      "policy": "off",
+      "loops": 4,
+      "steps": 16,
+      "summary_state": "ready",
+      "synthetic_gate_tokens": 22000,
+      "actual_input_tokens": null,
+      "actual_output_tokens": null,
+      "summary_requests": 3,
+      "summary_prompt_bytes": 191694,
+      "scripted_summary_output_bytes": 1227,
+      "total_input_payload_bytes": 9823268,
+      "swapped_chunks": 0,
+      "awaiting_chunks": 3,
+      "provider_stdin_bytes": {
+        "codex": 9631574,
+        "claude": 9879522,
+        "gemini": 9640294
+      },
+      "image_role_attachments": {
+        "current": 64,
+        "historical": 60
+      },
+      "image_role_attachment_bytes": {
+        "current": 42304,
+        "historical": 39660
+      },
+      "prompt_region_bytes": {
+        "S": 162240,
+        "D": 26752,
+        "H": 8940576,
+        "O": 18040,
+        "R": 438846,
+        "unknown": 0
+      },
+      "prompt_repeated_region_bytes": {
+        "S": 159705,
+        "D": 26334,
+        "H": 8658733,
+        "O": 13530,
+        "R": 219423,
+        "unknown": 0
+      },
+      "image_mode": "off",
+      "image_candidate_references": 0,
+      "compact_text": false,
+      "compact_text_saved_bytes": 0,
+      "stable_tool_prefix": true,
+      "candidate_saved_text_bytes": 0,
+      "operator_payload_bytes": 9631574,
+      "image_attachments": 124,
+      "image_references": 124,
+      "image_attachment_bytes": 81964,
+      "operator_calls": 64,
+      "fake_process_calls": 0,
+      "recall_calls": 0,
+      "transport_retries": 0,
+      "coverage_checks": 64
+    },
+    {
+      "start_ratio": 0.35,
+      "policy": "shadow",
+      "loops": 4,
+      "steps": 16,
+      "summary_state": "ready",
+      "synthetic_gate_tokens": 22000,
+      "actual_input_tokens": null,
+      "actual_output_tokens": null,
+      "summary_requests": 3,
+      "summary_prompt_bytes": 191694,
+      "scripted_summary_output_bytes": 1227,
+      "total_input_payload_bytes": 9823268,
+      "swapped_chunks": 0,
+      "awaiting_chunks": 3,
+      "provider_stdin_bytes": {
+        "codex": 9631574,
+        "claude": 9879522,
+        "gemini": 9640294
+      },
+      "image_role_attachments": {
+        "current": 64,
+        "historical": 60
+      },
+      "image_role_attachment_bytes": {
+        "current": 42304,
+        "historical": 39660
+      },
+      "prompt_region_bytes": {
+        "S": 162240,
+        "D": 26752,
+        "H": 8940576,
+        "O": 18040,
+        "R": 438846,
+        "unknown": 0
+      },
+      "prompt_repeated_region_bytes": {
+        "S": 159705,
+        "D": 26334,
+        "H": 8658848,
+        "O": 13530,
+        "R": 219423,
+        "unknown": 0
+      },
+      "image_mode": "off",
+      "image_candidate_references": 0,
+      "compact_text": false,
+      "compact_text_saved_bytes": 0,
+      "stable_tool_prefix": true,
+      "candidate_saved_text_bytes": 3310560,
+      "operator_payload_bytes": 9631574,
+      "image_attachments": 124,
+      "image_references": 124,
+      "image_attachment_bytes": 81964,
+      "operator_calls": 64,
+      "fake_process_calls": 0,
+      "recall_calls": 0,
+      "transport_retries": 0,
+      "coverage_checks": 64
+    },
+    {
+      "start_ratio": 0.35,
+      "policy": "ready_only",
+      "loops": 4,
+      "steps": 16,
+      "summary_state": "ready",
+      "synthetic_gate_tokens": 22000,
+      "actual_input_tokens": null,
+      "actual_output_tokens": null,
+      "summary_requests": 3,
+      "summary_prompt_bytes": 191694,
+      "scripted_summary_output_bytes": 1227,
+      "total_input_payload_bytes": 6537332,
+      "swapped_chunks": 0,
+      "awaiting_chunks": 3,
+      "provider_stdin_bytes": {
+        "codex": 6345638,
+        "claude": 6559290,
+        "gemini": 6354358
+      },
+      "image_role_attachments": {
+        "current": 64,
+        "historical": 60
+      },
+      "image_role_attachment_bytes": {
+        "current": 42304,
+        "historical": 39660
+      },
+      "prompt_region_bytes": {
+        "S": 162240,
+        "D": 26752,
+        "H": 5654556,
+        "O": 18040,
+        "R": 440670,
+        "unknown": 0
+      },
+      "prompt_repeated_region_bytes": {
+        "S": 159705,
+        "D": 26334,
+        "H": 5369585,
+        "O": 13530,
+        "R": 220335,
+        "unknown": 0
+      },
+      "image_mode": "off",
+      "image_candidate_references": 0,
+      "compact_text": false,
+      "compact_text_saved_bytes": 0,
+      "stable_tool_prefix": true,
+      "candidate_saved_text_bytes": 3324240,
+      "operator_payload_bytes": 6345638,
+      "image_attachments": 124,
+      "image_references": 124,
+      "image_attachment_bytes": 81964,
+      "operator_calls": 64,
+      "fake_process_calls": 0,
+      "recall_calls": 0,
+      "transport_retries": 0,
+      "coverage_checks": 64
+    },
+    {
+      "start_ratio": 0.35,
+      "policy": "ready_only",
+      "loops": 4,
+      "steps": 16,
+      "summary_state": "ready",
+      "synthetic_gate_tokens": 22000,
+      "actual_input_tokens": null,
+      "actual_output_tokens": null,
+      "summary_requests": 3,
+      "summary_prompt_bytes": 191694,
+      "scripted_summary_output_bytes": 1227,
+      "total_input_payload_bytes": 6537332,
+      "swapped_chunks": 0,
+      "awaiting_chunks": 3,
+      "provider_stdin_bytes": {
+        "codex": 6345638,
+        "claude": 6559290,
+        "gemini": 6354358
+      },
+      "image_role_attachments": {
+        "current": 64,
+        "historical": 60
+      },
+      "image_role_attachment_bytes": {
+        "current": 42304,
+        "historical": 39660
+      },
+      "prompt_region_bytes": {
+        "S": 162240,
+        "D": 26752,
+        "H": 5654556,
+        "O": 18040,
+        "R": 440670,
+        "unknown": 0
+      },
+      "prompt_repeated_region_bytes": {
+        "S": 159705,
+        "D": 26334,
+        "H": 5369585,
+        "O": 13530,
+        "R": 220335,
+        "unknown": 0
+      },
+      "image_mode": "shadow",
+      "image_candidate_references": 0,
+      "compact_text": false,
+      "compact_text_saved_bytes": 0,
+      "stable_tool_prefix": true,
+      "candidate_saved_text_bytes": 3324240,
+      "operator_payload_bytes": 6345638,
+      "image_attachments": 124,
+      "image_references": 124,
+      "image_attachment_bytes": 81964,
+      "operator_calls": 64,
+      "fake_process_calls": 0,
+      "recall_calls": 0,
+      "transport_retries": 0,
+      "coverage_checks": 64
+    },
+    {
+      "start_ratio": 0.35,
+      "policy": "ready_only",
+      "loops": 4,
+      "steps": 16,
+      "summary_state": "ready",
+      "synthetic_gate_tokens": 22000,
+      "actual_input_tokens": null,
+      "actual_output_tokens": null,
+      "summary_requests": 3,
+      "summary_prompt_bytes": 191694,
+      "scripted_summary_output_bytes": 1227,
+      "total_input_payload_bytes": 6537332,
+      "swapped_chunks": 0,
+      "awaiting_chunks": 3,
+      "provider_stdin_bytes": {
+        "codex": 6345638,
+        "claude": 6559290,
+        "gemini": 6354358
+      },
+      "image_role_attachments": {
+        "current": 64,
+        "historical": 60
+      },
+      "image_role_attachment_bytes": {
+        "current": 42304,
+        "historical": 39660
+      },
+      "prompt_region_bytes": {
+        "S": 162240,
+        "D": 26752,
+        "H": 5654556,
+        "O": 18040,
+        "R": 440670,
+        "unknown": 0
+      },
+      "prompt_repeated_region_bytes": {
+        "S": 159705,
+        "D": 26334,
+        "H": 5369585,
+        "O": 13530,
+        "R": 220335,
+        "unknown": 0
+      },
+      "image_mode": "ready_only",
+      "image_candidate_references": 0,
+      "compact_text": false,
+      "compact_text_saved_bytes": 0,
+      "stable_tool_prefix": true,
+      "candidate_saved_text_bytes": 3324240,
+      "operator_payload_bytes": 6345638,
+      "image_attachments": 124,
+      "image_references": 124,
+      "image_attachment_bytes": 81964,
+      "operator_calls": 64,
+      "fake_process_calls": 0,
+      "recall_calls": 0,
+      "transport_retries": 0,
+      "coverage_checks": 64
+    },
+    {
+      "start_ratio": 0.35,
+      "policy": "ready_only",
+      "loops": 4,
+      "steps": 16,
+      "summary_state": "ready",
+      "synthetic_gate_tokens": 22000,
+      "actual_input_tokens": null,
+      "actual_output_tokens": null,
+      "summary_requests": 3,
+      "summary_prompt_bytes": 191694,
+      "scripted_summary_output_bytes": 1227,
+      "total_input_payload_bytes": 6461932,
+      "swapped_chunks": 0,
+      "awaiting_chunks": 3,
+      "provider_stdin_bytes": {
+        "codex": 6270238,
+        "claude": 6465794,
+        "gemini": 6278958
+      },
+      "image_role_attachments": {
+        "current": 64,
+        "historical": 60
+      },
+      "image_role_attachment_bytes": {
+        "current": 42304,
+        "historical": 39660
+      },
+      "prompt_region_bytes": {
+        "S": 160640,
+        "D": 26752,
+        "H": 5585556,
+        "O": 18040,
+        "R": 435870,
+        "unknown": 0
+      },
+      "prompt_repeated_region_bytes": {
+        "S": 158130,
+        "D": 26334,
+        "H": 5303685,
+        "O": 13530,
+        "R": 217935,
+        "unknown": 0
+      },
+      "image_mode": "ready_only",
+      "image_candidate_references": 0,
+      "compact_text": true,
+      "compact_text_saved_bytes": 75400,
+      "stable_tool_prefix": true,
+      "candidate_saved_text_bytes": 3324240,
+      "operator_payload_bytes": 6270238,
+      "image_attachments": 124,
+      "image_references": 124,
+      "image_attachment_bytes": 81964,
+      "operator_calls": 64,
+      "fake_process_calls": 0,
+      "recall_calls": 0,
+      "transport_retries": 0,
+      "coverage_checks": 64
+    }
+  ]
+}

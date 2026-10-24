@@ -1,0 +1,13 @@
+{
+  "revision": "operator-cost-v2-1",
+  "minimum_initial_repetitions_per_mode": 3,
+  "modes": ["off", "shadow", "ready_only", "image_ready_only", "compact_text"],
+  "stop_on": ["false_pass", "required_evidence_missing", "unsafe_pin_release", "recovery_failure"],
+  "scenarios": [
+    {"id":"gallery-studio-ten", "start":"Samsung Gallery, fixed test album with 10 non-private synthetic images, no existing project selected", "goal":"Select exactly 10 test images and create a Studio project", "verify":"Human review of selected count, project creation and original media preservation; reset by removing only the disposable test project"},
+    {"id":"recall-compare", "start":"Fixed test list with synthetic numeric values and checked boxes", "goal":"Read first screen, navigate, explicitly recall earlier step screenshot and compare a specified value", "verify":"Current and recalled pixels present in required requests; no mistaken PASS"},
+    {"id":"recover-popup", "start":"Same fixed test app; operator manually introduces a harmless blocking popup at the agreed step", "goal":"Recover through the normal Pro incident path and complete the original check", "verify":"Failed action retained, unresolved incident pins retained, restoration and original intent separately verified"},
+    {"id":"geometry", "start":"Repeat fixture in portrait, landscape, folded and unfolded states with small text and checked/unchecked controls", "goal":"Read count and checkbox state using the current screen", "verify":"No crop or resolution change introduced by this candidate; coordinate geometry matches attachments"}
+  ],
+  "windows_checks": ["long stdin", "Unicode and space paths", "cancel", "timeout and child process termination", "clean wheel and Skill install", "Helper APK/manifest match"]
+}
