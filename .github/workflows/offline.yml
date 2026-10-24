@@ -37,6 +37,9 @@ jobs:
       - name: CLI and process portability (Windows)
         if: runner.os == 'Windows'
         run: python -m pytest tests/callisto tests/unit/mcp tests/unit/runtime/test_helper_manager.py tests/unit/data_engine/test_background_threads.py --junitxml=dist/tests.xml
+      - name: Operator context and image shadow matrix (256 offline cases)
+        if: runner.os == 'Linux'
+        run: python tools/compare_operator_context.py --include-b --include-v2 --no-child --output dist/operator-v2-comparison.json > dist/operator-v2-comparison.log
       - run: python -m ruff check callisto tools tests/callisto
       - run: python -m pip check
       - run: python -m pip wheel --no-deps --no-build-isolation -w dist .

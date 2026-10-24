@@ -1,6 +1,7 @@
 """LangChain model boundary; ARTEMIS retains all planning and tool execution."""
 
 import asyncio
+import os
 import json
 from pathlib import Path
 import tempfile
@@ -109,6 +110,7 @@ class CLIChatModel(BaseChatModel):
         for message in messages:
             if message.additional_kwargs.get("callisto_region") == "O":
                 metrics["context_policy"] = message.additional_kwargs.get("callisto_context_policy", {})
+                metrics["observation_id"] = message.additional_kwargs.get("callisto_observation_id") or metrics.get("observation_id")
         provider = resolve_provider(self.provider)
         from callisto.llm_adapter.providers import require_inference_support
         require_inference_support(provider)
@@ -130,7 +132,10 @@ class CLIChatModel(BaseChatModel):
                     schema_path = directory / "response-schema.json"
                     schema_path.write_text(json.dumps(schema), encoding="utf-8")
                     history, images = encode_messages(messages, directory, policy=self.image_policy, metrics=metrics,
-                        include_tool_status=metrics.get("context_policy", {}).get("mode") == "ready_only")
+                        include_tool_status=(metrics.get("context_policy", {}).get("mode") == "ready_only"
+                                             or metrics.get("context_policy", {}).get("image_view", {}).get("mode") == "ready_only"
+                                             or os.environ.get("CALLISTO_COMPACT_TEXT") == "1"),
+                        compact_text=os.environ.get("CALLISTO_COMPACT_TEXT") == "1")
                     prompt = encode_prompt(history, tools, tool_choice, schema)
                     command = command_for(provider, self.model_name, directory, images,
                                           schema_path, self.reasoning_effort)

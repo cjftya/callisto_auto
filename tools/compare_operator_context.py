@@ -26,8 +26,10 @@ from artemis.memory.transcript import TranscriptLedger
 from callisto.llm_adapter.codec import encode_messages, encode_prompt
 from callisto.llm_adapter.model import response_schema
 from callisto.llm_adapter.process import run_process
-from callisto.llm_adapter.providers import decode_result
-from callisto.llm_adapter.prompt_metrics import json_bytes
+from callisto.llm_adapter.providers import decode_result, build_stdin
+from callisto.llm_adapter.prompt_metrics import json_bytes, prompt_metrics
+from callisto.usage import collect_usage
+from callisto.image_view import image_view
 
 
 class FixtureEngine:
@@ -106,7 +108,7 @@ print(json.dumps({"type":"turn.completed"}))
 '''
 
 
-async def replay(*, start_ratio, loops, steps, summary_state, execute=True, policy="off"):
+async def replay(*, start_ratio, loops, steps, summary_state, execute=True, policy="off", image_mode="off", compact_text=False):
     engine = FixtureEngine()
     summaries = FixtureSummaries(summary_state)
     visual = StepMemoryService(ctx=None)
@@ -122,9 +124,12 @@ async def replay(*, start_ratio, loops, steps, summary_state, execute=True, poli
     counters = dict(operator_payload_bytes=0, image_attachments=0, image_references=0,
                     image_attachment_bytes=0, operator_calls=0, fake_process_calls=0, recall_calls=0,
                     transport_retries=0, coverage_checks=0)
+    roles, role_bytes, regions, repeated_regions = {}, {}, {}, {}
+    stdin_bytes = dict.fromkeys(("codex", "claude", "gemini"), 0)
+    image_candidates = compact_saved = 0
     prefixes = []
     policy_saved_bytes = 0
-    with tempfile.TemporaryDirectory(prefix="callisto-offline-") as directory:
+    with collect_usage(), tempfile.TemporaryDirectory(prefix="callisto-offline-") as directory:
         directory = Path(directory)
         fake = directory / "fixture.py"
         fake.write_text(FAKE, encoding="utf-8")
@@ -133,17 +138,30 @@ async def replay(*, start_ratio, loops, steps, summary_state, execute=True, poli
                 summaries.advance()
             current = observation(i)
             messages = ledger.render([current])
+            if image_mode != "off":
+                messages, view_metrics = image_view(ledger, messages, mode=image_mode)
+                image_candidates += view_metrics["candidate_references"] * loops
             policy_saved_bytes += ledger.last_context_policy_metrics.get("saved_serialized_text_bytes", 0) * loops
             local_turn = [current]
             for inner in range(loops):
                 metrics = {}
-                history, images = encode_messages(messages, directory, metrics=metrics, include_tool_status=policy == "ready_only")
+                history, images = encode_messages(messages, directory, metrics=metrics, include_tool_status=policy == "ready_only" or compact_text, compact_text=compact_text)
                 prompt = encode_prompt(history, [], None, response_schema([]))
+                measured = prompt_metrics(messages, history, [], None, response_schema([]), prompt, prompt)
+                for provider in stdin_bytes:
+                    stdin_bytes[provider] += len(build_stdin(provider, prompt, images).encode("utf-8"))
+                for totals, values in ((roles, metrics["image_role_attachments"]),
+                                       (role_bytes, metrics["image_role_attachment_bytes"]),
+                                       (regions, measured["prompt_region_bytes"]),
+                                       (repeated_regions, measured["prompt_repeated_region_bytes"])):
+                    for key, value in values.items():
+                        totals[key] = totals.get(key, 0) + value
+                compact_saved += metrics["compact_text_saved_bytes"]
                 # Independent oracle: current image/text and all current-loop pairs survive.
                 assert f"CURRENT-{i}:" in prompt
                 assert current.content[1] in current.content
                 current_record = next(r for r in history if any(
-                    b.get("type") == "text" and f"CURRENT-{i}:" in b.get("text", "") for b in r["content"]))
+                    isinstance(b, dict) and b.get("type") == "text" and f"CURRENT-{i}:" in b.get("text", "") for b in r["content"]))
                 assert any(b.get("type") == "image_attachment" for b in current_record["content"])
                 for j in range(inner):
                     assert f"query-{i}-{j}" in prompt and f"RESULT-{i}-{j}" in prompt
@@ -179,10 +197,15 @@ async def replay(*, start_ratio, loops, steps, summary_state, execute=True, poli
                 scripted_summary_output_bytes=summaries.summary_output_bytes,
                 total_input_payload_bytes=counters["operator_payload_bytes"] + summaries.summary_prompt_bytes,
                 swapped_chunks=len(manager.chunks), awaiting_chunks=len(manager.awaiting_chunks),
+                provider_stdin_bytes=stdin_bytes, image_role_attachments=roles,
+                image_role_attachment_bytes=role_bytes, prompt_region_bytes=regions,
+                prompt_repeated_region_bytes=repeated_regions, image_mode=image_mode,
+                image_candidate_references=image_candidates, compact_text=compact_text,
+                compact_text_saved_bytes=compact_saved,
                 stable_tool_prefix=True, candidate_saved_text_bytes=policy_saved_bytes, **counters)
 
 
-async def compare(execute=True, include_b=False):
+async def compare(execute=True, include_b=False, include_v2=False):
     rows = []
     for steps in (4, 16):
         for loops in (1, 2, 4, 8):
@@ -194,6 +217,11 @@ async def compare(execute=True, include_b=False):
                     for mode in ("shadow", "ready_only"):
                         rows.append(await replay(start_ratio=.35, loops=loops, steps=steps,
                                                  summary_state=state, execute=execute, policy=mode))
+                if include_v2:
+                    for image_mode, compact in (("shadow", False), ("ready_only", False), ("ready_only", True)):
+                        rows.append(await replay(start_ratio=.35, loops=loops, steps=steps,
+                                                 summary_state=state, execute=execute, policy="ready_only",
+                                                 image_mode=image_mode, compact_text=compact))
     return {"method": "scripted transport/context replay; not live Operator or model-quality acceptance",
             "actual_tokens": None, "summary_execution": "rendered prompts and scripted capsules; no inference",
             "net_token_savings": None, "rows": rows}
@@ -203,11 +231,12 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--include-b", action="store_true")
+    parser.add_argument("--include-v2", action="store_true")
     parser.add_argument("--no-child", action="store_true", help="codec-only replay for quick regression")
     args = parser.parse_args()
     if os.environ.get("CALLISTO_FORBID_LIVE_CLI") != "1":
         parser.error("CALLISTO_FORBID_LIVE_CLI=1 is required")
-    report = asyncio.run(compare(execute=not args.no_child, include_b=args.include_b))
+    report = asyncio.run(compare(execute=not args.no_child, include_b=args.include_b, include_v2=args.include_v2))
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
     print(f"Wrote {len(report['rows'])} offline comparisons to {args.output}")

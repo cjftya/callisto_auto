@@ -80,7 +80,7 @@ def ready_prefix_view(ledger, manager, baseline, tail):
             reason = "error_or_unexecuted_evidence"
             break
         replacement = HumanMessage(content=[{"type": "text", "text": render_chunk_block(chunk)}],
-                                   additional_kwargs={"callisto_region": "H"})
+                                   additional_kwargs={"callisto_region": "H", "callisto_history_kind": "capsule"})
         with_status = manager.context_policy == "ready_only"
         benefit = text_wire_bytes(source, include_tool_status=with_status) - text_wire_bytes([replacement])
         if benefit <= 0:

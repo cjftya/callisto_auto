@@ -20,6 +20,7 @@ class ImageEvidence:
     source_tool_call_id: str | None
     original_bytes: int
     pins: dict[str, str] = field(default_factory=dict)
+    decision_released: bool = False
     summary_status: str = "unknown"
     summary_version: int | None = None
     original_geometry: tuple[int, int] | None = None
@@ -33,22 +34,15 @@ class EvidenceRegistry:
         self.run_id = str(run_id or uuid4())
         self.entries = {}
         self.max_pins, self.max_pin_bytes, self.max_entries = max_pins, max_pin_bytes, max_entries
+        self.lifecycle_counts = {}
 
     def register(self, message, *, observation_id, role=None, step_id=None):
         blocks = message.content if isinstance(message.content, list) else []
         images = [b for b in blocks if isinstance(b, dict) and b.get("type") in ("image", "image_url")]
         if not images:
             return ()
-        existing = message.additional_kwargs.get("callisto_evidence_ids", ())
-        if existing and all(e in self.entries for e in existing):
-            self.sync_geometry(message)
-            return tuple(existing)
-        role = role or message.additional_kwargs.get("callisto_image_role", "unknown")
-        role = role if role in ROLES else "unknown"
-        ids = []
-        for variant, block in enumerate(images):
-            if len(self.entries) >= self.max_entries:
-                raise CLIProtocolError("Evidence registry capacity exceeded; no evidence was evicted")
+        identities = []
+        for block in images:
             raw = None
             try:
                 value = block.get("image_url", block.get("url", ""))
@@ -56,13 +50,27 @@ class EvidenceRegistry:
                 data = block.get("data") if block.get("source_type") == "base64" else url.split(";base64,", 1)[1]
                 raw = base64.b64decode(data, validate=True)
             except (ValueError, TypeError, KeyError, IndexError, AttributeError):
-                pass  # The codec still rejects malformed/remote images at transport.
+                pass  # The codec rejects malformed/remote images at transport.
             asset = hashlib.sha256(raw).hexdigest() + ":original-stored-v1" if raw is not None else None
+            identities.append((asset, len(raw) if raw is not None else 0))
+        existing = message.additional_kwargs.get("callisto_evidence_ids", ())
+        if (len(existing) == len(images) and all(e in self.entries for e in existing)
+                and all(self.entries[e].asset_id == asset
+                        for e, (asset, _) in zip(existing, identities))):
+            self.sync_geometry(message)
+            return tuple(existing)
+        if len(self.entries) + len(images) > self.max_entries:
+            raise CLIProtocolError("Evidence registry capacity exceeded; no evidence was evicted")
+        # A changed payload or a resumed sidecar cannot inherit a prior release.
+        role = "unknown" if existing else role or message.additional_kwargs.get("callisto_image_role", "unknown")
+        role = role if role in ROLES else "unknown"
+        ids = []
+        for variant, (asset, original_bytes) in enumerate(identities):
             evidence_id = f"{self.run_id}:{uuid4()}"
             item = ImageEvidence(evidence_id, asset, str(observation_id), variant, role,
                                  str(step_id) if step_id is not None else None,
                                  message.additional_kwargs.get("callisto_source_tool_call_id") or getattr(message, "tool_call_id", None),
-                                 len(raw) if raw is not None else 0)
+                                 original_bytes)
             if role in ("recalled", "comparison", "overlay", "unknown"):
                 item.pins[role] = f"decision:{observation_id}"
             self.entries[evidence_id] = item
@@ -99,6 +107,46 @@ class EvidenceRegistry:
         for item in self.entries.values():
             item.pins = {reason: until for reason, until in item.pins.items() if until != event}
 
+    def finish_turn(self, messages, *, step_id, result):
+        """Shared ledger commit hook, after the preserved Validator has returned.
+
+        Dispatch closes this turn's decision, not the blocked intent of an
+        incident. No timeout, age, model prose or successful helper implies it.
+        """
+        from callisto.llm_adapter.context_ir import closed_transactions
+        keys = {k for m in messages for k in m.additional_kwargs.get("callisto_evidence_ids", ())}
+        items = [self.entries[k] for k in keys if k in self.entries]
+        status = result.get("status") if isinstance(result, dict) else None
+        if status == "failed" and step_id:
+            for item in items:
+                item.pins[f"incident:{step_id}"] = f"incident:{step_id}"
+            outcome = "failed_retained"
+        elif (status == "dispatched" and step_id and not result.get("incident")
+              and closed_transactions(messages)
+              and not any(getattr(m, "status", None) == "error" for m in messages)):
+            outcome = "dispatched"
+            for item in items:
+                # Unknown/overlay/comparison ownership is not established by a
+                # screenshot recall. Only release a proven consumed recall.
+                carriers = [i for i, m in enumerate(messages)
+                            if item.evidence_id in m.additional_kwargs.get("callisto_evidence_ids", ())]
+                consumed = (carriers and any(m.type == "ai" for m in messages[max(carriers)+1:])
+                            and any(getattr(m, "tool_call_id", None) == item.source_tool_call_id
+                                    and getattr(m, "status", None) == "success" for m in messages)
+                            and any(c.get("id") == item.source_tool_call_id and c.get("name") == "get_step_screenshot"
+                                    for m in messages for c in (getattr(m, "tool_calls", None) or [])))
+                if item.role != "recalled" or not consumed or not item.source_tool_call_id:
+                    continue
+                event = f"decision:{item.observation_id}"
+                if item.pins.get("recalled") == event:
+                    del item.pins["recalled"]
+                    item.decision_released = True
+                    item.role = "historical"
+                    self.lifecycle_counts["recall_decision_released"] = self.lifecycle_counts.get("recall_decision_released", 0) + 1
+        else:
+            outcome = "unconfirmed_retained"
+        self.lifecycle_counts[outcome] = self.lifecycle_counts.get(outcome, 0) + 1
+
     def check_limits(self):
         pinned = [e for e in self.entries.values() if e.pins]
         if len(pinned) > self.max_pins or sum(e.original_bytes for e in pinned) > self.max_pin_bytes:
@@ -123,11 +171,11 @@ class EvidenceRegistry:
                 item.summary_status = "pending"
             else:
                 item.summary_status = "unknown"
-            protected |= bool(item.pins) or item.role == "current" or item.summary_status != "ready"
+            protected |= item.asset_id is None or bool(item.pins) or item.role != "historical" or item.summary_status != "ready"
         return protected
 
     def metrics(self):
-        result = {"evidence_count": len(self.entries), "pinned_evidence": 0, "roles": {}, "summary_status": {}}
+        result = {"evidence_count": len(self.entries), "pinned_evidence": 0, "roles": {}, "summary_status": {}, "lifecycle": dict(self.lifecycle_counts)}
         for item in self.entries.values():
             result["pinned_evidence"] += bool(item.pins)
             result["roles"][item.role] = result["roles"].get(item.role, 0) + 1

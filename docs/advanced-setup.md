@@ -185,7 +185,9 @@ python tools/compare_usage.py traces/off traces/balanced
 - 조회/비교/unknown 이미지의 pin은 시간이나 연령으로 풀지 않아요.
   통합 호스트가 완료를 확인한 뒤 `ledger.release_evidence("decision:<observation_id>")` 같은
   정확한 이벤트를 전달해야 해요. 별도로 지정한 incident pin은 해당 해제 이벤트가 필요해요.
-  기존 Pro에 이 완료 판정 자동 연결은 추가하지 않았으므로 장기 opt-in 실행에서는 pin이 누적될 수 있어요.
+  공유 ledger commit에서 정상 dispatch·닫힌 tool pair·성공한 screenshot 조회와 후속 AI 판단을
+  모두 확인하면 그 조회의 decision pin만 자동 해제해요. 비교·unknown·실패·incident는
+  별도 소유권이므로 유지해요. incident의 실행 복구와 원래 목표 해결은 다르게 판단해요.
 - pin은 최대 32개/원본 32 MB, registry는 4,096개예요. 초과하면 opt-in은 증거를 지우지 않고 오류를 내요.
   Shadow는 한도 문제를 기록하고 기존 경로를 유지해요. 기존 codec의 요청 상한도 계속 적용돼요.
 - 정책을 `off`로 돌리면 새 비용 view를 해제해요. 이미 기존 scrub/hard 압축이 적용된
@@ -210,3 +212,58 @@ CALLISTO_FORBID_LIVE_CLI=1 python tools/compare_operator_context.py --include-b 
 Windows에서는 먼저 `$env:CALLISTO_FORBID_LIVE_CLI="1"`을 설정한 뒤 같은 Python 명령을 사용해요.
 실제 수용에서는 동일 시나리오와 시작 상태로 task/검증/복구 성공, 잘못된 PASS,
 원본 재조회, 전체 에이전트의 입력·출력·캐시 usage와 지연을 함께 비교해야 해요.
+
+
+### 2차 후보 선택·롤백 및 PC 수용
+
+| 선택 | 기본값 | 동작 / 롤백 |
+|---|---|---|
+| `memory.transcript.context_policy` | `off` | 기존 `shadow` → 수용 후 `ready_only`; `off`로 비용 view 해제 |
+| `CALLISTO_OPERATOR_IMAGE_POLICY` | `off` | `shadow`는 후보 계산만, `ready_only`는 보호 조건을 통과한 오래된 이미지 송신 사본만 ready summary로 대체; `off`로 해제 |
+| `CALLISTO_COMPACT_TEXT` | 미설정 | `1`일 때 단일 순수 text block의 wrapper 축소; unset/`0`으로 원래 표현 |
+
+이미지 view는 현재 화면, 최근 최소 5 turns, 현재 loop의 조회, 열린 tool transaction,
+오류, 활성 안내, pin, unknown/comparison/recalled/overlay, pending/failed/unknown summary를
+제거하지 않아요. 같은 바이너리의 서로 다른 evidence identity도 합치지 않아요.
+이미지 리사이즈/crop 정책은 이 작업에서 변경하지 않아요. 기존 `--image-policy`와 별개예요.
+송신 view는 되돌릴 수 있지만 기존 엔진의 scrub/hard fold 자체의 역복원은 보장하지 않아요.
+
+Pin 소유권: 조회 decision은 한 관측의 tool 결과 소비에 한정해요. 정상 dispatch가 있어도
+중간 오류, 호출 ID 불일치, 결과 미소비, 중단/timeout이면 유지해요. 실패 step의 incident pin은
+`incident:<step_id>`이며 소유 호스트가 원래 의도 해결까지 확인한 명시적 이벤트로만 해제해요.
+comparison/overlay/unknown은 자동 종료 신호가 없으므로 유지해요. 재시작 시 registry의
+옛 decision 해제를 믿지 않고 재등록·재조회하고 미확정 pin은 다시 확인해요. 원본은 DataEngine에 남아요.
+32 pinned evidence/32 MB/4096 registry 한도를 넘으면 shadow는 후보를 보류하고,
+기존 ready_only 보호 경로는 명시적 오류를 내요. 조용한 evict나 timeout 해제는 없어요.
+
+오프라인 매트릭스와 전체 회귀:
+
+```sh
+CALLISTO_FORBID_LIVE_CLI=1 python tools/compare_operator_context.py --include-b --include-v2 --no-child --output dist/operator-v2-comparison.json
+CALLISTO_FORBID_LIVE_CLI=1 python -m pytest
+```
+
+PC에서 [환경 기록](../tests/fixtures/operator-cost-v2/baseline-metadata.json),
+[수용 시나리오](../tests/fixtures/operator-cost-v2/scenarios.json),
+[수동 판정 양식](../tests/fixtures/operator-cost-v2/acceptance.json)을 복사해 채워요.
+CLI 버전, 동일 모델 설정을 뜻하는 비식별 label, 기기 화면 구성, 시작 상태와 시나리오 revision을 고정해요.
+실제 raw usage/normalized scope를 설치된 공급자 1종에서 확인하고 불명확하면 null을 유지해요.
+Codex input은 cached를 포함하고 uncached=input-cached, Claude는 fresh/read/write가 각각 있으며,
+Gemini는 확인된 `models.*.tokens` 계약만 지원해요. 이 매핑의 실제 설치 버전 확인은 아직 필요해요.
+요약·복구·재시도를 포함한 전체 agent 비용과 output/cache-write도 함께 비교해요.
+
+유료 호출 전에 범위와 예상 호출 수 승인을 받은 뒤 같은 시작 상태로 off → shadow →
+ready_only → 이미지 opt-in → text opt-in을 순차 비교해요(초기 권장 각 3회).
+실행 PC에서만 `CALLISTO_FORBID_LIVE_CLI`를 해제해요. 각 scenario/repetition 폴더에
+동일 session의 `*-result.json`, `*-usage.json`과 수동 `acceptance.json`을 두고, 각 모드 root에
+`baseline-metadata.json`을 둬요. 실제 로그의 prompt/screenshot은 외부로 올리지 마세요.
+
+```sh
+python tools/compare_operator_acceptance.py traces/off traces/ready_only --output acceptance-comparison.json
+```
+
+이 비교기는 공급자·CLI 버전·모델 설정 label·기기 구성·시나리오가 같고, 두 실행 모두 수동 성공과
+필수 증거 보존을 확인한 경우에만 전체 uncached 절감률을 계산해요. provider 미상·scope 누계·
+누락 usage는 제외하고 known 부분합은 별도 유지해요. 잘못된 PASS, 증거 누락, 위험한 Pin 해제,
+복구 실패가 한 건이라도 있으면 opt-in을 끄고 원인을 재현해요. 15% uncached 절감은 검토 목표이며
+자동 승인 기준이 아니에요. 출력·요약·재시도·행동 품질을 포함한 총비용 수용 뒤에만 기본값 변경을 검토해요.
