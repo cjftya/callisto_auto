@@ -338,3 +338,14 @@ async def test_environment_switches_reach_actual_adapter(monkeypatch):
     messages.append(ToolMessage(content="result text", tool_call_id="c", status="error"))
     await CLIChatModel().ainvoke(messages)
     assert run.call_args.kwargs["stdin"] == original
+
+
+def test_current_observation_wins_over_reused_historical_object():
+    ledger, messages = view_ledger()
+    current = messages[0]
+    current.additional_kwargs.update(callisto_region="O", callisto_image_role="current")
+    # Simulate a host reusing a prior message object as the new observation.
+    messages[-1] = current
+    candidate, counts = image_view(ledger, messages, mode="ready_only")
+    assert candidate[0] is current and candidate[-1] is current
+    assert counts["blocked"]["current_observation_or_loop"] == 2

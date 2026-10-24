@@ -35,7 +35,10 @@ def image_view(ledger, messages, *, mode):
         reason = None
         keys = message.additional_kwargs.get("callisto_evidence_ids", ())
         items = [registry.entries.get(k) for k in keys] if registry else []
-        if id(message) not in eligible:
+        if (message.additional_kwargs.get("callisto_region") in ("O", "R")
+                or message.additional_kwargs.get("callisto_image_role") == "current"):
+            reason = "current_observation_or_loop"
+        elif id(message) not in eligible:
             reason = "current_loop_or_recent_or_unclosed"
         elif ledger._policy_hold_history or any(m.additional_kwargs.get("ephemeral_blocks") for m in messages if m.additional_kwargs.get("callisto_region") == "O"):
             reason = "active_guidance"
