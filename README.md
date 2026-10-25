@@ -4,7 +4,22 @@ Callisto는 Google ARTEMIS의 **기존 Pro 자동화 엔진을 유지**하면서
 
 모델 추론은 로그인된 공식 로컬 AI CLI를 이용함. API Key 기반 직접 모델 호출, 웹 UI, 외부 MCP 서버는 필요하지 않음. 내부 `artemis/` 모듈과 Helper의 Android 패키지 ID·APK 파일명은 호환성을 위해 유지함. 사용자에게 표시되는 이름은 **Callisto**를 사용함.
 
-## 실행 모드: balanced / optimize\n\n`callisto run`은 기본 `--mode balanced`로 기존 Pro 동작과 이미지 품질을 유지해요.\n호출하는 AI가 사용자의 비용 절감 요청과 테스트 위험도를 평가해\n`--mode optimize`를 명시적으로 선택할 수 있어요. 별도의 AI 선택 호출은 없어요.\nOptimize는 완료된 ready 문맥/과거 이미지의 안전한 전송 후보 교체 및\nCompact Text를 켜는 **실험적 opt-in**이며, 현재 화면·증거·Pro 검증·모델·이미지 해상도는 변경하지 않아요.\n실제 Android 품질과 토큰 절감률은 아직 검증되지 않았으므로\n정밀 UI 판정·복구·중요 테스트에는 Balanced를 사용하세요.\n\n```sh\ncallisto run "설정 앱의 배터리 화면 확인" --ai-cli codex --mode balanced\ncallisto run "설정 앱의 배터리 화면 확인" --ai-cli codex --mode optimize\n```\n\n## 빠른 시작 — 3단계
+## 실행 모드: balanced / optimize
+
+`callisto run`은 기본 `--mode balanced`로 기존 Pro 동작과 이미지 품질을 유지해요.
+호출하는 AI가 사용자의 비용 절감 요청과 테스트 위험도를 평가해
+`--mode optimize`를 명시적으로 선택할 수 있어요. 별도의 AI 선택 호출은 없어요.
+Optimize는 완료된 ready 문맥/과거 이미지의 안전한 전송 후보 교체 및
+Compact Text를 켜는 **실험적 opt-in**이며, 현재 화면·증거·Pro 검증·모델·이미지 해상도는 변경하지 않아요.
+실제 Android 품질과 토큰 절감률은 아직 검증되지 않았으므로
+정밀 UI 판정·복구·중요 테스트에는 Balanced를 사용하세요.
+
+```sh
+callisto run "설정 앱의 배터리 화면 확인" --ai-cli codex --mode balanced
+callisto run "설정 앱의 배터리 화면 확인" --ai-cli codex --mode optimize
+```
+
+## 빠른 시작 — 3단계
 
 ### 1. 설치 스크립트 실행
 
