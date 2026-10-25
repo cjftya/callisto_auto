@@ -43,8 +43,8 @@ Skill, owns planning, exploration, operation, checking, recovery and reporting.
    from the checkout. Normal setup does not require this probe.
 5. Select a run mode without making another AI call. **Default to `balanced`** when the
    user has not requested a cheaper run and the accuracy/risk is uncertain. The
-   calling AI may select `optimize` for cost-sensitive, repeatable, low-risk
-   tests if the user has requested token-saving behavior. Honor an explicit user
+   calling AI may select `optimize` for cost-sensitive or repeatable, low-risk
+   tests where precise visual evidence is unlikely to be needed. Honor an explicit user
    choice of mode; never silently override it. Use `balanced` for small text,
    pixel-sensitive comparisons, unexpected recovery, or critical verification.
    No mode changes Pro actions, verification level, or the provider/model.
