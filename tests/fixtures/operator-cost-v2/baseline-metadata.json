@@ -1,0 +1,17 @@
+{
+  "provider": null,
+  "cli_version": null,
+  "model_settings_label": null,
+  "scenario_revision": "operator-cost-v2-1",
+  "device_configuration_label": null,
+  "commit_sha": null,
+  "host_os_version": null,
+  "python_version": null,
+  "adb_version": null,
+  "context_policy": "off",
+  "operator_image_policy": "off",
+  "compact_text": false,
+  "capture_image_policy": "balanced",
+  "actual_live_acceptance": false,
+  "notes": "Fill locally. Use non-identifying labels; no screenshots, credentials, prompts or device serials."
+}
