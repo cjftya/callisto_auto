@@ -41,13 +41,30 @@ Skill, owns planning, exploration, operation, checking, recovery and reporting.
 4. A live model acceptance probe is optional and can consume subscription quota.
    Only when explicitly requested, run `python tools/verify_local_cli.py --allow-live-cli`
    from the checkout. Normal setup does not require this probe.
-5. Run `callisto run "<goal>" --ai-cli <host-cli> --device-serial <serial> --verification-level final`.
+5. Select a run mode without making another AI call. **Default to `balanced`** when the
+   user has not requested a cheaper run and the accuracy/risk is uncertain. The
+   calling AI may select `optimize` for cost-sensitive or repeatable, low-risk
+   tests where precise visual evidence is unlikely to be needed. Honor an explicit user
+   choice of mode; never silently override it. Use `balanced` for small text,
+   pixel-sensitive comparisons, unexpected recovery, or critical verification.
+   No mode changes Pro actions, verification level, or the provider/model.
+   `optimize` is experimental pending live Android and official CLI acceptance.
+6. Run `callisto run "<goal>" --ai-cli <host-cli> --device-serial <serial> --verification-level final --mode <balanced|optimize>`.
    Use `--expected-output` for an explicit output requirement. Only Pro is available.
-6. Collect the printed result-file path and the original ARTEMIS trace artifacts.
+7. Collect the printed result-file path and the original ARTEMIS trace artifacts.
    Inspect `run_outcome.json` and `test_summary` before claiming a test passed.
    Exit 1 means failure; exit 2 means incomplete checks; 130 means cancelled.
-7. Report unsupported capability, timeout, login, disconnected device and task
+8. Report unsupported capability, timeout, login, disconnected device and task
    failure clearly. Do not hide failures with fabricated success or reduced tests.
+
+**Optimize mode is an explicit per-run preset**, not an extra model or a faster
+Pro engine. It uses ready-only completed-history and historical-image
+transmission views plus compact-text encoding, each subject to existing
+summary/pin/recent-observation guards. The original screenshot and DataEngine
+are retained. Mode is recorded in the run result. Never claim measured token
+savings from offline byte reductions. If a run fails or evidence is missing,
+report the failure; do not silently retry with reduced verification. Use
+`--mode balanced` on a separately authorized retry.
 
 `callisto trace list` and `callisto trace view <session_name>` inspect local
 artifacts. No web UI, HTTP daemon or external MCP server is involved.
