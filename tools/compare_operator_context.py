@@ -27,7 +27,7 @@ from callisto.llm_adapter.codec import encode_messages, encode_prompt
 from callisto.llm_adapter.model import response_schema
 from callisto.llm_adapter.process import run_process
 from callisto.llm_adapter.providers import decode_result, build_stdin
-from callisto.llm_adapter.prompt_metrics import json_bytes, prompt_metrics
+from callisto.llm_adapter.prompt_metrics import prompt_metrics
 from callisto.usage import collect_usage
 from callisto.image_view import image_view
 
