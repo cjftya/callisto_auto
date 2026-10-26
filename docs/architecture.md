@@ -29,12 +29,13 @@ Details: [CLI capability matrix](cli-capability-matrix.md).
 | `artemis/agents/flash/` | Pro 공유 요약·압축과 프롬프트 계약 회귀 자산. 독립 Flash 러너는 없음 |
 | `third_party/mobile_use/` | 기존 SDK·드라이버·유틸리티 및 라이선스 |
 | `config/artemis.jsonc` | 소스 작업 공간의 설정. `artemis/resources/config/`는 독립 설치 기본값 |
-| `packages/artemis-accessibility-helper/` | Helper 소스, 개발 서명 키, manifest 및 선택적 빌드 APK |
+| `packages/artemis-accessibility-helper/` | Helper 소스, 개발 서명 키, 검증된 APK·manifest 번들 |
 | `skills/callisto/SKILL.md` | 유일한 스킬 원본. `.agents/skills/callisto/SKILL.md`는 발견용 포인터 |
 | `tools/`, 루트 `setup.*` / `uninstall.*` | 설치 bootstrap, 검증·승인 기반 소스 설치 제거, Helper 빌드, 실제 수용 검증 및 wheel 검증 |
 | `tests/unit/`, `tests/callisto/`, `tests/tools/` | 현재 오프라인 회귀. 원격 SDK mock 계약도 별도 기본 수집됨 |
 | `tests/integration/`, `tests/e2e/` | 명시적 환경·기기 검증. 기본 회귀의 통과와 구분함 |
 | `tests/upstream_removed/` | 제거된 기능의 원본 테스트 이력. 현재 회귀가 아님 |
+| `reports/*.json`, `reports/operator-context-ab-2026-10-24/*.json` | 과거 합성 비교·보존·wheel 검사 증거. 현재 지원 상태나 실기기 수용 결과가 아님 |
 
 Explorer의 `flash` 탐색 tier는 독립 Flash 프로필과 다르며 유지됨. 원본 core 32개 및 engine 23개의 SHA-256은 두 보존 manifest와 회귀에서 검증함. 보존 근거는 [원본 기준선](upstream-baseline.md) 참조.
 
@@ -67,6 +68,19 @@ DataEngine 저장 스레드의 등록·시작·정리·스냅샷은 같은 락�
 | `docs/upstream-baseline.md`, `docs/upstream-*-manifest.json` | 원본 출처·보존 범위·고정 해시 |
 
 실행·기능 관련 변경 시 해당 활성 문서를 갱신함. 과거 계획과 검증 보고서는 Git 이력에서 확인하며 활성 문서에 혼합하지 않음.
+
+## 유지보수 진입점
+
+| 작업 | 기준 코드·검증 |
+| --- | --- |
+| 명령·옵션·종료 코드 | `callisto/cli.py`, `callisto/verdict.py`, `tests/callisto/` |
+| Pro 실행 연결 | `artemis/interfaces/cli/commands/run.py`, `artemis/graph/graph.py` |
+| 공식 CLI 전송·응답 | `callisto/llm_adapter/`, `tests/callisto/test_adapter.py` |
+| 기본 회귀 수집·wheel 구성 | `pyproject.toml`, `tools/verify_wheel.py` |
+| Windows/Linux CI·Helper 빌드 | `.github/workflows/offline.yml`, `tools/build_helper.py` |
+
+오프라인 회귀·wheel 명령은 [고급 가이드](advanced-setup.md#오프라인-개발)를 따름.
+일회성 비교 산출물은 `dist/`에 생성하며 추적된 과거 JSON 증거를 현재 결과로 덮어쓰지 않음.
 
 ## Operator 문맥 계측과 선택적 비용 정책
 

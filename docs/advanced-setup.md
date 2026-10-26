@@ -204,9 +204,9 @@ Gemini는 확인된 `models.*.tokens` 형태만 매핑하고 알 수 없는 형�
 기기와 공식 CLI 추론 없이 비교하는 명령이에요. 실제 토큰은 항상 null로 남겨요.
 
 ```sh
-CALLISTO_FORBID_LIVE_CLI=1 python tools/compare_operator_context.py --include-b --output comparison.json
+CALLISTO_FORBID_LIVE_CLI=1 python tools/compare_operator_context.py --include-b --output dist/operator-context-comparison.json
 # 가짜 Python 자식 실행도 생략하고 동일 codec/ledger만 비교
-CALLISTO_FORBID_LIVE_CLI=1 python tools/compare_operator_context.py --include-b --no-child --output comparison.json
+CALLISTO_FORBID_LIVE_CLI=1 python tools/compare_operator_context.py --include-b --no-child --output dist/operator-context-comparison.json
 ```
 
 Windows에서는 먼저 `$env:CALLISTO_FORBID_LIVE_CLI="1"`을 설정한 뒤 같은 Python 명령을 사용해요.
@@ -259,7 +259,7 @@ ready_only → 이미지 opt-in → text opt-in을 순차 비교해요(초기 �
 `baseline-metadata.json`을 둬요. 실제 로그의 prompt/screenshot은 외부로 올리지 마세요.
 
 ```sh
-python tools/compare_operator_acceptance.py traces/off traces/ready_only --output acceptance-comparison.json
+python tools/compare_operator_acceptance.py traces/off traces/ready_only --output dist/acceptance-comparison.json
 ```
 
 이 비교기는 공급자·CLI 버전·모델 설정 label·기기 구성·시나리오가 같고, 두 실행 모두 수동 성공과
