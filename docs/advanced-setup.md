@@ -170,6 +170,27 @@ python tools/compare_usage.py traces/off traces/balanced
 
 비교기는 상대 시나리오/반복 폴더를 맞추고 실제 입력 토큰 감소율 중앙값·통과율·실패 호출·첨부 수·전체 실행 시간을 보여줘요. 누락/미확인 usage는 절감률로 만들지 않아요. 목표는 입력 토큰 중앙값 25% 이상 절감이며, 좌표/검증 정확도가 나빠지면 `off`로 돌아가고 실패 원인을 먼저 확인해요.
 
+## AI 선택형 실행 모드
+
+`callisto run --mode balanced|optimize`는 작업당 선택하고 기본값은 `balanced`예요.
+호출한 AI가 사용자 요청에 따라 비용 우선이고 저위험·반복 가능한 작업에서는
+`optimize`를 선택할 수 있지만 추가 모델 호출로 모드를 결정하지 않아요.
+사용자가 명시한 모드를 우선하며, 정밀한 텍스트·픽셀 판정이나
+복구·중요한 검증은 `balanced`를 권장해요.
+
+- `balanced`: 현재 사용자 설정/기존 Pro 기본 동작을 변경하지 않아요.
+- `optimize` (실험적): 원본 ARTEMIS 설정에서 메모리의 `context_policy`만
+  실행 중 `ready_only`로 덮어쓴 임시 사본을 사용하고,
+  `CALLISTO_OPERATOR_IMAGE_POLICY=ready_only`, `CALLISTO_COMPACT_TEXT=1`을
+  해당 실행에서만 설정해요. 현재 화면과 최근 턴·Pin·미완료 결과는 그대로 보존해요.
+  이미지 리사이즈는 원래의 `--image-policy balanced`를 유지해요.
+
+실행 종료·예외 시 원본 환경과 설정이 복구되고, 결과 JSON에 `mode`가 기록돼요.
+기존 JSONC 원본이나 55개 ARTEMIS 보존 소스는 변경하지 않아요.
+새 최적화는 실기기/공식 CLI에서 아직 수용 검증되지 않았어요.
+실패·증거 누락을 성공으로 숨기지 않으며, 다음 실행을 `--mode balanced`로
+다시 시도하려면 별도로 승인된 테스트 실행이 필요해요.
+
 ## Operator 문맥 정책 실험
 
 기존 에이전트 설정의 `memory.transcript.context_policy`만 선택해요.

@@ -87,11 +87,14 @@ def run(
     verification_level: Annotated[str, typer.Option("--verification-level")] = "final",
     profile: Annotated[str, typer.Option("--profile")] = "pro",
     image_policy: Annotated[str | None, typer.Option("--image-policy", help="off, balanced, quality or economy; diagnostics compare actual CLI usage")] = None,
+    mode: Annotated[str, typer.Option("--mode", help="balanced (default) or optimize (experimental guarded context savings)")] = "balanced",
     ai_cli: Annotated[str | None, typer.Option("--ai-cli", help="Calling AI CLI: codex, claude, gemini or antigravity")] = None,
 ):
     """Run an Android test with Callisto's preserved Pro engine, local ADB and traces."""
     if profile != "pro":
         raise typer.BadParameter("Only the Pro execution profile is available", param_hint="--profile")
+    if mode not in ("balanced", "optimize"):
+        raise typer.BadParameter("Use balanced or optimize", param_hint="--mode")
     if verification_level not in ("off", "final", "checkpoints", "strict"):
         raise typer.BadParameter("Use off, final, checkpoints or strict", param_hint="--verification-level")
     if os.environ.get("CALLISTO_FORBID_LIVE_CLI") == "1":
@@ -99,6 +102,7 @@ def run(
     from artemis.interfaces.cli.commands.run import execute_task
     from callisto.settings import effective_settings, runtime_settings
     from callisto.usage import collect_usage, write_usage, usage_summary
+    from callisto.optimization import run_mode
     try:
         configuration = effective_settings(provider=ai_cli, image_policy=image_policy,
                                            device_serial=device_serial)
@@ -114,7 +118,7 @@ def run(
     session_id = str(uuid4())
     traces_path = traces_path.resolve()
     traces_path.mkdir(parents=True, exist_ok=True)
-    report = {"session_id": session_id, "status": "starting", "trace_root": str(traces_path)}
+    report = {"session_id": session_id, "status": "starting", "trace_root": str(traces_path), "mode": mode}
     result_path = traces_path / f"{session_id}-result.json"
     usage_path = traces_path / f"{session_id}-usage.json"
     records = []
@@ -123,7 +127,7 @@ def run(
     try:
         if hasattr(signal, "SIGTERM"):
             previous = signal.signal(signal.SIGTERM, lambda *_: (_ for _ in ()).throw(KeyboardInterrupt()))
-        with runtime_settings(provider=selected_provider, image_policy=image_policy), collect_usage() as records:
+        with run_mode(mode), runtime_settings(provider=selected_provider, image_policy=image_policy), collect_usage() as records:
             asyncio.run(execute_task(goal=goal, device_serial=device_serial, profile="pro",
                 session_id=session_id, test_name=session_id, traces_output_path_str=str(traces_path),
                 output_description=output_description, verification_level=verification_level,
@@ -154,7 +158,7 @@ def run(
         with result_path.open("w", encoding="utf-8") as target:
             json.dump(report, target, ensure_ascii=False, indent=2, default=str)
         result_path.chmod(0o600)
-    typer.echo(json.dumps({"session_id": session_id, "status": report["status"],
+    typer.echo(json.dumps({"session_id": session_id, "status": report["status"], "mode": mode,
                            "test_status": report["test_status"],
                            "exit_code": report["exit_code"],
                            "usage": report["usage"], "usage_file": report.get("usage_file"),
