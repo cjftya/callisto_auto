@@ -469,14 +469,23 @@ def test_relaxed_depth_below_start_gate_keeps_more_screenshots():
     scrubs the K-th most recent screenshot with the live tail at depth 1, so
     K=6 keeps four historical screenshots in view (K=3 keeps one). An unknown
     occupancy counts as below the gate."""
-    ledger = _banded_ledger()
+    from artemis.config.agent import MemoryTranscriptConfig
+
+    cfg = MemoryTranscriptConfig()
+    ledger = TranscriptLedger(
+        step_memory=_service(),
+        image_scrub_depth=cfg.image_scrub_depth,
+        image_scrub_depth_relaxed=cfg.image_scrub_depth_relaxed,
+        context_budget_tokens=cfg.context_budget_tokens,
+        start_ratio=cfg.start_ratio,
+    )
     assert ledger.occupancy is None
     assert ledger.effective_image_scrub_depth == 6
     for i in range(1, 10):
         _play_turn(ledger, i, prev_key=f"step-{i - 1}" if i > 1 else None)
     # At the render of turn 9 its observation is the live tail (depth 1);
     # committed turns 8..5 are depths 2..5 and turn 4 (depth 6) is scrubbed.
-    ledger.record_prompt_tokens(20_000)  # 20% < 35%
+    ledger.record_prompt_tokens(20_000)  # 25% < 35% of the default 80k budget
     assert ledger.effective_image_scrub_depth == 6
     assert _image_turns(ledger) == [5, 6, 7, 8]
 

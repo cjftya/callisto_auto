@@ -34,6 +34,7 @@ Antigravity 수용 조건은 공식 비도구 이미지 입력·도구 차단 �
 | 미지원 native 기능 | Files, Interactions, 명시적 cloud cache, 음성, server-side search 요청은 명시적 오류 | 가짜 cloud URI·성공·토큰 수 생성 없음 |
 | OCR | `CALLISTO_OCR=1` opt-in, CLI 이미지 포트와 원본 픽셀 역변환 | 실제 좌표·작은 글씨 정확도는 기기 검증 필요 |
 | 이미지 | balanced/quality/economy/off, MIME·저장 픽셀·EXIF·범위 검사, 동일 첨부 중복 제거 | 원본 캡처·XML·Trace·Pro 정규화 좌표 유지; 절감률 미확인 |
+| 과거 스크린샷 | 원본 점유율 정책: 시작 임계값 아래 깊이 6, 임계값부터 깊이 3; 기존 요약 대기 유예 유지 | 깊이는 보관 장수가 아님; 원본 캡처는 DataEngine에 유지 |
 | usage | 실제 CLI 토큰·이미지·시간·단계 집계 | 알 수 없는 값은 null; cached input 이중 합산 없음 |
 | 판정 | 0 PASS / 1 FAIL / 2 INCOMPLETE / 130 CANCELLED | 결과 JSON 및 원본 Trace 확인 필요 |
 
