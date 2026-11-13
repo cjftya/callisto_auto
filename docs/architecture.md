@@ -35,11 +35,14 @@ Details: [CLI capability matrix](cli-capability-matrix.md).
 | `tests/unit/`, `tests/callisto/`, `tests/tools/` | 현재 오프라인 회귀. 원격 SDK mock 계약도 별도 기본 수집됨 |
 | `tests/integration/`, `tests/e2e/` | 명시적 환경·기기 검증. 기본 회귀의 통과와 구분함 |
 | `tests/upstream_removed/` | 제거된 기능의 원본 테스트 이력. 현재 회귀가 아님 |
-| `reports/*.json`, `reports/operator-context-ab-2026-10-24/*.json` | 과거 합성 비교·보존·wheel 검사 증거. 현재 지원 상태나 실기기 수용 결과가 아님 |
+| `reports/*.json` | 과거 합성 비교·보존·wheel 검사 증거. 현재 지원 상태나 실기기 수용 결과가 아님 |
 
 Explorer의 `flash` 탐색 tier는 독립 Flash 프로필과 다르며 유지됨. 원본 core 32개 및 engine 23개의 SHA-256은 두 보존 manifest와 회귀에서 검증함. 보존 근거는 [원본 기준선](upstream-baseline.md) 참조.
 
 DataEngine 저장 스레드의 등록·시작·정리·스냅샷은 같은 락을 사용하며, 락 밖에서 완료를 기다리고 해당 작업이 생성한 후속 저장도 비워질 때까지 대기함. 종료 호출자는 무관한 새 생산 작업을 먼저 중단해야 함. 동시성 회귀 테스트는 `tests/unit/data_engine/test_background_threads.py`에서 유지함.
+
+이미지 처리는 기본 `balanced`로 활성화돼요. 모델에 보내는 화면만 긴 변 1920px 이하·JPEG 품질 80으로 변환하고 중복 첨부를 공유해요.
+ARTEMIS Pro의 원래 요약·메모리·복구 흐름과 CLI 연결을 사용해요. 추가 문맥 송신 view·증거 pin 정책·과거 이미지 요약 대체·compact text 설정은 없어요.
 
 이미지 최적화는 모델에 보내는 첨부에만 적용됨. 원본 캡처·Trace·XML과 Pro 정규화 좌표는 유지됨. CLI OCR의 전송 픽셀 좌표만 원본 크기로 역변환함. 정책 값·제약은 [고급 가이드](advanced-setup.md#이미지-안전-경계와-계측) 참조.
 
@@ -81,46 +84,3 @@ DataEngine 저장 스레드의 등록·시작·정리·스냅샷은 같은 락�
 
 오프라인 회귀·wheel 명령은 [고급 가이드](advanced-setup.md#오프라인-개발)를 따름.
 일회성 비교 산출물은 `dist/`에 생성하며 추적된 과거 JSON 증거를 현재 결과로 덮어쓰지 않음.
-
-## Operator 문맥 계측과 선택적 비용 정책
-
-`CLIChatModel`은 공급자 원본 usage와 정규화된 logical/uncached/cache-read/cache-write/output,
-usage scope를 분리한다. CLI 실행 전체 합계를 마지막 모델 요청의 문맥 크기로 가정하지 않는다.
-요청/단일 요청임이 확인된 usage만 기존 context gate에 전달하고, 나머지는 기존 추정 경로를 사용한다.
-본문·stdin·이미지 바이트와 영역별 S/D/H/O/R/unknown 계측은 토큰 수가 아니다.
-run/agent invocation/observation/logical loop/attempt 식별과 provider lock 대기 시간을 기록하며,
-반복 원인은 구조적 tool result/error만 확정하고 다른 원인은 unknown으로 남긴다.
-
-`memory.transcript.context_policy`는 `off`(기본), `shadow`, `ready_only`를 지원한다.
-기존 TranscriptLedger가 유일한 기준이며 Context IR은 변경 불가능한 출처/transaction 스냅샷이다.
-Shadow는 기존 송신을 유지한다. Ready-only는 오래된 완료 turn의 연속 ready prefix에서
-coverage·도구 pair·최근 floor·원본 이미지·오류·바이트 이득을 확인한 뒤 송신 view만 교체한다.
-원문 active span을 freeze하지 않으므로 비용 view 자체는 즉시 해제할 수 있다.
-기존 start/soft/hard, 요약 생성 cadence, 이미지 depth와 CLI 모델 선택은 유지한다.
-
-EvidenceRegistry는 원본 asset과 관측별 evidence를 구분하고 current/comparison/recalled/
-historical/overlay/unknown, summary 상태, 원본/전송 geometry와 명시적 pin을 관리한다.
-조회 증거는 공유 ledger의 commit hook에서 정상 dispatch·닫힌 tool transaction·성공한 조회 결과·
-그 이후 AI 판단을 모두 확인한 경우에만 해당 decision pin을 해제한다. 오류·중단·미완료·
-unknown/comparison/overlay 소유권은 추정하지 않는다. 실패 실행은 step별 incident pin을 추가하며,
-후속 dispatch만으로 원래 의도 달성을 단정하지 않아 명시적 incident 해제 이벤트를 기다린다. 현재 ephemeral 안내가
-있으면 조기 압축을 보류하며 opt-in에서 보호 증거가 hard fold를 막으면 명시적 자원 오류를 낸다.
-이는 기존 비상 압축을 비용 최적화로 재해석하는 것이 아니라 증거 유실을 막는 opt-in 제한이다.
-DataEngine 원본과 기존 search/replay/screenshot 조회는 변경하지 않는다.
-
-실제 공급자/Android 수용 전에는 기본 활성화하지 않는다. C의 CLI 세션 재사용은 구현하지 않았다.
-
-
-2차 비용 후보는 `CALLISTO_OPERATOR_IMAGE_POLICY=off|shadow|ready_only`와
-`CALLISTO_COMPACT_TEXT=1`로 각각 선택한다(둘 다 기본 off).
-이미지 view는 최근 최소 5 turns·현재 loop·열린 transaction·오류·ephemeral 안내·pin·
-비-historical 역할·미완성 summary를 보존한다. 안전한 오래된 historical 이미지에 한해
-기존 ready visual summary로 **송신 사본**을 대체하며 원본 ledger/DataEngine은 그대로다.
-단일 순수 text block만 문자열로 표현하는 codec은 명시적 opt-in이고 tool ID/status/name과
-추가 block metadata를 유지한다. 정책 조합의 실제 행동 동등성은 PC 수용 대상이다.
-
-역할별 첨부 바이트는 실제 첫 첨부 역할에 한 번만 귀속하며 공유 참조는 별도 집계한다.
-필수 current 고유 자산과 추가 첨부, 같은 자산/다른 evidence, observation별 재노출,
-S/D/H/O/R 재전송 바이트·history 종류를 구분한다. 해시·픽셀·본문은 계측에 저장하지 않는다.
-반복 바이트는 캐시 적중이나 토큰 수를 의미하지 않는다. 여러 공급자가 섞인 정규화 합계는
-null이고 `by_provider`에서만 합산한다.

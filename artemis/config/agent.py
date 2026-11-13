@@ -442,9 +442,6 @@ class MemoryRuntimeConfig(BaseModel):
 
 
 class MemoryTranscriptConfig(BaseModel):
-    context_policy: Literal["off", "shadow", "ready_only"] = Field(
-        default="off", description="Read-only ready capsule candidate inspection; default keeps legacy behavior.")
-
     """Scrub-edge options for the message transcript (agent.memory.transcript)."""
 
     enabled: bool = Field(

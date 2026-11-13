@@ -134,22 +134,41 @@ async def test_ocr_rescales_pixels_and_rejects_out_of_frame(monkeypatch):
     with pytest.raises(CLIProtocolError,match="outside"):
         await perform_ocr(screenshot)
 
-def test_prompt_reuses_static_protocol_prefix_across_changing_turns():
-    """Tool declarations/response schema precede the volatile transcript."""
-    from callisto.llm_adapter.codec import encode_prompt
 
-    tools = [{"type": "function", "function": {
-        "name": "click", "description": "Tap target", "parameters": {"type": "object"}}}]
-    schema = {"type": "object", "properties": {"content": {"type": "string"}}}
-    first_history = [{"role": "human", "content": [{"type": "text", "text": "step A"}]}]
-    second_history = [{"role": "human", "content": [{"type": "text", "text": "step B"}]}]
-    first = encode_prompt(first_history, tools, "auto", schema)
-    second = encode_prompt(second_history, tools, "auto", schema)
-    marker = '"messages":'
-    assert first != second
-    assert first[:first.index(marker)] == second[:second.index(marker)]
-    body = json.loads(first[first.index("{"):])
-    assert list(body) == ["tools", "tool_choice", "response_schema", "messages"]
-    assert body["messages"] == first_history
-    assert body["tools"] == tools
-    assert body["response_schema"] == schema
+@pytest.mark.asyncio
+async def test_default_run_applies_image_processing_and_preserves_text_history(monkeypatch, tmp_path):
+    """Configured inference sends JPEG images without the removed cost views."""
+    from unittest.mock import AsyncMock
+    from callisto.llm_adapter import model
+    from callisto.settings import effective_settings
+    from tests.callisto.test_adapter import cli_result, envelope
+
+    monkeypatch.setenv("CALLISTO_CONFIG", str(tmp_path / "settings.json"))
+    monkeypatch.setenv("CALLISTO_AI_CLI", "codex")
+    monkeypatch.delenv("CALLISTO_IMAGE_POLICY", raising=False)
+    # Stale environment switches cannot activate removed history/text policies.
+    monkeypatch.setenv("CALLISTO_COMPACT_TEXT", "1")
+    monkeypatch.setenv("CALLISTO_OPERATOR_IMAGE_POLICY", "ready_only")
+    assert effective_settings().image_policy == "balanced"
+    raw = image_bytes((1080, 2400))
+    messages = [HumanMessage(content="original goal"), AIMessage(content="earlier decision"),
+                HumanMessage(content=[block(raw), block(raw)])]
+
+    def command(provider, name, directory, images, schema, reasoning):
+        assert len(images) == 1
+        with Image.open(images[0]) as image:
+            assert image.format == "JPEG" and image.size == (864, 1920)
+        return ["MOCK_ONLY_NO_CLI_EXECUTION"]
+
+    execute = AsyncMock(return_value=cli_result(envelope()))
+    monkeypatch.setattr(model, "command_for", command)
+    monkeypatch.setattr(model, "run_process", execute)
+    with collect_usage() as calls:
+        await model.configured_model().ainvoke(messages)
+    sent = json.loads(execute.call_args.kwargs["stdin"].split("\n", 1)[1])
+    assert sent["messages"][0]["content"] == [{"type": "text", "text": "original goal"}]
+    assert sent["messages"][1]["content"] == [{"type": "text", "text": "earlier decision"}]
+    assert [item["index"] for item in sent["messages"][2]["content"]] == [1, 1]
+    assert calls[0]["image_policy"] == "balanced"
+    assert calls[0]["image_references"] == 2 and calls[0]["image_attachments"] == 1
+    assert messages[2].content == [block(raw), block(raw)]
