@@ -88,6 +88,9 @@ def run(
     profile: Annotated[str, typer.Option("--profile")] = "pro",
     image_policy: Annotated[str | None, typer.Option("--image-policy", help="off, balanced, quality or economy; diagnostics compare actual CLI usage")] = None,
     ai_cli: Annotated[str | None, typer.Option("--ai-cli", help="Calling AI CLI: codex, claude, gemini or antigravity")] = None,
+    session_model: Annotated[str | None, typer.Option(
+        "--session-model", help="Model ID or alias reported by the current host session."
+    )] = None,
 ):
     """Run an Android test with Callisto's preserved Pro engine, local ADB and traces."""
     if profile != "pro":
@@ -106,6 +109,11 @@ def run(
         selected_provider = resolve_provider(configuration.provider)
     except ValueError:
         raise typer.BadParameter("Invalid Callisto run settings") from None
+    if session_model is not None and (
+        not session_model or session_model.startswith("-")
+        or any(not char.isprintable() or char.isspace() for char in session_model)
+    ):
+        raise typer.BadParameter("Use the host's exact model ID or alias", param_hint="--session-model")
     if selected_provider == "antigravity":
         from callisto.llm_adapter.providers import ANTIGRAVITY_UNSUPPORTED
         typer.echo(ANTIGRAVITY_UNSUPPORTED, err=True)
@@ -123,7 +131,8 @@ def run(
     try:
         if hasattr(signal, "SIGTERM"):
             previous = signal.signal(signal.SIGTERM, lambda *_: (_ for _ in ()).throw(KeyboardInterrupt()))
-        with runtime_settings(provider=selected_provider, image_policy=image_policy), collect_usage() as records:
+        with runtime_settings(provider=selected_provider, image_policy=image_policy,
+                              session_model=session_model), collect_usage() as records:
             asyncio.run(execute_task(goal=goal, device_serial=device_serial, profile="pro",
                 session_id=session_id, test_name=session_id, traces_output_path_str=str(traces_path),
                 output_description=output_description, verification_level=verification_level,

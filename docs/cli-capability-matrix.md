@@ -15,11 +15,11 @@ Antigravity 수용 조건은 공식 비도구 이미지 입력·도구 차단 �
 | 스크린샷 | `--image` | base64 멀티모달 입력 | `@절대경로` 첨부 |
 | 결과 검증 | 완료 이벤트 + schema | `--json-schema` + 로컬 schema | 완료 이벤트 + 로컬 schema |
 | CLI 자체 도구 제한 | read-only, shell/apps/MCP 등 차단 | `--tools ""`, MCP 차단 | plan mode, deny 정책, 도구 이벤트 검사 |
-| 모델·추론 수준 | 공식 CLI 사용자 기본값 | 공식 CLI 사용자 기본값 | 공식 CLI 사용자 기본값 |
+| 세션 모델 전달 | `--session-model` → `--model` | `--session-model` → `--model` | `--session-model` → `--model` |
 | 스킬 경로 | `~/.agents/skills` | `~/.claude/skills` | `~/.gemini/skills` |
 | 실제 버전·인증·시각 인지·Android E2E | 선택된 실행 PC 검증 필요 | 선택된 실행 PC 검증 필요 | 선택된 실행 PC 검증 필요 |
 
-구현된 공급자 목록과 현재 PC에서 실행 가능한 launcher는 다름. `doctor`는 경로·설정을 검사하며 모델 CLI를 실행하지 않음. `setup check`는 발견한 CLI별 스킬·준비 상태를 구분하고 Codex의 공식 로그인 상태를 조회할 수 있음. `READY`도 모델 추론·Android 성공을 의미하지 않음. 호스트 대화의 일시적인 모델 선택은 별도 자식 CLI에 자동 상속되지 않음.
+구현된 공급자 목록과 현재 PC에서 실행 가능한 launcher는 다름. `doctor`는 경로·설정을 검사하며 모델 CLI를 실행하지 않음. `setup check`는 발견한 CLI별 스킬·준비 상태를 구분하고 Codex의 공식 로그인 상태를 조회할 수 있음. `READY`도 모델 추론·Android 성공을 의미하지 않음. CLI·데스크톱 호스트의 세션 모델 전달에는 호스트가 제공하는 모델 ID 또는 사용자 확인이 필요함. 추론 수준은 공식 CLI 설정을 사용함.
 
 ## Pro 및 데이터 경계
 

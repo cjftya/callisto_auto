@@ -53,13 +53,15 @@ callisto trace list
 
 ## AI CLI 연결과 기능 범위
 
-- Codex: 초기 구현 대상. 텍스트·이미지·JSON·도구 호출 반환·여러 턴 메시지 전달을 모의 테스트로 검증했어요. 특정 모델을 선택하지 않고 CLI의 자체 기본값을 사용해요.
+- Codex: 초기 구현 대상. 텍스트·이미지·JSON·도구 호출 반환·여러 턴 메시지 전달을 모의 테스트로 검증했어요.
 - Claude Code: stream-json multimodal image 입력, JSON Schema 출력, 실행 도구 차단 경로를 구현했어요. 실제 설치 버전과 인증·스크린샷 정확도는 로컬 검증이 필요해요.
 - Gemini CLI: @이미지 파일 입력, stream-json 완료 이벤트 파싱, 읽기 전용 모드와 도구 차단 정책을 구현했어요. 실제 CLI가 이 입력/정책을 올바르게 지원하는지는 로컬에서 확인해야 해요. Google 원본의 native Files/Interactions/명시적 캐시·음성·검색 기능은 별도이며 지원을 보장하지 않아요.
 - 기존 Universal 영상 분석의 프레임/이미지 경로는 유지했어요. 실제 영상·음성 기능 전체가 동등하다고 주장하지 않아요.
 - 선택적 OCR은 `CALLISTO_OCR=1`로 켜면 CLI 이미지 추론을 사용해 원래 텍스트/좌표 형식을 반환해요. 기존 Vision API 키로 자동 활성화하지 않아요. 실제 좌표 정확도 검증은 별도로 필요해요.
 
-Codex 실행 파일은 `CALLISTO_CODEX_EXECUTABLE`로 지정할 수 있어요. Callisto는 모델명과 추론 수준을 강제로 지정하지 않아요. Codex 호출은 사용자 CLI 설정과 공식 인증을 사용하며, 임시 디렉터리·read-only sandbox·JSON 출력으로 동작해요. 관리자가 강제한 정책은 우회하지 않아요.
+Codex 실행 파일은 `CALLISTO_CODEX_EXECUTABLE`로 지정할 수 있어요. Codex 호출은 사용자 CLI 설정과 공식 인증을 사용하며, 임시 디렉터리·read-only sandbox·JSON 출력으로 동작해요. 관리자가 강제한 정책은 우회하지 않아요.
+
+세 어댑터는 `callisto run --session-model <모델-ID>`로 받은 현재 세션의 모델 ID나 별칭을 공식 CLI의 `--model` 인수로 전달해요. 모델 값은 해당 실행에만 적용돼요. 이 옵션을 생략한 직접 실행에서는 공식 CLI가 상속된 환경과 자체 설정에 따라 모델을 선택해요. 추론 수준도 공식 CLI 설정을 따라요.
 자식 프로세스에는 주요 공급자의 API Key 및 해당 공급자의 대체 API 엔드포인트/라우팅 환경변수를 전달하지 않아요. 부모 환경과 공식 로그인 저장소는 변경하지 않아요. `HOME`/`USERPROFILE`/`CODEX_HOME`/`CLAUDE_CONFIG_DIR` 및 공식 CLI OAuth 환경은 정상 상속해요. Callisto는 인증 파일이나 토큰을 추출하지 않아요. CLI에 저장된 로그인 종류 자체는 검사하지 않으므로, 사용자 PC에서 공식 계정 로그인을 준비해야 해요.
 
 Windows에서 npm launcher를 직접 셸로 실행하지 않아요. Codex는 공식 native `.exe`를 탐색하며 Claude·Gemini는 검증된 npm JS 엔트리포인트를 설치된 Node로 실행해요. 적절한 엔트리포인트가 없으면 명시적으로 실패해요. 오래된 CLI가 필수 옵션을 거부하면 업데이트 안내와 함께 실패하며, 안전 옵션을 빼고 재시도하지 않아요. 실제 버전별 호환성은 미검증이에요.

@@ -17,13 +17,16 @@ Skill, owns planning, exploration, operation, checking, recovery and reporting.
   Do not replace test navigation or verification with direct ADB commands.
 - For offline development/tests, set `CALLISTO_FORBID_LIVE_CLI=1`; this explicit
   switch blocks real inference independently of the hosting application.
-- Callisto creates separate authenticated child processes for inference. It does
-  not reuse the hosting assistant's conversation or automatically inherit an
-  interactive-only choice. The child CLI reads its own official user defaults.
-- Identify the current hosting CLI from the host application (Codex: codex,
-  Claude Code: claude, Gemini CLI: gemini, Antigravity CLI: antigravity) and pass it as `--ai-cli` on
-  both setup checks and runs. Never guess from installed executables when the
-  host is known. Never select a model or a reasoning setting in Callisto.
+- Identify the current host from the application, whether CLI or desktop
+  (Codex: codex, Claude Code: claude, Gemini CLI: gemini, Antigravity CLI:
+  antigravity). Pass it as `--ai-cli` on both setup checks and runs.
+- Read the active session's exact model ID or alias from host-provided session
+  information when available. Pass it as `--session-model` on the run. Do not
+  derive it from a display label, a saved default, or a previous session. If the
+  host does not expose it, ask for the current model ID or permission to use
+  the official CLI default. Omit the flag when the user chooses that default.
+  The child process uses its official login, starts its own conversation, and
+  keeps its own reasoning settings.
 
 ## Workflow on the local machine
 
@@ -41,7 +44,8 @@ Skill, owns planning, exploration, operation, checking, recovery and reporting.
 4. A live model acceptance probe is optional and can consume subscription quota.
    Only when explicitly requested, run `python tools/verify_local_cli.py --allow-live-cli`
    from the checkout. Normal setup does not require this probe.
-5. Run `callisto run "<goal>" --ai-cli <host-cli> --device-serial <serial> --verification-level final`.
+5. Run `callisto run "<goal>" --ai-cli <host-cli> --device-serial <serial> --verification-level final`
+   with `--session-model <current-model-id>` when the current model is known.
    Use `--expected-output` for an explicit output requirement. Only Pro is available.
 6. Collect the printed result-file path and the original ARTEMIS trace artifacts.
    Inspect `run_outcome.json` and `test_summary` before claiming a test passed.

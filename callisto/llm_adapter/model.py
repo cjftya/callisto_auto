@@ -110,8 +110,8 @@ class CLIChatModel(BaseChatModel):
                     schema_path.write_text(json.dumps(schema), encoding="utf-8")
                     history, images = encode_messages(messages, directory, policy=self.image_policy, metrics=metrics)
                     prompt = encode_prompt(history, tools, tool_choice, schema)
-                    command = command_for(provider, self.model_name, directory, images,
-                                          schema_path, self.reasoning_effort)
+                    command = command_for(provider, None, directory, images, schema_path,
+                                          session_model=self.model_name)
                     result = await run_process(command, stdin=build_stdin(provider, prompt, images), cwd=str(directory),
                                                timeout=self.timeout_seconds, provider=provider)
                     text, usage = decode_result(provider, result)
@@ -169,8 +169,8 @@ class CLIChatModel(BaseChatModel):
 
 
 def configured_model(*, model=None, timeout=180, reasoning_effort=None):
-    """Ignore legacy routing hints; inference uses the provider CLI defaults."""
+    """Use a host-reported model for this run and ignore legacy graph hints."""
     settings = effective_settings()
-    return CLIChatModel(provider=settings.provider, model_name=None,
+    return CLIChatModel(provider=settings.provider, model_name=settings.session_model,
                         timeout_seconds=timeout, reasoning_effort=None,
                         image_policy=settings.image_policy)

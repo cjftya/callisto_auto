@@ -154,7 +154,7 @@ async def test_default_run_applies_image_processing_and_preserves_text_history(m
     messages = [HumanMessage(content="original goal"), AIMessage(content="earlier decision"),
                 HumanMessage(content=[block(raw), block(raw)])]
 
-    def command(provider, name, directory, images, schema, reasoning):
+    def command(provider, name, directory, images, schema, *, session_model=None):
         assert len(images) == 1
         with Image.open(images[0]) as image:
             assert image.format == "JPEG" and image.size == (864, 1920)

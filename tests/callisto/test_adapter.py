@@ -33,7 +33,7 @@ def cli_result(text, *, complete=True, stderr=""):
 
 def fake_inference(monkeypatch, result):
     from callisto.llm_adapter import model
-    monkeypatch.setattr(model, "command_for", lambda *args: ["MOCK_ONLY_NO_CLI_EXECUTION"])
+    monkeypatch.setattr(model, "command_for", lambda *args, **kwargs: ["MOCK_ONLY_NO_CLI_EXECUTION"])
     execute = AsyncMock(return_value=result)
     monkeypatch.setattr(model, "run_process", execute)
     return execute
@@ -131,7 +131,7 @@ def test_exit_partial_and_malformed_are_not_success(result):
 @pytest.mark.asyncio
 async def test_serializes_calls_across_model_instances(monkeypatch):
     from callisto.llm_adapter import model
-    monkeypatch.setattr(model, "command_for", lambda *args: ["MOCK_ONLY"])
+    monkeypatch.setattr(model, "command_for", lambda *args, **kwargs: ["MOCK_ONLY"])
     current = maximum = 0
     async def execute(*args, **kwargs):
         nonlocal current, maximum
@@ -156,7 +156,7 @@ answer=json.dumps({"content":"fake contract response","tool_calls":[]})
 print(json.dumps({"type":"item.completed","item":{"type":"agent_message","text":answer}}))
 print(json.dumps({"type":"turn.completed"}))
 ''')
-    monkeypatch.setattr(model, "command_for", lambda *args: [sys.executable, str(script)])
+    monkeypatch.setattr(model, "command_for", lambda *args, **kwargs: [sys.executable, str(script)])
     result = await CLIChatModel().ainvoke("hello")
     assert result.content == "fake contract response"
     assert result.usage_metadata is None

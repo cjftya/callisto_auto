@@ -5,6 +5,7 @@ No official AI CLI, Android device or paid inference is executed here.
 import base64
 import json
 from pathlib import Path
+from unittest.mock import AsyncMock
 
 import pytest
 from typer.testing import CliRunner
@@ -123,17 +124,37 @@ def test_gemini_never_accepts_tool_effects_or_partial_result(provider, payload):
 
 
 @pytest.mark.parametrize("provider", ["codex", "claude", "gemini"])
-def test_cli_run_selects_exact_host(monkeypatch, tmp_path, provider):
+@pytest.mark.parametrize("session_model", [None, "current-host-model"])
+def test_cli_run_selects_exact_host_and_model(monkeypatch, tmp_path, provider, session_model):
+    from callisto.llm_adapter import model, providers
+    monkeypatch.setattr(providers, "executable_command", lambda _: ["/fake/cli"])
     monkeypatch.setattr("callisto.llm_adapter.discovery.discover_executable", lambda _: "/fake/bin")
+    execute = AsyncMock()
+    monkeypatch.setattr(model, "run_process", execute)
+    monkeypatch.setattr(model, "decode_result", lambda *_: (json.dumps(ANSWER), {}))
+
     async def fake_execute(**kwargs):
         assert effective_settings().provider == provider
+        response = await model.configured_model(model="legacy-model").ainvoke("offline prompt")
+        assert response.response_metadata["model_name"] == session_model
         kwargs["result_report"].update(status="completed", result={
             "content": {"test_summary": {"passed": 1}}})
+
     monkeypatch.setattr("artemis.interfaces.cli.commands.run.execute_task", fake_execute)
-    result = CliRunner().invoke(app, ["run", "offline goal", "--ai-cli", provider,
-                                      "--traces-path", str(tmp_path)])
+    args = ["run", "offline goal", "--ai-cli", provider, "--traces-path", str(tmp_path)]
+    if session_model:
+        args += ["--session-model", session_model]
+    result = CliRunner().invoke(app, args)
     assert result.exit_code == 0, result.output
     assert json.loads(result.stdout)["status"] == "completed"
+    command = execute.call_args.args[0]
+    assert execute.call_args.kwargs["provider"] == provider
+    if session_model:
+        assert command[command.index("--model") + 1] == session_model
+    else:
+        assert "--model" not in command
+    assert "legacy-model" not in command
+    assert effective_settings().session_model is None
 
 
 def test_stale_persisted_codex_does_not_override_host(tmp_path, monkeypatch):

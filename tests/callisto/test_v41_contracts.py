@@ -185,7 +185,7 @@ async def test_original_native_loop_reaches_cli_json_and_validates_submit(monkey
     result = ProcessResult(0, '\n'.join(map(json.dumps, [
         {"type": "item.completed", "item": {"type": "agent_message", "text": text}},
         {"type": "turn.completed"}])), "")
-    monkeypatch.setattr(model, "command_for", lambda *args: ["FAKE_NOT_EXECUTED"])
+    monkeypatch.setattr(model, "command_for", lambda *args, **kwargs: ["FAKE_NOT_EXECUTED"])
     process = AsyncMock(return_value=result)
     monkeypatch.setattr(model, "run_process", process)
     value = await explorer._run_native(client=Client(), query="find a button", context_feedback="", minimal_list="",

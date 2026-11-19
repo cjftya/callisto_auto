@@ -7,7 +7,7 @@ from pathlib import Path
 import tempfile
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class Settings(BaseModel):
@@ -19,6 +19,7 @@ class Settings(BaseModel):
     claude_executable: str | None = None
     gemini_executable: str | None = None
     antigravity_executable: str | None = None
+    session_model: str | None = Field(default=None, exclude=True)
 
 
 ENV = {"provider": "CALLISTO_AI_CLI", "image_policy": "CALLISTO_IMAGE_POLICY",
@@ -44,7 +45,8 @@ def user_settings():
         values = json.loads(path.read_text(encoding="utf-8"))
         if isinstance(values, dict):
             # Old v4.2 config may contain hardcoded model defaults. Never apply them.
-            values = {k: v for k, v in values.items() if k not in ("model", "reasoning", "provider")}
+            values = {k: v for k, v in values.items()
+                      if k not in ("model", "reasoning", "provider", "session_model")}
             # Before host routing, provider=codex was saved as a default on setup.
             # Never treat a stale persisted provider as the current hosting CLI.
         return Settings.model_validate(values).model_dump(exclude_unset=True)

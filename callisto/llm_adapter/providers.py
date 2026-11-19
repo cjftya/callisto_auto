@@ -27,7 +27,8 @@ def require_inference_support(provider):
         raise UnsupportedCapability(ANTIGRAVITY_UNSUPPORTED)
 
 
-def command_for(provider, model, directory, images, schema_path, reasoning_effort=None):
+def command_for(provider, model, directory, images, schema_path, reasoning_effort=None, *,
+                session_model=None):
     require_inference_support(provider)
     if os.environ.get("CALLISTO_FORBID_LIVE_CLI") == "1":
         raise CLIError("Live AI CLI execution is forbidden in this environment")
@@ -40,10 +41,11 @@ def command_for(provider, model, directory, images, schema_path, reasoning_effor
         raise UnsupportedCapability(
             f"{provider} CLI launcher is not a native executable or a verified npm/Node entrypoint"
         )
+    model_option = ["--model", session_model] if session_model is not None else []
     if provider == "codex":
         # Do NOT use --ignore-user-config: it discards the user's selected CLI defaults.
         # Disable CLI-owned effects and explicitly request a read-only sandbox.
-        command = [*launcher, "exec", "--ephemeral",
+        command = [*launcher, "exec", *model_option, "--ephemeral",
                    "--skip-git-repo-check", "--sandbox", "read-only",
                    "--disable", "shell_tool", "--disable", "apps",
                    "--disable", "plugins", "--disable", "hooks",
@@ -57,7 +59,7 @@ def command_for(provider, model, directory, images, schema_path, reasoning_effor
         # Stream-json stdin carries real multimodal image blocks; never ask the
         # provider to use a shell/Read tool for screenshots.
         schema = json.loads(Path(schema_path).read_text(encoding="utf-8"))
-        return [*launcher, "-p", "--output-format", "json",
+        return [*launcher, "-p", *model_option, "--output-format", "json",
                 "--input-format", "stream-json",
                 "--json-schema", json.dumps(schema, separators=(",", ":")),
                 "--tools", "", "--disallowedTools", "mcp__*",
@@ -72,7 +74,7 @@ def command_for(provider, model, directory, images, schema_path, reasoning_effor
         '[[rule]]\ntoolName = "*"\ndecision = "deny"\npriority = 999\n',
         encoding="utf-8",
     )
-    return [*launcher, "--prompt", "Respond to the request supplied on standard input.",
+    return [*launcher, *model_option, "--prompt", "Respond to the request supplied on standard input.",
             "--output-format", "stream-json", "--approval-mode", "plan",
             "--policy", str(policy / "callisto-deny.toml"), "--skip-trust"]
 

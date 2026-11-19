@@ -191,16 +191,18 @@ def test_cli_owns_model_selection_even_with_legacy_hints(isolated_settings, monk
 
 def test_old_settings_strip_model_fields(isolated_settings):
     isolated_settings.write_text(json.dumps({"provider": "codex", "model": "old",
-        "reasoning": "medium", "image_policy": "balanced"}), encoding="utf-8")
+        "session_model": "old-session", "reasoning": "medium", "image_policy": "balanced"}), encoding="utf-8")
     assert effective_settings().image_policy == "balanced"
+    assert effective_settings().session_model is None
     assert save_settings()
     persisted = json.loads(isolated_settings.read_text(encoding="utf-8"))
-    assert "model" not in persisted and "reasoning" not in persisted
+    assert not persisted.keys() & {"model", "session_model", "reasoning"}
 
 
-def test_run_help_has_no_model_overrides():
+def test_run_help_offers_session_model_only():
     result = CliRunner().invoke(app, ["run", "--help"])
     assert result.exit_code == 0
+    assert "--session-model" in result.output
     assert "--model" not in result.output and "--reasoning" not in result.output
 
 
