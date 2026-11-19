@@ -32,6 +32,29 @@ Linux:
 - 설치된 Codex·Claude Code·Gemini CLI를 자동 탐색하고, 사용 가능한 모든 CLI에 Callisto 스킬을 각각 등록함. 설치 시 CLI를 선택할 필요 없음. 특정 CLI만 점검·복구할 때만 `--ai-cli` 옵션 사용.
 - 중단 이후 재실행 시 준비된 환경을 재사용함. 미해결 조건은 `ACTION_REQUIRED`와 후속 조치로 표시됨.
 
+### Python 또는 가상환경 오류 해결
+
+Setup은 실행용 Python 3.12 이상을 먼저 찾고, 프로젝트의 `.venv` 안에서 `python -m pip`를 실행함.
+
+1. Python 3.12 이상을 찾지 못하면 먼저 설치한 뒤 Setup을 다시 실행함. Linux에서는 `python3.12 --version`으로 Python 3.12가 검색되는지 확인하고, 배포판에서 `venv`를 별도 패키지로 제공하면 함께 설치함. Windows에서는 대화형 Setup의 Python 설치 안내를 따르고, 설치 후 새 PowerShell에서 `py -3.12 --version`으로 확인함. 이미 Setup이 찾을 수 있는 Python 3.12 이상이 있다면 그대로 사용 가능함.
+2. 가상환경 생성이 실패했거나 `No module named pip` 오류가 나면, [uv](https://docs.astral.sh/uv/getting-started/installation/)가 설치된 상태에서 **프로젝트 루트**에서 아래 명령을 실행함. `.venv`의 Python이 정상적으로 실행되고 버전이 3.12 이상이면 가상환경 생성 줄은 건너뜀. 기존 `.venv`가 손상됐거나 3.12 미만으로 만들어졌으면 폴더 이름을 바꿔 보관한 뒤 생성 줄부터 실행함.
+
+Linux
+
+```sh
+uv --system-certs venv --python 3.12 .venv
+uv --system-certs pip install --python .venv/bin/python pip
+./setup.sh
+```
+
+Windows PowerShell
+
+```powershell
+uv --system-certs venv --python 3.12 .venv
+uv --system-certs pip install --python .\.venv\Scripts\python.exe pip
+.\setup.ps1
+```
+
 ### 설치 폴더와 글로벌 Skill
 
 Callisto 엔진과 Python 라이브러리는 압축을 해제한 원본 폴더와 그 안의 `.venv`에 유지됨. 글로벌 Skill에는 다음 두 파일만 등록하며 ZIP·엔진 복사본이나 심볼릭 링크를 만들지 않음.
